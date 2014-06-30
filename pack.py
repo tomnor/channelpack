@@ -44,6 +44,10 @@ class ChannelPack:
 
     """
 
+    # TO DO:
+    # Add a "present" method. Pretty printing of the pack. Also implement some
+    # __repr__ thing.
+
     def __init__(self, loadfunc=None):
         """Return a pack
 
