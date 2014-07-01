@@ -34,6 +34,7 @@ called [REMAP], one option: neworder = [3, 2 , 4, 1, 0]. No? This should
 conflict with the NAMES section. Not applicable I think.
 ----------------------------
 """
+import re
 
 from . import pulltxt
 
@@ -43,6 +44,10 @@ class ChannelPack:
     index. This object is callable by channel name or index.
 
     """
+
+    # TO DO:
+    # Add a "present" method. Pretty printing of the pack. Also implement some
+    # __repr__ thing.
 
     def __init__(self, loadfunc=None):
         """Return a pack
@@ -129,29 +134,78 @@ class ChannelPack:
         else:
             return i
 
-    def name(self, ch):
+    def name(self, ch, firstwordonly=False):
         """Return channel name for ch. ch is the channel name or the index
         number for the channel name, 0-based.
 
+        ch: str or int. 
+            The channel name or indexed number.
+
+        firstwordonly: bool or "pattern".
+            If True, return only the first non-spaced word in the name.
+            If a string, use as a re-pattern to re.findall and return the
+            first element found. There will be error if no match.
+
         Returned channel name is the fallback string if "custom" names
-        are not available. """
+        are not available.
+
+        """
+
+        # Consider some control over the error produced on failure based on
+        # non-existent channel name or index.
 
         names = self.chnames or self.chnames_0
         try:
-            return names[self.chindex.index(ch)] # ch an integer.
+            i = int(ch)
         except ValueError:
-            pass
+            i = self._channelindex(ch, callindex=False)
 
-        i = self._channelindex(ch, callindex=False)
-        return names[i]
+        if not firstwordonly:
+            return names[i]
+        elif firstwordonly == True:
+            return names[i].split()[0].strip()
+
+        return re.findall(firstwordonly, names[i])[0] # Remove trailing
+                                                      # non-alphanumerics. Also,
+                                                      # make error if no match.
 
     def ch(self, chname):
         """Return the channel data vector.
 
-        chname: The chanel name, or the fallback string for the channel,
+        chname: The channel name, or the fallback string for the channel,
         or an index integer for the channel.
         """
         return self.__call__(chname)
+
+    def set_basefilemtime(self):
+        """Attempt to find the original file in the same folder as fs is
+        in. If found, set self.mtimestamp and self.mtimefs
+        attributes. This might fail, and the attributes won't exist. It
+        might also get wrong. But, if a file is found, and it is the
+        base data file, and it has not been modified since storage, its
+        probably correct.
+
+        #######
+        NOTE: This method just copied from my other stuff. Improve by
+        testing and figure out smart way of keeping extensions to look
+        for. Also - structure module not available. 
+        Remove structure dependency and rely on stdlib stuff.
+        Also, let the fallback timestamp be for self.fn. (fs).
+        #####
+        """
+
+        dirpath = os.path.split(self.fs)[0]
+        # name = self.name.split('.')[0]
+        name = os.path.basename(self.fs).split('.')[0]
+        for ext in ['iad', 'd7d']:
+            res = structure.globfind(dirpath, 
+                                     name + '.' + ext, slash_cnt=1, 
+                                     res_mess=False)
+            if res: # Assume first match is valid.
+                self.mtimefs = res[0]
+                # Time stamp string:
+                self.mtimestamp = time.ctime(os.path.getmtime(self.mtimefs)) 
+                break
 
 def fallback_names(nums):
     """Return a list like ['ch0', 'ch1',...], based on nums. nums is a list
