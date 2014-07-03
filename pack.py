@@ -36,6 +36,8 @@ conflict with the NAMES section. Not applicable I think.
 """
 import re
 
+import numpy as np
+
 from . import pulltxt
 
 class ChannelPack:
@@ -48,6 +50,7 @@ class ChannelPack:
     # TO DO:
     # Add a "present" method. Pretty printing of the pack. Also implement some
     # __repr__ thing.
+    # Implement the set_basefilemtime method properly.
 
     def __init__(self, loadfunc=None):
         """Return a pack
@@ -89,8 +92,15 @@ class ChannelPack:
         """
         D = self.loadfunc(*args, **kwargs)                
         usecols = kwargs.get('usecols', None)
+
         # Below is problem when there is only one channel. Then D is ONE array
         # of data and this goes wrong.
+        # self.chindex = usecols or range(len(D))
+        # self.chnames_0 = fallback_names(self.chindex)
+
+        if len(np.shape(D)) == 1: # There was only one col of data.
+            D = [D]               # Wrap it in a list?
+
         self.chindex = usecols or range(len(D))
         self.chnames_0 = fallback_names(self.chindex)
 
@@ -162,12 +172,12 @@ class ChannelPack:
 
         if not firstwordonly:
             return names[i]
-        elif firstwordonly == True:
+        elif firstwordonly == True or firstwordonly == 1:
             return names[i].split()[0].strip()
 
-        return re.findall(firstwordonly, names[i])[0] # Remove trailing
-                                                      # non-alphanumerics. Also,
-                                                      # make error if no match.
+        return re.findall(firstwordonly, names[i])[0] # According to user
+                                                      # pattern.
+
 
     def ch(self, chname):
         """Return the channel data vector.
@@ -218,7 +228,7 @@ def txtpack(fn, **kwargs):
 
     This is a lazy function to get a loaded instance, using the
     cleverness provided by pulltxt module. No delimiter or rows-to-skip
-    and such need to be provided. However, if necesseray, **kwargs can
+    and such need to be provided. However, if necessary, **kwargs can
     be used to override clevered items to provide to numpys
     loadtxt. usecols might be such an item for example.
 

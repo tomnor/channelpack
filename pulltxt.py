@@ -289,10 +289,13 @@ def _floatit(s):
 def loadtxt(fn, **kwargs):
     """Study the text data file fn. Call numpys loadtxt with keyword
     arguments based on the study.
+
+    Return data returned from numpy loadtxt.
     
     kwargs: Key word arguments accepted by numpys loadtxt. Any key word
     arguments provided will take prescedence over the ones resulting
     from the study.
+    
     """
     global PP
     PP = PatterPull(fn)
