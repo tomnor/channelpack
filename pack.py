@@ -214,12 +214,12 @@ def fallback_names(nums):
     return ['ch' + str(i) for i in nums]
 
 def txtpack(fn, **kwargs):
-    """Return a ChannelPack instance loaded with data file fn.
+    """Return a ChannelPack instance loaded with text data file fn.
 
-    This is a lazy function to get a loaded instance, using the cleverness
-    provided by pulltxt module. No delimiter or rows-to-skip and such
-    need to be provided. However, if deemed necesseray, **kwargs can be
-    used to override clevered items to provide to numpys
+    This is a lazy function to get a loaded instance, using the
+    cleverness provided by pulltxt module. No delimiter or rows-to-skip
+    and such need to be provided. However, if necesseray, **kwargs can
+    be used to override clevered items to provide to numpys
     loadtxt. usecols might be such an item for example.
 
     Note that the call signature is the same as numpys loadtxt."""
