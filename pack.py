@@ -2,12 +2,11 @@
 # -*- coding: UTF-8 -*-
 
 """
-Provide one or more baseclasses for holding a dict with data vectors, (numpy
-arrays loaded from some data acqusition).
+Provide one or more baseclasses for holding a dict with data vectors,
+(numpy arrays loaded from some data acqusition).
 
 Sub clacces might load data from different sources, but the interface
 from any class deriving from Pack should be the same.
-
 
 ----------------------------
 Written thinking
@@ -19,7 +18,8 @@ of channel names might suddenly change. I will need to know how the
 channels are ordered. There is no obvious way for channelpack to know
 this order. So it shall be possible to call channels by index
 number. This solves the problem of not knowing the exact spelling of
-channel names from a given measurement session.
+channel names from a given measurement session. But not the ordering of
+channels. 
 
 There could be a function to spit out a config file to the directory
 where the data file is sitting. This file is a config file. It has a
@@ -29,16 +29,17 @@ saying what data files the mapping is valid for, being all files with an
 asterisk. It's a shell pattern, so to limit valid file names, it can be
 [NAMES "<valid prefix>*.csv"], or [NAMES "mes_M*.*"] or similar.
 
-Another section gives a possibility to remap the channel index order, it's
-called [REMAP], one option: neworder = [3, 2 , 4, 1, 0]. No? This should
-conflict with the NAMES section. Not applicable I think.
+Another section gives a possibility to remap the channel index order,
+it's called [REMAP], one option: neworder = [3, 2 , 4, 1, 0]. No? This
+should conflict with the NAMES section. Not applicable I think.
+
 ----------------------------
 """
 import re
 
 import numpy as np
 
-from . import pulltxt
+from . import pulltxt, pulldbf
 
 class ChannelPack:
     """Base class for a pack of data. Hold a dict with channel index
@@ -51,65 +52,76 @@ class ChannelPack:
     # Add a "present" method. Pretty printing of the pack. Also implement some
     # __repr__ thing.
     # Implement the set_basefilemtime method properly.
+    # Do some reduce functionality. Masking from conditions. Make a new
+    # module I guess, with sort of numpy utils.
 
     def __init__(self, loadfunc=None):
         """Return a pack
 
-        loadfunc: Use this function to load the data. It is a function
-        that returns un-packable numpy arrays, being the channels
-        data. Like ch1, ch2, ch3 = loadfunc(*args, **kwargs)
-
-        If D = loadfunc(*args, **kwargs), then shape(D) gives
-        (<num_channels>, <num_records>). Numpy would probably call this
-        a transposed matrix, since data files normally have the shape
-        (rows, cols).
+        loadfunc is a function that returns a dict holding numpy
+        arrays, being the channels. Keys are the index integer numbers,
+        (column numbers). Each array is of np.shape(N,).
 
         See method load.
         
         """
         self.loadfunc = loadfunc
-        self.D = dict()
+        self.D = None           # Dict of data.
         self.fn = None          # The loaded filename
 
-        # Lists for channel names and indexes. By default, if a reduced number
-        # of channels is loaded relative the data file, chindex will reflect
-        # that by containing numbers such as [4, 6, 7] for example.
-        self.chnames = None       # Channel names if reachable. list.
-        self.chnames_0 = None     # Fall back names, always available. ch0, ch1
-        self.chindex = None       # 0, 1, 2, ordered index numbers.
+        self.chnames = None       # Channel names maybe. dict
+        self.chnames_0 = None     # Fall back names, always available. ch0,
+                                  # ch1. dict
+        self.keys = None          # Sorted list of keys for the dicts.
 
         self.rec_cnt = 0
 
     def load(self, *args, **kwargs):
-        """Load the data using loadfunc.
+        """load the data using loadfunc.
 
-        args, kwargs: Forward to the loadfunc. args[0] must be the
-        filename. And so it means that loadfunc must take the filename
+        args, kwargs: forward to the loadfunc. args[0] must be the
+        filename, so it means that loadfunc must take the filename
         as it's first argument.
 
-        Set channel names attributes and the filename attribute.
+        Set the filename attribute.
 
         """
-        D = self.loadfunc(*args, **kwargs)                
+        # D = self.loadfunc(*args, **kwargs)
+        self.D = self.loadfunc(*args, **kwargs)
         usecols = kwargs.get('usecols', None)
+        self.keys = sorted(self.D.keys())
+        self.rec_cnt = len(self.D[self.keys[0]]) # If not all the same, there
+                                           # should have been an error
+                                           # already
 
-        # Below is problem when there is only one channel. Then D is ONE array
-        # of data and this goes wrong.
-        # self.chindex = usecols or range(len(D))
-        # self.chnames_0 = fallback_names(self.chindex)
+        fallnames  = fallback_names(self.keys)
+        self.chnames_0 = dict(zip(self.keys, fallnames))
+        self._set_filename(args[0])
+        
+    def _set_filename(self, fn):
+        """Set the filename attributes. (They are multiple for personal
+        reasons)."""
+        self.filename = self.fs = self.fn = fn
 
-        if len(np.shape(D)) == 1: # There was only one col of data.
-            D = [D]               # Wrap it in a list?
+    def set_channel_names(self, names):
+        """
+        Set self.chnames.
 
-        self.chindex = usecols or range(len(D))
-        self.chnames_0 = fallback_names(self.chindex)
+        names: list or None
+            It is the callers responsibility to make sure the list is in
+            column order. self.chnames will be a dict with channel
+            integer indexes as keys. If names is None, self.chnames will
+            be None.
+            
+        """
+        if not names:
+            self.chnames = None
+            return
 
-        for i, n in enumerate(self.chindex):
-            self.D[n] = D[i]
-
-        i = self.chindex[0]
-        self.rec_cnt = len(self.D[i]) # If not all the same, there should have
-                                      # been an error already
+        if len(names) != len(self.keys):
+            raise ValueError('len(names) != len(self.D.keys())')
+        
+        self.chnames = dict(zip(self.keys, names))
 
     def __call__(self, key):
         """Make possible to retreive channels by key.
@@ -122,53 +134,43 @@ class ChannelPack:
         except KeyError:
             pass
 
-        i = self._channelindex(key)
-                
+        i = self._key(key)
         return self.D[i]
 
-    def _channelindex(self, chstr, callindex=True):
-        """Helper for getting index on based on string chstr. Make error if
-        ch does not exist in chnames or chnames_0. Returned index i can be
-        used for self.D[i], if callindex is True. If callindex is false,
-        then i is used for self.chnames[i]."""
+    def _key(self, chstr):
+        """Return the integer key for chstr. It is the key for the first
+        value found in chnames and chnames_0, that matches chstr."""
 
-        if self.chnames and chstr in self.chnames:
-            i = self.chnames.index(chstr)
-        elif chstr in self.chnames_0:
-            i = self.chnames_0.index(chstr)
-        else:
-            raise KeyError(str(chstr))  
-
-        if callindex:
-            return self.chindex[i]
-        else:
-            return i
+        if self.chnames:
+            for item in self.chnames.items():
+                if item[1] == chstr:
+                    return item[0]
+        for item in self.chnames_0.items():
+            if item[1] == chstr:
+                return item[0]            
 
     def name(self, ch, firstwordonly=False):
-        """Return channel name for ch. ch is the channel name or the index
-        number for the channel name, 0-based.
+        """Return channel name for ch. ch is the channel name or the
+        index number for the channel name, 0-based.
 
         ch: str or int. 
             The channel name or indexed number.
 
         firstwordonly: bool or "pattern".
             If True, return only the first non-spaced word in the name.
-            If a string, use as a re-pattern to re.findall and return the
-            first element found. There will be error if no match.
+            If a string, use as a re-pattern to re.findall and return
+            the first element found. There will be error if no match.
 
         Returned channel name is the fallback string if "custom" names
         are not available.
 
         """
 
-        # Consider some control over the error produced on failure based on
-        # non-existent channel name or index.
-
         names = self.chnames or self.chnames_0
         try:
             i = int(ch)
         except ValueError:
-            i = self._channelindex(ch, callindex=False)
+            i = self._key(ch)
 
         if not firstwordonly:
             return names[i]
@@ -182,8 +184,8 @@ class ChannelPack:
     def ch(self, chname):
         """Return the channel data vector.
 
-        chname: The channel name, or the fallback string for the channel,
-        or an index integer for the channel.
+        chname: The channel name, or the fallback string for the
+        channel, or an index integer for the channel.
         """
         return self.__call__(chname)
 
@@ -218,8 +220,8 @@ class ChannelPack:
                 break
 
 def fallback_names(nums):
-    """Return a list like ['ch0', 'ch1',...], based on nums. nums is a list
-    with integers."""
+    """Return a list like ['ch0', 'ch1',...], based on nums. nums is a
+    list with integers."""
 
     return ['ch' + str(i) for i in nums]
 
@@ -228,16 +230,29 @@ def txtpack(fn, **kwargs):
 
     This is a lazy function to get a loaded instance, using the
     cleverness provided by pulltxt module. No delimiter or rows-to-skip
-    and such need to be provided. However, if necessary, **kwargs can
-    be used to override clevered items to provide to numpys
+    and such need to be provided. However, if necessary, **kwargs can be
+    used to override clevered items to provide to numpys
     loadtxt. usecols might be such an item for example.
 
     Note that the call signature is the same as numpys loadtxt."""
 
-    loadfunc = pulltxt.loadtxt
+    loadfunc = pulltxt.loadtxt_asdict
     cp = ChannelPack(loadfunc)
     cp.load(fn, **kwargs)
-    cp.patpull = pulltxt.PP              # Give a reference to the patternpull.
-    cp.chnames = cp.patpull.channel_names(kwargs.get('usecols', None))['names']
-    cp.fn = fn
+    names = pulltxt.PP.channel_names(kwargs.get('usecols', None))
+    cp.set_channel_names(names)
+    cp._patpull = pulltxt.PP              # Give a reference to the patternpull.
+    return cp
+
+def dbfpack(fn, usecols=None):
+    """Return a ChannelPack instance loaded with dbf data file fn.
+
+    This is a lazy function to get a loaded instance, using pulldbf
+    module."""
+
+    loadfunc = pulldbf.dbf_asdict
+    cp = ChannelPack(loadfunc)
+    cp.load(fn, usecols)
+    names = pulldbf.channel_names(fn, usecols)
+    cp.set_channel_names(names)
     return cp

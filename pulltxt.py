@@ -54,7 +54,7 @@ class PatternError(Exception):
     """Raise at failure to evaluate the data file"""
     pass
 
-class PatterPull:
+class PatternPull:
     """Build useful attributes for determining decimal delimiter and
     data delimiter, and hopefully some channel names.
 
@@ -227,26 +227,19 @@ class PatterPull:
                 convd[i] = _floatit
                 d.update(converters=convd)
         d.update(usecols=cols)
-        d.update(unpack=True)   # Un-packable by default.
+        # d.update(unpack=True)   # Un-packable by default. Yes, but this is not
+        # the task of this class to decide.
 
         return d
 
-    # def fallback_names(cls, nums):
-    #     """Return a list like ['ch0', 'ch1',...], based on nums. nums is a list
-    #     with integers."""
-
-    #     return ['ch' + str(i) for i in nums]
-
     def channel_names(self, usecols=None):
         """Attempt to extract the channel names from the data
-        file. Return a dict with item 'names'.
-        'names' is None at failure and a list of channel
-        names at success.
+        file. Return a list with names. Return None on failed attempt.
 
         usecols: A list with columns to use. If present, the returned
-        item will include only names for columns requested. It will
+        list will include only names for columns requested. It will
         align with the columns returned by numpys loadtxt by using the
-        same keyword.
+        same keyword (usecols).
         """
 
         # Search from [rts - 1] and up (last row before data). Split respective
@@ -264,6 +257,9 @@ class PatterPull:
             raise IndexError(str(usecols) + mess + str(datcnt - 1))
 
         names = None
+        if not self.rts:                        # Only data.
+            return None
+
         for row in self.rows[self.rts - 1::-1]: # From last row before data and up.
             splitlist = row.split(self.datdel) # datdel might be None,
                                                # (whitespace).
@@ -277,10 +273,9 @@ class PatterPull:
                 break
 
         if usecols:
-            names = [names[i] for i in usecols]
-        
-        return dict(names=names)
-            
+            names = [names[i] for i in sorted(usecols)]
+
+        return names
 
 def _floatit(s):
     """Convert string s to a float. s use ',' as a decimal delimiter."""
@@ -292,15 +287,37 @@ def loadtxt(fn, **kwargs):
 
     Return data returned from numpy loadtxt.
     
-    kwargs: Key word arguments accepted by numpys loadtxt. Any key word
+    kwargs: keyword arguments accepted by numpys loadtxt. Any keyword
     arguments provided will take prescedence over the ones resulting
     from the study.
+
+    Set the module attribute PP to the instance of PatternPull used.
     
     """
     global PP
-    PP = PatterPull(fn)
+    PP = PatternPull(fn)
     txtargs = PP.loadtxtargs()
-    kwargs.pop('unpack', None) # Let me handle this one.
+    # kwargs.pop('unpack', None) # Let me handle this one. No. Why? User.
     txtargs.update(kwargs)      # Let kwargs dominate.
     return np.loadtxt(fn, **txtargs)
 
+def loadtxt_asdict(fn, **kwargs):
+    """Return what is returned from loadtxt as a dict.
+
+    The 'unpack' keyword is enforced to True.
+    The keys in the dict is the column numbers loaded. It is the
+    integers 0...N-1 for N loaded columns, or the numbers in usecols."""
+
+    kwargs.update(unpack=True)
+    d = loadtxt(fn, **kwargs)
+    if len(np.shape(d)) == 2:
+        keys = kwargs.get('usecols', None) or range(len(d))
+        D = dict([(k, v) for k, v in zip(keys, d)])
+    elif len(np.shape(d)) == 1:
+        keys = kwargs.get('usecols', None) or [0]
+        D = dict([(keys[0], d)])
+    else:
+        raise Exception('Unknown dimension of loaded data.')
+
+    return D
+        
