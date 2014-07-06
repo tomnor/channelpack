@@ -31,15 +31,26 @@ asterisk. It's a shell pattern, so to limit valid file names, it can be
 
 Another section gives a possibility to remap the channel index order,
 it's called [REMAP], one option: neworder = [3, 2 , 4, 1, 0]. No? This
-should conflict with the NAMES section. Not applicable I think.
+should conflict with the NAMES section. Not applicable I think. Just
+provide a method for this. remap is good name of such a method.
+
+Now the mtime thing. Where should the possible file extensions to look
+for be located. This question solve later. Now just store a global list
+here with such extensions. 
+
+Now the conditions thing. 
 
 ----------------------------
 """
 import re
+import glob
+import os, time
 
 import numpy as np
 
 from . import pulltxt, pulldbf
+
+ORIGINEXTENSIONS =  ['iad', 'd7d']
 
 class ChannelPack:
     """Base class for a pack of data. Hold a dict with channel index
@@ -68,13 +79,18 @@ class ChannelPack:
         self.loadfunc = loadfunc
         self.D = None           # Dict of data.
         self.fn = None          # The loaded filename
-
         self.chnames = None       # Channel names maybe. dict
         self.chnames_0 = None     # Fall back names, always available. ch0,
-                                  # ch1. dict
-        self.keys = None          # Sorted list of keys for the dicts.
+                                  # ch1... dict
+        self.keys = None          # Sorted list of keys for the data dict.
+        self.rec_cnt = 0          # Number of records.
 
-        self.rec_cnt = 0
+        self.mask_on = False    # Yeahh...
+        self.filter_on = False
+        self.mask = None
+        # Dict with condition specs for the mask array:
+        self.conditions = {'and': '', 'or': '', 'dur': 0, 'dur_min': 0,
+                           'dur_max': 0} 
 
     def load(self, *args, **kwargs):
         """load the data using loadfunc.
@@ -102,6 +118,49 @@ class ChannelPack:
         """Set the filename attributes. (They are multiple for personal
         reasons)."""
         self.filename = self.fs = self.fn = fn
+
+    def set_sammple_rate(self, rate):
+        self.samplerate = rate
+
+    def add_conditions(self, constr, andor):
+        """Add a condition to the conditions that must be True.
+
+        constr: str
+            Condtion like 'ch01 > 5' or comma delimited conditions like
+            'ch05 == ch14, ch0 <= (ch + 2)'. 'ch5', for example, can be
+            a custom channel name if available.
+
+        andor: str
+            'and' or 'or' accepted.
+
+        NOTE: Only the ch<x> pattern currently.
+
+        """
+        matches = re.findall(r'ch\d+', constr)
+        for ch in matches:
+            i = self._key(ch)
+            constr = constr.replace(ch, 'd[' + str(i) + ']')
+
+        if self.chnames:
+            for ch in self.chnames.values():
+                for m in re.findall(r'\w+', constr):
+                    if ch == m:
+                        i = self._key(ch)
+                        constr = constr.replace(ch, 'd[' + str(i) + ']')
+
+        # Check:
+        for con in constr.split(','):
+            if not re.search(r'd\[\d+\]', con):
+                raise ValueError('This condition did not resolve to a valid' +
+                                 ' channel: ' + con)
+            # Still to check maybe if some d[4] has been used and 4 is not
+            # available...
+
+        return constr
+
+    def _make_mask(self):
+        """Set the attribute self.mask to a mask based on self.conditions"""
+        raise NotImplementedError
 
     def set_channel_names(self, names):
         """
@@ -147,7 +206,9 @@ class ChannelPack:
                     return item[0]
         for item in self.chnames_0.items():
             if item[1] == chstr:
-                return item[0]            
+                return item[0]
+
+        raise KeyError(chstr)
 
     def name(self, ch, firstwordonly=False):
         """Return channel name for ch. ch is the channel name or the
@@ -190,34 +251,25 @@ class ChannelPack:
         return self.__call__(chname)
 
     def set_basefilemtime(self):
-        """Attempt to find the original file in the same folder as fs is
-        in. If found, set self.mtimestamp and self.mtimefs
-        attributes. This might fail, and the attributes won't exist. It
-        might also get wrong. But, if a file is found, and it is the
-        base data file, and it has not been modified since storage, its
-        probably correct.
+        """Attempt to find the original file in the same folder as
+        self.filename is in. If found, set self.mtimestamp and
+        self.mtimefs attributes, based on that file. Else, set it based
+        on self.filename.
 
-        #######
-        NOTE: This method just copied from my other stuff. Improve by
-        testing and figure out smart way of keeping extensions to look
-        for. Also - structure module not available. 
-        Remove structure dependency and rely on stdlib stuff.
-        Also, let the fallback timestamp be for self.fn. (fs).
-        #####
         """
 
-        dirpath = os.path.split(self.fs)[0]
-        # name = self.name.split('.')[0]
+        dirpath = os.path.split(self.filename)[0]
         name = os.path.basename(self.fs).split('.')[0]
-        for ext in ['iad', 'd7d']:
-            res = structure.globfind(dirpath, 
-                                     name + '.' + ext, slash_cnt=1, 
-                                     res_mess=False)
+        for ext in ORIGINEXTENSIONS:
+            res = glob.glob(dirpath + '/' + name + '.' + ext)
             if res: # Assume first match is valid.
                 self.mtimefs = res[0]
                 # Time stamp string:
                 self.mtimestamp = time.ctime(os.path.getmtime(self.mtimefs)) 
                 break
+        else:
+            self.mtimefs = self.filename
+            self.mtimestamp = time.ctime(os.path.getmtime(self.mtimefs)) 
 
 def fallback_names(nums):
     """Return a list like ['ch0', 'ch1',...], based on nums. nums is a
@@ -256,3 +308,4 @@ def dbfpack(fn, usecols=None):
     names = pulldbf.channel_names(fn, usecols)
     cp.set_channel_names(names)
     return cp
+

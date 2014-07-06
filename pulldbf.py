@@ -86,24 +86,45 @@ def numpytypes(field_specs):
             
     return typestr[:-1]
 
-def dbf_asdict(fn, usecols=None):
-    """Return the dbf file fn as a dict. Fields (columns) are indexed
-    from 0, and index is used as keys."""
+def dbf_asdict(fn, usecols=None, keystyle='ints'):
+    """Return data from dbf file fn as a dict. 
 
+    fn: str
+        The filename string.
+
+    usecols: seqence
+        The columns to use, 0-based.
+
+    keystyle: str
+        'ints' or 'names' accepted. Should be 'ints' (default) when this
+        function is given to a ChannelPack as loadfunc. If 'names' is
+        used, keys will be the field names from the dbf file.
+
+    """
+
+    if not keystyle in ['ints', 'names']:
+        raise ValueError('Unknown keyword: ' + str(keystyle))
+    
     with open(fn, 'rb') as fo:
         rit = dbfreader(fo)
         names = rit.next()
         specs = rit.next()
         R = [tuple(r) for r in rit]
 
+    def getkey(i):
+        if keystyle == 'ints': 
+            return i
+        else:
+            return names[i]
+
     R = np.array(R, dtype=numpytypes(specs))
     d = dict()
     for i in usecols or range(len(names)):
-        d[i] = R['f' + str(i)]  # Default numpy fieldname
+        d[getkey(i)] = R['f' + str(i)]  # Default numpy fieldname
     return d
 
 def channel_names(fn, usecols=None):
-    """Return the fieldnames from dbf file fn, (channel names). With
+    """Return the fieldnames (channel names) from dbf file fn. With
     usecols, return only names corresponding to the integers in
     usecols."""
     
