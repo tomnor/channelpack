@@ -49,6 +49,7 @@ import os, time
 import numpy as np
 
 from . import pulltxt, pulldbf
+from . import datautils
 
 ORIGINEXTENSIONS =  ['iad', 'd7d']
 
@@ -123,7 +124,7 @@ class ChannelPack:
         self.samplerate = rate
 
     def add_conditions(self, constr, andor):
-        """Add a condition to the conditions that must be True.
+        """Add condition(s) to the conditions.
 
         constr: str
             Condtion like 'ch01 > 5' or comma delimited conditions like
@@ -133,7 +134,8 @@ class ChannelPack:
         andor: str
             'and' or 'or' accepted.
 
-        NOTE: Only the ch<x> pattern currently.
+        NOTE: If custom names are used, they must consist of one word
+        only, not delimited with spaces. 
 
         """
         matches = re.findall(r'ch\d+', constr)
@@ -156,11 +158,15 @@ class ChannelPack:
             # Still to check maybe if some d[4] has been used and 4 is not
             # available...
 
-        return constr
-
+        current = self.conditions[andor]
+        self.conditions[andor] = ','.join([current, constr]).strip(',')
+        
     def _make_mask(self):
-        """Set the attribute self.mask to a mask based on self.conditions"""
-        raise NotImplementedError
+        """Set the attribute self.mask to a mask based on
+        self.conditions"""
+        
+        self.mask = datautils.array_and(self.D, self.conditions['and'])
+
 
     def set_channel_names(self, names):
         """
@@ -294,6 +300,7 @@ def txtpack(fn, **kwargs):
     names = pulltxt.PP.channel_names(kwargs.get('usecols', None))
     cp.set_channel_names(names)
     cp._patpull = pulltxt.PP              # Give a reference to the patternpull.
+    cp.set_basefilemtime()
     return cp
 
 def dbfpack(fn, usecols=None):
@@ -307,5 +314,6 @@ def dbfpack(fn, usecols=None):
     cp.load(fn, usecols)
     names = pulldbf.channel_names(fn, usecols)
     cp.set_channel_names(names)
+    cp.set_basefilemtime()
     return cp
 
