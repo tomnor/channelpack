@@ -86,12 +86,11 @@ class ChannelPack:
         self.keys = None          # Sorted list of keys for the data dict.
         self.rec_cnt = 0          # Number of records.
 
-        self.mask_on = False    # Yeahh...
-        self.filter_on = False
+        self._mask_on = False    # Yeahh...
+        self._filter_on = False
         self.mask = None
         # Dict with condition specs for the mask array:
-        self.conditions = {'and': '', 'or': '', 'dur': 0, 'dur_min': 0,
-                           'dur_max': 0} 
+        self.conditions = {'and': '', 'or': '', 'dur': 0, 'durtype': 'min'} 
 
     def load(self, *args, **kwargs):
         """load the data using loadfunc.
@@ -120,10 +119,18 @@ class ChannelPack:
         reasons)."""
         self.filename = self.fs = self.fn = fn
 
-    def set_sammple_rate(self, rate):
+    def set_sample_rate(self, rate):
+        """Set sample rate to rate. 
+
+        rate is given as samples / timeunit. If self.samplerate is set,
+        it will have an impact on the duration value in
+        self.conditions. If duration is set to 2.5 and samplerate is
+        100, a duration of 250 records is required for the logical
+        conditions to be true."""
+
         self.samplerate = rate
 
-    def add_conditions(self, constr, andor):
+    def add_conditions(self, constr, andor, conf_file=None):
         """Add condition(s) to the conditions.
 
         constr: str
@@ -134,10 +141,20 @@ class ChannelPack:
         andor: str
             'and' or 'or' accepted.
 
+        conf_file: str or bool
+            An 'ini' kind of file with a section named conditions, and
+            an option named 'and' or 'or', (corresponding to andor). The
+            value is like constr. If instead conf_file is True, look for
+            such a file in the same directory as self.filename sits in.
+            NOTE: Not implemented. TO DO: Implement.
+
         NOTE: If custom names are used, they must consist of one word
         only, not delimited with spaces. 
 
         """
+        # It could be cool to make some parsing enabling expressions
+        # like 'ch2 == 2 AND ch15 > 3.5'...
+
         matches = re.findall(r'ch\d+', constr)
         for ch in matches:
             i = self._key(ch)
@@ -155,18 +172,76 @@ class ChannelPack:
             if not re.search(r'd\[\d+\]', con):
                 raise ValueError('This condition did not resolve to a valid' +
                                  ' channel: ' + con)
-            # Still to check maybe if some d[4] has been used and 4 is not
+            # Still to check maybe if some d[i] has been used and i is not
             # available...
 
         current = self.conditions[andor]
         self.conditions[andor] = ','.join([current, constr]).strip(',')
+
+        self._make_mask()       # On every update so errors are detected.
+
+    def set_conditions(self, conditions, andor, conf_file=None):
+        """Remove existing conditions in andor and replace with conditions.
+
+        See add_conditions for descriptions.
+        """
+        raise NotImplementedError
+    
+
+    def pprint_conditions(self):
+        """Pretty print conditions with custom names if they were valid
+        for conditions, else with 'chx'."""
+
+        raise NotImplementedError
+
+    def set_duration(self, dur, durtype='min'):
+        """Set the duration condition to dur.
+
+        dur: int or float
+            The count of duration. If self.samplerate is not set, dur is
+            the number of records to count. If samplerate is set, number
+            of records to count is int(self.samplerate * dur).
         
+        durtype: str
+            Accepted is one of 'strict', 'min' or 'max'. Default is
+            'min'.
+
+        Setting dur = 0 and durtype = 'min' is a safe way to make the
+        duration condition have no effect.
+        """
+        raise NotImplementedError
+        
+    def set_mask_on(self, b=True):
+        """If mask is on, any calls for a channel will be
+        masked. Meaning, the parts of the array not meeting the
+        conditions are replaced with numpy.nan.
+
+        Setting mask on, turns the filter off."""
+
+        self._mask_on = b
+        if self._mask_on: self._filter_on = False
+
+    def set_filter_on(self, b=True):
+        """If filter is on, any calls for a channel will be
+        reduced. Meaning, the parts of the array not meeting the
+        conditions are removed. It means that self.rec_cnt is probably
+        greater than the len of the array returned from a call. However,
+        any aray called for, will have the same len as the other.
+        
+        Setting filter on, turns the mask off.
+        """
+
+        self._filter_on = b
+        if self._filter_on: self._mask_on = False        
+
     def _make_mask(self):
         """Set the attribute self.mask to a mask based on
         self.conditions"""
         
-        self.mask = datautils.array_and(self.D, self.conditions['and'])
 
+        andmask = datautils.array_and(self.D, self.conditions['and'])
+        ormask = datautils.array_or(self.D, self.conditions['or'])
+        self.mask = np.logical_and(andmask, ormask)
 
     def set_channel_names(self, names):
         """
@@ -194,27 +269,37 @@ class ChannelPack:
         key: string or integer.
         """
         # Primary need is to get an integer from key since D.keys are integers.
-        try:
-            return self.D[key]
-        except KeyError:
-            pass
 
         i = self._key(key)
-        return self.D[i]
 
-    def _key(self, chstr):
-        """Return the integer key for chstr. It is the key for the first
-        value found in chnames and chnames_0, that matches chstr."""
+        if self._mask_on:
+            return datautils.masked(self.D[i], self.mask)
+        elif self._filter_on:
+            raise NotImplementedError
+        else:
+            return self.D[i]
+
+    def _key(self, ch):
+        """Return the integer key for ch. It is the key for the first
+        value found in chnames and chnames_0, that matches ch. Or if
+        ch is an int, ch is returned if it is a key in self.D"""
+        
+        try:
+            int(ch)
+            if ch in self.D:
+                return ch
+        except ValueError:
+            pass                # Not intable.
 
         if self.chnames:
             for item in self.chnames.items():
-                if item[1] == chstr:
+                if item[1] == ch:
                     return item[0]
         for item in self.chnames_0.items():
-            if item[1] == chstr:
+            if item[1] == ch:
                 return item[0]
 
-        raise KeyError(chstr)
+        raise KeyError(ch)
 
     def name(self, ch, firstwordonly=False):
         """Return channel name for ch. ch is the channel name or the
@@ -226,7 +311,9 @@ class ChannelPack:
         firstwordonly: bool or "pattern".
             If True, return only the first non-spaced word in the name.
             If a string, use as a re-pattern to re.findall and return
-            the first element found. There will be error if no match.
+            the first element found. There will be error if no
+            match. r'\w+' is good pattern for excluding
+            leading and trailing obscure characters.
 
         Returned channel name is the fallback string if "custom" names
         are not available.
@@ -266,7 +353,7 @@ class ChannelPack:
 
         dirpath = os.path.split(self.filename)[0]
         name = os.path.basename(self.fs).split('.')[0]
-        for ext in ORIGINEXTENSIONS:
+        for ext in ORIGINEXTENSIONS: # This must be some user configuration.
             res = glob.glob(dirpath + '/' + name + '.' + ext)
             if res: # Assume first match is valid.
                 self.mtimefs = res[0]
