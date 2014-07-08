@@ -68,6 +68,10 @@ ORIGINEXTENSIONS =  ['iad', 'd7d']
 CONFIG_FILE = "conf_file.cfg"
 CONFIG_SECS = ['channels',  'conditions']
 
+class ConditionMappingError(Exception):
+    """Raise when channels are not found in conditions."""
+    pass
+
 class ChannelPack:
     """Base class for a pack of data. Hold a dict with channel index
     numbers as keys. The channels can be called by channel name or
@@ -81,6 +85,10 @@ class ChannelPack:
     # Implement the set_basefilemtime method properly.
     # Do some reduce functionality. Masking from conditions. Make a new
     # module I guess, with sort of numpy utils.
+
+    # TO DO: More important - start and stop trigger conditions. Enabling
+    # hysterises kind of checking. Like start: "ch21 > 4.3" and 
+    # stop: "ch21 < 1.3". Include it to the conditions dict. 
 
     def __init__(self, loadfunc=None):
         """Return a pack
@@ -161,39 +169,56 @@ class ChannelPack:
             an option named 'and' or 'or', (corresponding to andor). The
             value is like constr. If instead conf_file is True, look for
             such a file in the same directory as self.filename sits in.
-            NOTE: Not implemented. TO DO: Implement.
+            NOTE: Not implemented. TO DO: Implement. Or remove this
+            option, it kind duplicates the functionality of spit and eat
+            config which is more natural to use for reading files.
 
         NOTE: If custom names are used, they must consist of one word
         only, not delimited with spaces. 
 
         """
-        # It could be cool to make some parsing enabling expressions
-        # like 'ch2 == 2 AND ch15 > 3.5'...
 
-        matches = re.findall(r'ch\d+', constr)
-        for ch in matches:
-            i = self._key(ch)
-            constr = constr.replace(ch, 'd[' + str(i) + ']')
-
-        if self.chnames:
-            for ch in self.chnames.values():
-                for m in re.findall(r'\w+', constr):
-                    if ch == m:
-                        i = self._key(ch)
-                        constr = constr.replace(ch, 'd[' + str(i) + ']')
-
-        # Check:
+        # Audit:
         for con in constr.split(','):
-            if not re.search(r'd\[\d+\]', con):
-                raise ValueError('This condition did not resolve to a valid' +
-                                 ' channel: ' + con)
-            # Still to check maybe if some d[i] has been used and i is not
-            # available...
-
+            self._prep_condition(con)
+        
         current = self.conditions[andor]
         self.conditions[andor] = ','.join([current, constr]).strip(',')
 
         self._make_mask()       # On every update so errors are detected.
+
+    def _prep_condition(self, constr):
+        """Replace parts in the string constr (ONE condition) that matches
+        a channel name, with 'd[i]', and set i to the correct integer
+        key string. Make error if no mapping to channel name.
+
+        """
+        conres = constr
+
+        matches = re.findall(r'ch\d+', conres)        
+        for ch in matches:
+            i = self._key(ch)
+            conres = conres.replace(ch, 'd[' + str(i) + ']')
+
+        if not self.chnames:
+            if conres == constr: # No mapping.
+                raise ValueError('This condition did not resolve to a valid' +
+                                 ' channel: ' + constr)
+            else: 
+                return conres
+
+        for ch in self.chnames.values():
+            for m in re.findall(r'\w+', conres):
+                if ch == m:
+                    i = self._key(ch)
+                    conres = conres.replace(ch, 'd[' + str(i) + ']')
+
+        if conres == constr: # No mapping.
+            raise ValueError('This condition did not resolve to a any valid' +
+                             ' channel: ' + constr)
+
+        return conres
+        
 
     def set_conditions(self, conditions, andor, conf_file=None):
         """Remove existing conditions in andor and replace with conditions.
@@ -277,6 +302,8 @@ class ChannelPack:
 
         See spit_config for some documentation on the file layout.
         """
+        
+        raise NotImplementedError
 
     def pprint_conditions(self):
         """Pretty print conditions with custom names if they were valid
@@ -327,10 +354,16 @@ class ChannelPack:
     def _make_mask(self):
         """Set the attribute self.mask to a mask based on
         self.conditions"""
-        
 
-        andmask = datautils.array_and(self.D, self.conditions['and'])
-        ormask = datautils.array_or(self.D, self.conditions['or'])
+        andcons = self.conditions['and'].split(',')
+        orcons = self.conditions['or'].split(',')
+
+        # if c in risk of the empty string:
+        andcons = [self._prep_condition(c) for c in andcons if c]
+        orcons = [self._prep_condition(c) for c in orcons if c]
+        
+        andmask = datautils.array_and(self.D, andcons)
+        ormask = datautils.array_or(self.D, orcons)
         self.mask = np.logical_and(andmask, ormask)
 
     def set_channel_names(self, names):

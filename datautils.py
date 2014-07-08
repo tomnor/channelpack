@@ -15,13 +15,16 @@ def array_and(d, conditions):
         numpy 1d arrays. All arrays of the same shape (length). Keys are
         integers
 
-    conditions: str
-        A comma delimited list of conditions. Like 
-        'd[12] == 2, d[1] > d[10]'.
+    conditions: list
+        list of string conditions. Like 
+        ['d[12] == 2', 'd[1] > d[10]'].
+
+    The condition strings are stripped from leading and trailing white
+    space. 
 
     """
 
-    conlist = [con.strip() for con in conditions.split(',')]
+    conlist = [con.strip() for con in conditions]
     print conlist, "'and'"
     a = np.ones(len(d[d.keys()[0]])) == 1.0 # Initial True array.
     if not conditions:                      # Maybe ''.
@@ -41,12 +44,14 @@ def array_or(d, conditions):
         numpy 1d arrays. All arrays of the same shape (length). Keys are
         integers
 
-    conditions: str
-        A comma delimited list of conditions. Like 
-        'd[12] == 2, d[1] > d[10]'.
+    conditions: list
+        A list of conditions. Like 
+        ['d[12] == 2', 'd[1] > d[10]'].
 
+    The condition strings are stripped from leading and trailing white
+    space. 
     """    
-    conlist = [con.strip() for con in conditions.split(',')]
+    conlist = [con.strip() for con in conditions]
     print conlist, "'or'"
     a = np.ones(len(d[d.keys()[0]])) == 1.0 # True
     if not conlist or not conditions:
