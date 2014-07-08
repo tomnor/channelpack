@@ -1,12 +1,15 @@
 
 # -*- coding: UTF-8 -*-
 
-"""
-Provide one or more baseclasses for holding a dict with data vectors,
-(numpy arrays loaded from some data acqusition).
+"""Provide ChannelPack. Provide lazy functions to get loaded instances
+of ChannelPack.
 
-Sub clacces might load data from different sources, but the interface
-from any class deriving from Pack should be the same.
+ChannelPack is a class holding data read from some data file. It takes a
+function as its only argument for init. The function is responsible for
+returning a dict with numpy 1d arrays corresponding to the "channels" in
+the data file. Keys are integers corresponding to the "columns" used,
+0-based. The loadfunc is called from an instance of ChannelPack by
+calling 'load'.
 
 ----------------------------
 Written thinking
@@ -40,11 +43,21 @@ here with such extensions.
 
 Now the conditions thing. 
 
+TO DO: Figure out how to specify shell patterns to use when searching
+for a possible origin file. Hopefully some default can be set in the
+spitted file. Provide smart solution for user to specify
+ORIGINEXTENSIONS, which somehow doesn't need to be repeated. It boils
+down to all the time that I need some infant location to persist config
+data. 
+
+
 ----------------------------
+
 """
 import re
 import glob
 import os, time
+from ConfigParser import ConfigParser as configparser
 
 import numpy as np
 
@@ -52,6 +65,8 @@ from . import pulltxt, pulldbf
 from . import datautils
 
 ORIGINEXTENSIONS =  ['iad', 'd7d']
+CONFIG_FILE = "conf_file.cfg"
+CONFIG_SECS = ['channels',  'conditions']
 
 class ChannelPack:
     """Base class for a pack of data. Hold a dict with channel index
@@ -187,6 +202,81 @@ class ChannelPack:
         """
         raise NotImplementedError
     
+    def spit_config(self, conf_file=None, firstwordonly=False):
+        """Write a config_file based on this instance.
+        
+        conf_file: str (or Falseish)
+            If conf_file is Falseish, write the file to the directory
+            where self.filename sits, if self is not already associated
+            with such a file. If associated, and conf_file is Falseish,
+            use self.conf_file. If conf_file is a file name, write to
+            that file and set self.conf_file to conf_file.
+
+        firstwordonly: bool or "pattern"
+            Same meaning as in name method, and applies to the channel
+            names spitted.
+
+        Sections in the ini/cfg kind of file can be:
+        [channels]
+            A mapping of self.D integer keys to channel names. Options
+            are numbers corresponding to the keys. Values are the
+            channel names, being the fallback names if custom names are
+            not available (self.chnames). (When spitting that is).
+
+        [conditions]
+            Options correspond to the keys in self.conditions, values
+            correspond to the values in the same.
+
+        """
+        
+        chroot = os.path.dirname(self.filename)
+        chroot = os.path.abspath(chroot)
+        cfg = configparser()
+
+        # Figure out file name of conf_file:
+        if hasattr(self, 'conf_file') and not conf_file:
+            cfgfn = self.conf_file
+        elif conf_file:
+            with open(conf_file, 'r') as fo:
+                pass            # Make proper error
+            cfgfn = conf_file
+        else:
+            cfgfn = os.path.join(chroot, CONFIG_FILE)
+
+        cfg.read(cfgfn)
+
+        for sec in CONFIG_SECS:
+            if not cfg.has_section(sec):
+                cfg.add_section(sec)
+
+        for sec in CONFIG_SECS:
+            if sec == 'channels':
+                for i in sorted(self.D):
+                    cfg.set(sec, str(i), self.name(i,
+                                                   firstwordonly=firstwordonly))
+            elif sec == 'conditions':
+                for k in self.conditions:
+                    val = self.conditions[k]
+                    if val:
+                        cfg.set(sec, k, val)
+                    elif k.startswith('dur'): # Always spit this one.
+                        cfg.set(sec, k, val)
+                    else:       # pop possible existing option in file:
+                        cfg.remove_option(sec, k)
+        
+        with open(cfgfn, 'wb') as fo:
+            cfg.write(fo)
+        
+        self.conf_file = cfgfn
+
+    def eat_config(self, conf_file=None):
+        """
+        Read the the conf_file and update this instance accordingly.
+
+        conf_file: str or bool
+
+        See spit_config for some documentation on the file layout.
+        """
 
     def pprint_conditions(self):
         """Pretty print conditions with custom names if they were valid
@@ -356,7 +446,8 @@ class ChannelPack:
         for ext in ORIGINEXTENSIONS: # This must be some user configuration.
             res = glob.glob(dirpath + '/' + name + '.' + ext)
             if res: # Assume first match is valid.
-                self.mtimefs = res[0]
+                self.mtimefs = os.path.normpath(res[0]) # If some shell patterns
+                                                        # will be used later.
                 # Time stamp string:
                 self.mtimestamp = time.ctime(os.path.getmtime(self.mtimefs)) 
                 break
