@@ -55,7 +55,7 @@ data.
 
 """
 import re
-import glob
+import glob, fnmatch
 import os, time
 from ConfigParser import ConfigParser as configparser
 
@@ -64,9 +64,10 @@ import numpy as np
 from . import pulltxt, pulldbf
 from . import datautils
 
-ORIGINEXTENSIONS =  ['iad', 'd7d']
+ORIGINEXTENSIONS =  ['iad', 'd7d'] # TO DO: Make configurable persistant.
 CONFIG_FILE = "conf_file.cfg"
 CONFIG_SECS = ['channels',  'conditions']
+DURTYPES = ['strict', 'min', 'max'] # TO DO: Check validity with this.
 
 class ConditionMappingError(Exception):
     """Raise when channels are not found in conditions."""
@@ -89,6 +90,10 @@ class ChannelPack:
     # TO DO: More important - start and stop trigger conditions. Enabling
     # hysterises kind of checking. Like start: "ch21 > 4.3" and 
     # stop: "ch21 < 1.3". Include it to the conditions dict. 
+
+    # TO DO: More important - reserved words. Some numpy math stuff like max,
+    # min, cos, sin, tan, mean. NOOO, just document how to write it - namely
+    # np.sin and so on.
 
     def __init__(self, loadfunc=None):
         """Return a pack
@@ -153,7 +158,7 @@ class ChannelPack:
 
         self.samplerate = rate
 
-    def add_conditions(self, constr, andor, conf_file=None):
+    def add_conditions(self, constr, andor):
         """Add condition(s) to the conditions.
 
         constr: str
@@ -163,15 +168,6 @@ class ChannelPack:
 
         andor: str
             'and' or 'or' accepted.
-
-        conf_file: str or bool
-            An 'ini' kind of file with a section named conditions, and
-            an option named 'and' or 'or', (corresponding to andor). The
-            value is like constr. If instead conf_file is True, look for
-            such a file in the same directory as self.filename sits in.
-            NOTE: Not implemented. TO DO: Implement. Or remove this
-            option, it kind duplicates the functionality of spit and eat
-            config which is more natural to use for reading files.
 
         NOTE: If custom names are used, they must consist of one word
         only, not delimited with spaces. 
@@ -220,7 +216,7 @@ class ChannelPack:
         return conres
         
 
-    def set_conditions(self, conditions, andor, conf_file=None):
+    def set_conditions(self, conditions, andor):
         """Remove existing conditions in andor and replace with conditions.
 
         See add_conditions for descriptions.
@@ -262,8 +258,8 @@ class ChannelPack:
         if hasattr(self, 'conf_file') and not conf_file:
             cfgfn = self.conf_file
         elif conf_file:
-            with open(conf_file, 'r') as fo:
-                pass            # Make proper error
+            with open(conf_file, 'w') as fo:
+                pass            # Make proper error if problem.
             cfgfn = conf_file
         else:
             cfgfn = os.path.join(chroot, CONFIG_FILE)
@@ -292,18 +288,65 @@ class ChannelPack:
         with open(cfgfn, 'wb') as fo:
             cfg.write(fo)
         
-        self.conf_file = cfgfn
+        self.conf_file = os.path.abspath(cfgfn)
 
     def eat_config(self, conf_file=None):
         """
         Read the the conf_file and update this instance accordingly.
 
-        conf_file: str or bool
+        conf_file: str or Falseish
+            If conf_file is Falseish, look in the directory where
+            self.filename sits, if self is not already associated with a
+            conf_file. If associated, and conf_file arg is Falseish,
+            read self.conf_file. If conf_file arg is a file name, read
+            from that file.
 
         See spit_config for some documentation on the file layout.
+
+        Note: If the config_file exist because of an earlier spit, and
+        custom channel names was not available, channels are listed as the
+        fallback names in the file. Then after this eat, self.chnames
+        will be set to the list in the conf_file section 'channels'. The
+        result can be that self.chnames and self.chnames_0 will be
+        equal.
+
+        The message then is that, if channel names are updated, you
+        should spit before you eat.
         """
+            
+        chroot = os.path.dirname(self.filename)
+        chroot = os.path.abspath(chroot)
+        cfg = configparser()
+
+        # Figure out file name of conf_file:
+        if hasattr(self, 'conf_file') and not conf_file:
+            cfgfn = self.conf_file
+        elif conf_file:
+            cfgfn = conf_file
+        else:
+            cfgfn = os.path.join(chroot, CONFIG_FILE)
+
+        with open(cfgfn, 'r') as fo:
+            pass            # Make proper error
+
+        cfg.read(cfgfn)
         
-        raise NotImplementedError
+        # Update channel names:
+        if not self.chnames:
+            self.chnames = dict(self.chnames_0)
+        sec = 'channels'
+        for i in cfg.options(sec):
+            self.chnames[self._key(int(i))] = cfg.get(sec, i)
+
+        # Update conditions:
+        sec = 'conditions'
+        for op in cfg.options(sec):
+            if not op in self.conditions:
+                raise KeyError('Not valid condition option: ' + op)
+            self.conditions[op] = cfg.get(sec, op)
+
+        # Update mask:
+        self._make_mask()
 
     def pprint_conditions(self):
         """Pretty print conditions with custom names if they were valid
@@ -457,6 +500,14 @@ class ChannelPack:
         return re.findall(firstwordonly, names[i])[0] # According to user
                                                       # pattern.
 
+    def query_names(self, pat):
+        """Pattern a shell pattern. See fnmatch.fnmatchcase. Print the
+        results to stdout.""" 
+
+        for item in self.chnames.items():
+            if fnmatch.fnmatchcase(item[1], pat):
+                print item
+
 
     def ch(self, chname):
         """Return the channel data vector.
@@ -488,9 +539,12 @@ class ChannelPack:
             self.mtimefs = self.filename
             self.mtimestamp = time.ctime(os.path.getmtime(self.mtimefs)) 
 
-def fallback_names(nums):
+def _fallback_names(nums):
     """Return a list like ['ch0', 'ch1',...], based on nums. nums is a
-    list with integers."""
+    list with integers.
+
+    This is the one function allowed to return fallback names to
+    ChannelPack"""
 
     return ['ch' + str(i) for i in nums]
 
