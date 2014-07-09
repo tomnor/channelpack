@@ -3,6 +3,10 @@
 Helper module for processing data arrays and such.
 """
 
+# http://nbviewer.ipython.org/github/demotu/BMC/blob/master/notebooks/DetectPeaks.ipynb
+# See it for a cool peak detection function. Rep, interresting stuff:
+# https://github.com/demotu/BMC
+
 import numpy as np
 
 # TO DO: Put the eval things in try block and reraise exceptions. Else they are
@@ -73,3 +77,18 @@ def masked(a, b):
 
     n = np.array([np.nan for i in range(len(a))])
     return np.where(b, a, n) # a if b is True, else n.
+
+def duration_bool(b, dur, durtype):
+    """
+    Mask the parts in b being True but does not meet the duration
+    rules.
+
+    b: 1d array with True or False elements.
+
+    dur: int
+
+    durtype: str
+        'strict', 'min' or 'max' accepted.
+
+    """
+    raise NotImplementedError

@@ -216,13 +216,21 @@ class ChannelPack:
         return conres
         
 
-    def set_conditions(self, conditions, andor):
+    def set_conditions(self, constr, andor):
         """Remove existing conditions in andor and replace with conditions.
 
         See add_conditions for descriptions.
         """
-        raise NotImplementedError
-    
+        prepped = []
+        for con in constr.split(','):
+            prepped.append(self._prep_condition(con))
+
+        conditions = ','.join(prepped).strip(',')
+
+        self.conditions[andor] = conditions
+
+        self._make_mask()
+
     def spit_config(self, conf_file=None, firstwordonly=False):
         """Write a config_file based on this instance.
         
@@ -301,7 +309,7 @@ class ChannelPack:
             read self.conf_file. If conf_file arg is a file name, read
             from that file.
 
-        See spit_config for some documentation on the file layout.
+        See spit_config for documentation on the file layout.
 
         Note: If the config_file exist because of an earlier spit, and
         custom channel names was not available, channels are listed as the
