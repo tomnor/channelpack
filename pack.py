@@ -138,9 +138,11 @@ class ChannelPack:
                                            # should have been an error
                                            # already
 
-        fallnames  = fallback_names(self.keys)
+        fallnames  = _fallback_names(self.keys)
         self.chnames_0 = dict(zip(self.keys, fallnames))
         self._set_filename(args[0])
+
+        self._make_mask()
         
     def _set_filename(self, fn):
         """Set the filename attributes. (They are multiple for personal
@@ -173,6 +175,13 @@ class ChannelPack:
         only, not delimited with spaces. 
 
         """
+        # Consider making some helper class or functions for handling the
+        # conditions. To have a single point of problem, and if not for else,
+        # solving this so that the formatting of condition strings in the dict
+        # (and the spitted file) will remain exactly as the user put it. Why not
+        # if it passes the audit. Also, it might be confusing/disturbing that
+        # the formatting changes after a spit.
+
 
         # Audit:
         for con in constr.split(','):
@@ -307,7 +316,8 @@ class ChannelPack:
             self.filename sits, if self is not already associated with a
             conf_file. If associated, and conf_file arg is Falseish,
             read self.conf_file. If conf_file arg is a file name, read
-            from that file.
+            from that file, but do not update self.conf_file
+            accordingly. 
 
         See spit_config for documentation on the file layout.
 
@@ -377,7 +387,10 @@ class ChannelPack:
         Setting dur = 0 and durtype = 'min' is a safe way to make the
         duration condition have no effect.
         """
-        raise NotImplementedError
+        assert durtype in DURTYPES, durtype
+
+        self.conditions.update(dur=dur, durtype=durtype)
+        self._make_mask()
         
     def set_mask_on(self, b=True):
         """If mask is on, any calls for a channel will be
@@ -400,7 +413,7 @@ class ChannelPack:
         """
 
         self._filter_on = b
-        if self._filter_on: self._mask_on = False        
+        if self._filter_on: self._mask_on = False
 
     def _make_mask(self):
         """Set the attribute self.mask to a mask based on
@@ -416,6 +429,15 @@ class ChannelPack:
         andmask = datautils.array_and(self.D, andcons)
         ormask = datautils.array_or(self.D, orcons)
         self.mask = np.logical_and(andmask, ormask)
+
+        # Duration conditions:
+        if hasattr(self, 'sample_rate'):
+            dur = int(self.conditions['dur'] * self.sample_rate)
+        else:
+            dur = int(self.conditions['dur'])
+
+        self.mask = datautils.duration_bool(self.mask, dur, 
+                                            self.conditions['durtype'])
 
     def set_channel_names(self, names):
         """
