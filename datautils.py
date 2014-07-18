@@ -127,13 +127,33 @@ def trigger_bool(d, start_con, stop_con):
 
     Conditions is like for the array_or and array_and functions. The strings are
     likely produced by a ChannelPack instance.
+
+    NOTE: This function does not work yet.
     """ 
 
-    # The start_array is all False until start_con, then all True. The
-    # stop_array all True until stop_con, then all False. Then AND them and
-    # return the result.
+    try:
+        s_bool = eval(start_con)
+        p_bool = eval(stop_con)
+    except SyntaxError as se:
+        raise SyntaxError('Error at eval in ' + __file__ + ' trigger_bool.')
 
-    raise NotImplementedError
+    start_slices = slicelist(s_bool)
+    stop_slices = slicelist(p_bool)
+
+    res = np.zeros(len(s_bool)) == True # All false
+
+    stop = slice(0, 0)           # For initial check
+    for start in start_slices:
+        if start.start < stop.start:
+            continue
+        for stop in stop_slices:
+            if stop.start > start.start:
+                res[start.start: stop.start] = True
+
+    if start.start > stop.start: # Was not Truified in loop.
+        res[start.start:] = True
+
+    return res
 
 def slicelist(b):
     """Produce a list of slices given the boolean array b.
