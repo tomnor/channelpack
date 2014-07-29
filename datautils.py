@@ -26,12 +26,14 @@ def array_and(d, conditions):
     The condition strings are stripped from leading and trailing white
     space. 
 
+    Return all elements True if conditions is an empty list.
+
     """
 
     conlist = [con.strip() for con in conditions]
     print conlist, "'and'"
     a = np.ones(len(d[d.keys()[0]])) == 1.0 # Initial True array.
-    if not conditions:                      # Maybe ''.
+    if not conditions:                      # Maybe empty.
         return a
     for con in conlist:
         try:
@@ -110,47 +112,65 @@ def duration_bool(b, dur, durtype):
         
     return b2
 
-def trigger_bool(d, start_con, stop_con):
+def startstop_bool(d, start_con, stop_con, start_andor='and', stop_andor='and'):
     """Make a bool array based on start and stop conditions.
 
     d: dict
         numpy 1d arrays. All arrays of the same shape (length). Keys are
         integers 
 
-    start_con: str
-        One or more start conditions. If more than one, they are comma
-        delimited. 
+    start_con: list
+        A list of conditions. Like 
+        ['d[12] == 2', 'd[1] > d[10]'].
 
-    stop_con: str
-        One or more stop conditions. If more than one, they are comma
-        delimited. 
+    stop_con: list
+        A list of conditions. Like 
+        ['d[12] == 2', 'd[1] > d[10]'].
 
-    Conditions is like for the array_or and array_and functions. The strings are
-    likely produced by a ChannelPack instance.
+    start_andor: str
+        One of 'and' or 'or'
 
-    NOTE: This function does not work yet.
+    stop_andor: str
+        One of 'and' or 'or'
+
+    Conditions formatting are as with the array_or and array_and
+    functions. The strings are likely produced by a ChannelPack
+    instance.
+
+    NOTE: This function does not work yet. IN WORK.
     """ 
 
-    try:
-        s_bool = eval(start_con)
-        p_bool = eval(stop_con)
-    except SyntaxError as se:
-        raise SyntaxError('Error at eval in ' + __file__ + ' trigger_bool.')
+    res = np.zeros(len(d.values()[0])) == True # All false at start
+    if not start_con or not stop_con:
+        return res == False     # Return all True then. Cannot compute.
+
+    if start_andor == 'and':
+        s_bool = array_and(d, start_con)
+    elif start_andor == 'or':
+        s_bool = array_or(d, start_con)
+    else:
+        raise ValueError(start_andor)
+
+    if stop_andor == 'and':
+        p_bool = array_and(d, stop_con)
+    elif stop_andor == 'or':
+        p_bool = array_or(d, stop_con)
+    else:
+        raise ValueError(stop_andor)
 
     start_slices = slicelist(s_bool)
     stop_slices = slicelist(p_bool)
 
-    res = np.zeros(len(s_bool)) == True # All false
-
-    stop = slice(0, 0)           # For initial check
+    stop = slice(0, 0)           # For first check
     for start in start_slices:
         if start.start < stop.start:
             continue
         for stop in stop_slices:
             if stop.start > start.start:
                 res[start.start: stop.start] = True
+                continue
 
-    if start.start > stop.start: # Was not Truified in loop.
+    if start.start > stop.start: # Last start was not Truified in loop.
         res[start.start:] = True
 
     return res
@@ -168,7 +188,7 @@ def slicelist(b):
         if e and not started:
             start = i
             started = True
-        if not e and started:
+        elif not e and started:
             slicelst.append(slice(start, i))
             started = False
     
