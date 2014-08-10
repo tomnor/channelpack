@@ -7,10 +7,10 @@ Helper module for processing data arrays and such.
 # See it for a cool peak detection function. Rep, interresting stuff:
 # https://github.com/demotu/BMC
 
-import numpy as np
+# TODO: Make all helper functions take a ChannelPack instance pack instead of
+# all possible arguments.
 
-# TO DO: Put the eval things in try block and reraise exceptions. Else they are
-# mysterious.
+import numpy as np
 
 def array_and(d, conditions):
     """Produce a boolean array based on conditions
@@ -55,7 +55,9 @@ def array_or(d, conditions):
         ['d[12] == 2', 'd[1] > d[10]'].
 
     The condition strings are stripped from leading and trailing white
-    space. 
+    space.
+    
+    Return all elements True if conditions is an empty list.
     """    
     conlist = [con.strip() for con in conditions]
     print conlist, "'or'"
@@ -112,75 +114,135 @@ def duration_bool(b, dur, durtype):
         
     return b2
 
-def startstop_bool(d, start_con, stop_con, start_andor='and', stop_andor='and'):
+# def startstop_bool(d, start_con, stop_con, start_andor='and', stop_andor='and'):
+def startstop_bool(pack):
     """Make a bool array based on start and stop conditions.
 
     d: dict
         numpy 1d arrays. All arrays of the same shape (length). Keys are
         integers 
 
-    start_con: list
-        A list of conditions. Like 
+    start_and, start_or, stop_and, stop_or_: list
+        lists of conditions. Like 
         ['d[12] == 2', 'd[1] > d[10]'].
-
-    stop_con: list
-        A list of conditions. Like 
-        ['d[12] == 2', 'd[1] > d[10]'].
-
-    start_andor: str
-        One of 'and' or 'or'
-
-    stop_andor: str
-        One of 'and' or 'or'
 
     Conditions formatting are as with the array_or and array_and
     functions. The strings are likely produced by a ChannelPack
     instance.
 
+    If no start conditions are set, return all True.
+
+    If there is start conditions but no stop conditions, this is legal,
+    the True section will begin at first start and remain the rest of
+    the array. Likewise, if there is stop conditions but no start
+    condition, the returned array will be all True until the first stop
+    slice, and the rest of the array is set to False.
+
     NOTE: This function does not work yet. IN WORK.
     """ 
+    
+    d = pack.D
+    b = np.ones(len(d[d.keys()[0]])) == True
 
-    res = np.zeros(len(d.values()[0])) == True # All false at start
-    if not start_con or not stop_con:
-        return res == False     # Return all True then. Cannot compute.
+    start_and = pack.conconf.conditions_list('start_and')
+    start_or = pack.conconf.conditions_list('start_or')
+    stop_and = pack.conconf.conditions_list('stop_and')
+    stop_or = pack.conconf.conditions_list('stop_or')
 
-    if start_andor == 'and':
-        s_bool = array_and(d, start_con)
-    elif start_andor == 'or':
-        s_bool = array_or(d, start_con)
+    # Pre-check:
+    runflag = 'startstop'
+    if not start_and and not start_or and not stop_and and not stop_or:
+        return b
+    elif not start_and and not start_or:
+        runflag = 'stoponly'
+    elif not stop_and and not stop_or:
+        runflag = 'startonly'
+
+    # startb:
+    if runflag == 'stoponly':
+        startb = b == False     # All False (Dummy assignment).
+    elif not start_and and start_or:
+        startb = array_or(d, start_or)
+    elif start_and and not start_or:
+        startb = array_and(d, start_and)
+    elif start_and and start_or:
+        a1 = array_and(d, start_and)
+        a2 = array_or(d, start_or)
+        startb = np.logical_and(a1, a2)
     else:
-        raise ValueError(start_andor)
+        assert 0, 'Semantic error'
 
-    if stop_andor == 'and':
-        p_bool = array_and(d, stop_con)
-    elif stop_andor == 'or':
-        p_bool = array_or(d, stop_con)
+    # stopb:
+    if runflag == 'startonly':
+        stopb = b == False      # All False (Dummy assignment).
+    elif not stop_and and stop_or:
+        stopb = array_or(d, stop_or)
+    elif stop_and and not stop_or:
+        stopb = array_and(d, stop_and)
+    elif stop_and and stop_or:
+        a1 = array_and(d, stop_and)
+        a2 = array_or(d, stop_or)
+        stopb = np.logical_and(a1, a2)
     else:
-        raise ValueError(stop_andor)
+        assert 0, 'Semantic error'
 
-    start_slices = slicelist(s_bool)
-    stop_slices = slicelist(p_bool)
+    stop_extend = pack.conconf.get_stop_extend()
+
+    return _startstop_bool(startb, stopb, runflag, stop_extend)
+
+def _startstop_bool(startb, stopb, runflag, stop_extend):
+    """Return boolean array based on start and stop conditions.
+
+    startb, stopb: Numpy 1D arrays of the same length.
+        Boolean arrays for start and stop conditions being fullfilled or not.
+
+    """
+    res = np.zeros(len(startb)) == True # All false at start
+
+    start_slices = slicelist(startb)
+    stop_slices = slicelist(stopb)
+
+    # Special case when there is a start but no stop slice or vice versa:
+    # if start_slices and not stop_slices:
+    if runflag == 'startonly':
+        try:
+            start = start_slices[0]
+            res[start.start:] = True  # Make True from first start and rest of array.
+            return res
+        except IndexError:
+            return res          # Only start specified but no start condition
+                                # fullfilled. Return all False.
+    # elif not start_slices and stop_slices:
+    elif runflag == 'stoponly':
+        try:
+            stop = stop_slices[0]
+            res[:stop.start + stop_extend] = True # Make True up to first stop.
+            return res
+        except IndexError:
+            return res == False # Only stop specified but no stop condition
+                                # fullfilled. Return all True.
 
     stop = slice(0, 0)           # For first check
+    start = slice(0, 0)          # For a possibly empty list start_slices.
     for start in start_slices:
         if start.start < stop.start:
             continue
         for stop in stop_slices:
             if stop.start > start.start:
-                res[start.start: stop.start] = True
-                continue
+                res[start.start: stop.start + stop_extend] = True
+                break           # Next start
 
-    if start.start > stop.start: # Last start was not Truified in loop.
+    if start.start > stop.start: # There was no stop for the last start in loop.
         res[start.start:] = True
 
-    return res
+    return res    
 
 def slicelist(b):
     """Produce a list of slices given the boolean array b.
 
     Start and stop in each slice describe the True sections in b."""
 
-    # This functionality must be in numpy somewhere.
+    # This functionality must be in numpy somewhere?
 
     slicelst = []
     started = False
@@ -193,6 +255,6 @@ def slicelist(b):
             started = False
     
     if e:
-        slicelst.append(slice(start, i + 1))
+        slicelst.append(slice(start, i + 1)) # True in the end.
 
     return slicelst
