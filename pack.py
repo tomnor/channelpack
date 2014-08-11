@@ -57,7 +57,7 @@ data.
 import re
 import glob, fnmatch
 import os, time
-from ConfigParser import ConfigParser
+import ConfigParser
 from collections import OrderedDict
 
 import numpy as np
@@ -65,8 +65,23 @@ import numpy as np
 from . import pulltxt, pulldbf
 from . import datautils
 
-ORIGINEXTENSIONS =  ['iad', 'd7d'] # A list of file extensions excluding the
-                                   # dot.
+CHANNELPACK_RC_FILE = '.channelpack_rc'
+
+ORIGINEXTENSIONS =  [] # A list of file extensions excluding the dot.
+
+_aspirants = [os.path.expanduser('~')]
+if os.getenv('HOME'):
+    _aspirants.append(os.getenv('HOME'))
+
+_cfg = ConfigParser.ConfigParser()
+for asp in _aspirants:
+    _cfg.read(os.path.join(asp, CHANNELPACK_RC_FILE))
+try:
+    exts = _cfg.get('section', 'originextensions')
+    ORIGINEXTENSIONS += [ext.strip() for ext in exts.split(',')]
+except ConfigParser.NoSectionError:
+    print 'No extensions found.'
+
 CONFIG_FILE = "conf_file.cfg"
 CONFIG_SECS = ['channels',  'conditions']
 DURTYPES = ['strict', 'min', 'max'] # TO DO: Check validity with this.
@@ -242,7 +257,7 @@ class ChannelPack:
             conditions.
 
         con: str
-            Condtion like 'ch1 > 5' or comma delimited conditions like
+            Condition like 'ch1 > 5' or comma delimited conditions like
             'ch5 == ch14, ch0 <= (ch1 + 2)'. 'ch5', for example, can be
             a custom channel name if available.
 
@@ -264,26 +279,6 @@ class ChannelPack:
         self.conconf.set_condition(conkey, newcon)
 
         self._make_mask()       # On every update so errors are detected.
-
-    def add_startstopBAK(self, constr, startstop):
-        """Add condition(s) to the start/stop conditions.
-
-        constr: str
-            Condtion like 'ch01 > 5' or comma delimited conditions like
-            'ch05 == ch14, ch0 <= (ch + 2)'. 'ch5', for example, can be
-            a custom channel name if available.
-
-        startstop: str
-            'start' or 'stop' accepted.
-
-        NOTE: If custom names are used, they must consist of one word
-        only, not delimited with spaces. 
-
-        """
-        if not startstop in ['start', 'stop']:
-            raise ValueError(startstop)
-
-        self.add_conditions(constr, startstop) # Wierd.
 
     def _prep_condition(self, constr):
         """Replace parts in the string constr (ONE condition) that matches
@@ -316,31 +311,24 @@ class ChannelPack:
                              ' channel: ' + constr)
 
         return conres
-        
-
-    def set_conditionsBAK(self, constr, andor):
-        """Remove existing conditions in andor and replace with conditions.
-
-        See add_conditions for descriptions.
-        """
-        prepped = []
-        for con in constr.split(','):
-            prepped.append(self._prep_condition(con))
-
-        conditions = ','.join(prepped).strip(',')
-
-        self.conditions[andor] = conditions
-
-        self._make_mask()
 
     def set_conditions(self, conkey, con):
         """Remove existing conditions in conkey and replace with con.
 
-        See add_conditions for descriptions.
+        conkey: str
+            One of the conditions that can be a comma seperated list of
+            conditions.
+
+        con: str or None
+            Condition like 'ch1 > 5' or comma delimited conditions like
+            'ch5 == ch14, ch0 <= (ch1 + 2)'. 'ch5', for example, can be
+            a custom channel name if available.
+
+        NOTE: If custom names are used, they must consist of one word
+        only, not delimited with spaces. 
         """
-        # prepped = []
-        # for con in constr.split(','):
-        #     prepped.append(self._prep_condition(con))
+        # TODO: This function should maybe not be limited to certain
+        # conditions. Not intuitive.
 
         # Audit:
         if not con in NONES:
@@ -501,7 +489,8 @@ class ChannelPack:
         Setting mask on, turns the filter off."""
 
         self._mask_on = b == True
-        if self._mask_on: self._filter_on = False
+        if self._mask_on: 
+            self._filter_on = False
 
     def set_filter_on(self, b=True):
         """If filter is on, any calls for a channel will be
@@ -519,7 +508,8 @@ class ChannelPack:
         """
 
         self._filter_on = b == True
-        if self._filter_on: self._mask_on = False
+        if self._filter_on: 
+            self._mask_on = False
 
     def mask_or_filter(self):
         """Return 'mask' or 'filter' or None depending on which one is
@@ -570,19 +560,28 @@ class ChannelPack:
         
         self.chnames = dict(zip(self.keys, names))
 
-    def __call__(self, key):
+    def __call__(self, key, part=None):
         """Make possible to retreive channels by key.
         
         key: string or integer.
+            The channel index number or channel name.
+
+        part: int or None
+            The 0-based enumeration of a True part to return. This
+            has an effect whether or not the mask or filter is turned
+            on. Raise IndexError if the part does not exist.
         """
         # Primary need is to get an integer from key since D.keys are integers.
 
         i = self._key(key)
 
-        if self._mask_on:
+        if part is not None:
+            sl = datautils.slicelist(self.mask)
+            return self.D[i][sl[part]]
+        elif self._mask_on:
             return datautils.masked(self.D[i], self.mask)
         elif self._filter_on:
-            raise NotImplementedError
+            return self.D[i][self.mask]
         else:
             return self.D[i]
 
@@ -650,13 +649,18 @@ class ChannelPack:
                 print item
 
 
-    def ch(self, chname):
+    def ch(self, key, part=None):
         """Return the channel data vector.
 
-        chname: The channel name, or the fallback string for the
-        channel, or an index integer for the channel.
+        key: string or integer.
+            The channel index number or channel name.
+
+        part: int or None
+            The 0-based enumeration of a True part to return. This
+            has an effect whether or not the mask or filter is turned
+            on. Raise IndexError if the part does not exist.
         """
-        return self.__call__(chname)
+        return self.__call__(chname, part)
 
     def set_basefilemtime(self):
         """Set attributes mtimestamp and mtimefs. If the global list
@@ -708,7 +712,7 @@ class _ConditionConfigure:
     strings or None.
     """
 
-# TODO: Establish an oppurtunity to have multiple sections of
+# TODO: Establish an opportunity to have multiple sections of
 # conditions. Distinguished by an appended digit. Like conditions5.
 
     def __init__(self, pack):
@@ -744,7 +748,7 @@ class _ConditionConfigure:
     def spit_config(self, conf_file, firstwordonly=False):
         """conf_file a file opened for writing."""
 
-        cfg = ConfigParser()
+        cfg = ConfigParser.ConfigParser()
         for sec in CONFIG_SECS:
             cfg.add_section(sec)
 
@@ -766,7 +770,7 @@ class _ConditionConfigure:
         """
 
         # Read the file:
-        cfg = ConfigParser()
+        cfg = ConfigParser.ConfigParser()
         cfg.readfp(conf_file)
 
         # Update channel names:
