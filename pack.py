@@ -65,8 +65,8 @@ import numpy as np
 from . import pulltxt, pulldbf
 from . import datautils
 
-ORIGINEXTENSIONS =  ['iad', 'd7d'] # TO DO: Make configurable persistant. This
-                                   # must be empty on delivery.
+ORIGINEXTENSIONS =  ['iad', 'd7d'] # A list of file extensions excluding the
+                                   # dot.
 CONFIG_FILE = "conf_file.cfg"
 CONFIG_SECS = ['channels',  'conditions']
 DURTYPES = ['strict', 'min', 'max'] # TO DO: Check validity with this.
@@ -145,7 +145,7 @@ class ChannelPack:
         """
         # D = self.loadfunc(*args, **kwargs)
         self.D = self.loadfunc(*args, **kwargs)
-        usecols = kwargs.get('usecols', None)
+        usecols = kwargs.get('usecols', None) # Whats this for? Remove
         self.keys = sorted(self.D.keys())
         self.rec_cnt = len(self.D[self.keys[0]]) # If not all the same, there
                                            # should have been an error
@@ -154,6 +154,7 @@ class ChannelPack:
         fallnames  = _fallback_names(self.keys)
         self.chnames_0 = dict(zip(self.keys, fallnames))
         self._set_filename(args[0])
+        self.set_basefilemtime()
 
         self._make_mask()
 
@@ -165,21 +166,57 @@ class ChannelPack:
             means that loadfunc must take the filename as it's first
             argument.
 
-        Make error if self is not already a loaded instance. Make error
-        if there is a missmatch of channels indexes or channels count.
+        If self is not already a loaded instance, call load and return.
+
+        Make error if there is a missmatch of channels indexes or
+        channels count.
 
         Append the data to selfs existing data. Set filename to the new
         file.
 
-        Create new attribute - a dict with metadata on respective file
+        Create new attribute - a dict with metadata on files previously
         loaded - metamulti.
         """
+        if not self.D:
+            self.load(*args, **kwargs)
+            return
 
-        raise NotImplementedError
-        
+        newD = self.loadfunc(*args, **kwargs)
+
+        s1, s2 = set(self.D.keys()), set(newD.keys())
+        offenders = s1 ^ s2
+        if offenders:
+            mess = ('Those keys (respectively) were in one of the dicts ' + 
+                    'but not the other: {}.')
+            offs = ', '.join([str(n) for n in offenders])
+            raise KeyError(mess.format(offs))
+
+        if not hasattr(self, 'metamulti'):
+            self.metamulti = dict(filenames=[], mtimestamps=[], mtimenames=[],
+                                  slices=[])
+            start = 0
+        else:
+            start = self.metamulti['slices'][-1].stop
+        stop = self.rec_cnt
+
+        for k, a in self.D.iteritems():
+            self.D[k] = np.append(a, newD.pop(k))
+
+        self.metamulti['filenames'].append(self.filename)
+        self.metamulti['mtimestamps'].append(self.mtimestamp)
+        self.metamulti['mtimenames'].append(self.mtimefs)
+        self.metamulti['slices'].append(slice(start, stop))
+
+        self.rec_cnt = len(self.D[self.keys[0]])
+        self._set_filename(args[0])
+        self.set_basefilemtime()
+
+        self._make_mask()
+
     def _set_filename(self, fn):
         """Set the filename attributes. (They are multiple for personal
         reasons)."""
+        fn = os.path.abspath(fn)
         self.filename = self.fs = self.fn = fn
 
     def set_sample_rate(self, rate):
@@ -622,20 +659,20 @@ class ChannelPack:
         return self.__call__(chname)
 
     def set_basefilemtime(self):
-        """Attempt to find the original file in the same directory as
-        self.filename is in. If found, set self.mtimestamp and
-        self.mtimefs attributes, based on that file. Else, set it based
-        on self.filename.
-
-        Set attributes mtimestamp and mtimefs. If the global list
-        ORIGINEXTENSIONS include any items, try and look for files with
-        the same base name as the loaded file, but with an extension
-        specified in ORIGINEXTENSIONS. mtimestamp is a timestamp and
-        mtimefs is the file (name) with that timestamp.
+        """Set attributes mtimestamp and mtimefs. If the global list
+        ORIGINEXTENSIONS include any items, try and look for files (in
+        the directory where self.filename is sitting) with the same base
+        name as the loaded file, but with an extension specified in
+        ORIGINEXTENSIONS. mtimestamp is a timestamp and mtimefs is the
+        file (name) with that timestamp.
 
         ORIGINEXTENSIONS is empty on delivery. Which means that the
         attributes discussed will be based on the file that was loaded,
-        (unless ORIGINEXTENSIONS is populated).
+        (unless ORIGINEXTENSIONS is populated before this call).
+
+        This is supposed to be a convinience in cases the data file
+        loaded is some sort of "exported" file format, and the original
+        file creation time is of interest.
         """
 
         dirpath = os.path.split(self.filename)[0]
@@ -670,6 +707,9 @@ class _ConditionConfigure:
     Keep a dictionary of conditions. Let's stick to values as either
     strings or None.
     """
+
+# TODO: Establish an oppurtunity to have multiple sections of
+# conditions. Distinguished by an appended digit. Like conditions5.
 
     def __init__(self, pack):
 
@@ -810,8 +850,7 @@ def txtpack(fn, **kwargs):
     """Return a ChannelPack instance loaded with text data file fn.
 
     Attempt to read out custom channel names from the file and call
-    instance.set_channel_names(). Also call
-    instance.set_basefilemtime(). Then return the pack.
+    instance.set_channel_names(). Then return the pack.
 
     This is a lazy function to get a loaded instance, using the
     cleverness provided by pulltxt module. No delimiter or rows-to-skip
@@ -827,7 +866,7 @@ def txtpack(fn, **kwargs):
     names = pulltxt.PP.channel_names(kwargs.get('usecols', None))
     cp.set_channel_names(names)
     cp._patpull = pulltxt.PP              # Give a reference to the patternpull.
-    cp.set_basefilemtime()
+    # cp.set_basefilemtime()
     return cp
 
 def dbfpack(fn, usecols=None):
@@ -841,6 +880,6 @@ def dbfpack(fn, usecols=None):
     cp.load(fn, usecols)
     names = pulldbf.channel_names(fn, usecols)
     cp.set_channel_names(names)
-    cp.set_basefilemtime()
+    # cp.set_basefilemtime()
     return cp
 
