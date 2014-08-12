@@ -65,22 +65,9 @@ import numpy as np
 from . import pulltxt, pulldbf
 from . import datautils
 
-CHANNELPACK_RC_FILE = '.channelpack_rc'
+CHANNELPACK_RC_FILE = '.channelpackrc'
 
 ORIGINEXTENSIONS =  [] # A list of file extensions excluding the dot.
-
-_aspirants = [os.path.expanduser('~')]
-if os.getenv('HOME'):
-    _aspirants.append(os.getenv('HOME'))
-
-_cfg = ConfigParser.ConfigParser()
-for asp in _aspirants:
-    _cfg.read(os.path.join(asp, CHANNELPACK_RC_FILE))
-try:
-    exts = _cfg.get('section', 'originextensions')
-    ORIGINEXTENSIONS += [ext.strip() for ext in exts.split(',')]
-except ConfigParser.NoSectionError:
-    print 'No extensions found.'
 
 CONFIG_FILE = "conf_file.cfg"
 CONFIG_SECS = ['channels',  'conditions']
@@ -887,3 +874,33 @@ def dbfpack(fn, usecols=None):
     # cp.set_basefilemtime()
     return cp
 
+# Look for rc file:
+_aspirants = []
+if os.getenv('HOME'):
+    _aspirants.append(os.getenv('HOME'))
+_aspirants += [os.path.expanduser('~')]
+
+_cfg = ConfigParser.ConfigParser()
+
+for _asp in _aspirants:
+    try:
+        with open(os.path.join(_asp, CHANNELPACK_RC_FILE)) as fp:
+            try:
+                _cfg.readfp(fp)
+                exts = _cfg.get('channelpack', 'originextensions')
+                ORIGINEXTENSIONS += [ext.strip() for ext in exts.split(',')]
+                print 'ORIGINEXTENSIONS:', ORIGINEXTENSIONS
+                break           # First read satisfy.
+            except (ConfigParser.NoSectionError, 
+                    ConfigParser.NoOptionError,
+                    ConfigParser.ParsingError) as e:
+                print fp.name, 'exist, but:'
+                print e
+                break           # Not gonna look for a file that work when one
+                                # that fails exist.
+
+    except IOError:
+        pass
+    except Exception as e:
+        print 'Unexpected error when searching for', CHANNELPACK_RC_FILE
+        print e
