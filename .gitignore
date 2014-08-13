@@ -2,4 +2,5 @@
 *.html
 *.tmp
 testdata/
+docs/
 in_work.txt

@@ -32,4 +32,6 @@ related to a possible channelpack holder. And the tools used for both
 are here in some module.
 """
 
-from .pack import *
+from .pack import ChannelPack, txtpack, dbfpack
+
+__version__ = '0.1.0'
