@@ -1,31 +1,44 @@
+
 ***********
 channelpack
 ***********
 
-channelpack - A python package for loading acqusition data.
+A python package for loading, analyzing and slicing out acqusition data based on
+conditions. Conditions and naming of channels can be saved as config files and
+reused later in a convenient way.
 
-channelpack intend to deal with the inconvinence of text data files having a
-number of non-data lines of text before the data begin, unknown data separator
-and sometimes comma used as decimal separator.
+channelpack origins from test engineering experience of handling data files from
+test measurements. If those file are text kind of files, they might have some
+inconvinient need-to-know featarues before loadable into python:
 
-When loaded, channelpack intend to provide convinient interactive retrival of
-data "channels", either by a "channel" name parsed from the data file, or the
-data column index number. There are tools to mask off parts of the data which is
-not of interest, and to filter out parts that are of interest. This is done by a
-set of conditions that can be saved for re-use. It is common that a file with
-the same channel names from a new test need to be put to the same analyses. Then
-it can happen that the new test-file have a different number of non-data rows
-and different data delimiter and even decimal separator. channelpack should be
-able to load the data without prior research of the file.
+* Rows to skip - a number of lines (file meta data) prior to test data.
+* Data delimiter - The character used to separate one data from the other, often
+  space, tab or comma.
+* Decimal separator - Depending on your region, the decimal separator is
+  sometimes a comma, sometimes a dot.
+* The naming of "channels", if named, could be on a row not immediately above
+  the data, (following row could be engineering units for example).
+
+channelpack intend to deal with the inconveniences of text data files described
+above.
+
+Data files:
+
+* Any text kind of file (numpy's loadtxt is used)
+* dbf files (Raymond Hettinger `recipe
+  <http://code.activestate.com/recipes/362715>`_ ) as low level reader.
+* MS excel file support coming up. (Will use xlrd).
+* Any file read by your own tools, provide a function returning a dict
+  with channels to the ChannelPack class.
 
 Depends
 =======
 
-channelpack imports numpy. channelpack will not arrange for numpy to be
-installed. Do it your way. It is likely so that if you consider channelpack, you
-already have numpy installed.
+channelpack imports numpy. Installation of channelpack will not arrange for
+numpy to be installed. Do it your way. It is likely that if you consider
+channelpack, you already have numpy installed.
 
-Usage
+Examples
 =====
 
-TODO: Expand on usage.
+TODO: Make examples.

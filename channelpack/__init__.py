@@ -1,35 +1,18 @@
-
 """
-Play with data extraction from an arbtrary text data file.
+    This file is part of channelpack.
 
-Assumptions:
+    channelpack is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
 
-1: There is some data delimiter used between data.
-2: Decimal point is not used as data delimiter.
-3: Data delimiter apart from white space is the same by count and
-   character between all data.
-4: As decimal delimiter is used either '.' or ','.
+    channelpack is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
 
-Prototyping a flexible data loading package.
-
-One objective is to use numpys loadtxt without having to know delimiter
-for data and delimiter for integer and fraction part for numbers.
-So whatever is done here to accomplish this objective, only a wrapper
-around numpys loadtxt should be exposed.
-
-Another objective is to find channel names if any. One other
-function can do that. Will it take two arguments - fn and usecols? Or
-will it take no arguments and use cached data from the last pull? But
-that might be confusing. I could just try out both versions. Having no
-arguments seem a bit odd. You might want to operate a file without
-loading data. But a module level instance of the last pull should be
-available for the module tools, but not exposed, meaning underscore
-prefix.
-
-So the situation is that the loadtxt tools are one thing on its own,
-kind of generic. But the channel names pulling is more exoteric and
-related to a possible channelpack holder. And the tools used for both
-are here in some module.
+    You should have received a copy of the GNU General Public License
+    along with channelpack.  If not, see <http://www.gnu.org/licenses/>.
 """
 
 from .pack import ChannelPack, txtpack, dbfpack
