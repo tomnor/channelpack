@@ -39,6 +39,6 @@ numpy to be installed. Do it your way. It is likely that if you consider
 channelpack, you already have numpy installed.
 
 Examples
-=====
+========
 
 TODO: Make examples.
