@@ -1,68 +1,45 @@
-from setuptools import setup, find_packages # Always prefer setuptools over
-                                            # distutils
-from codecs import open # To use a consistent encoding
-from os import path
-here = path.abspath(path.dirname(__file__))
-# Get the long description from the relevant file
-with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
-    long_description = f.read()
+from setuptools import setup, find_packages
+import codecs
+import os
+import re
 
+here = os.path.abspath(os.path.dirname(__file__))
 
+def read(*parts):
+    # intentionally *not* adding an encoding option to open, See:
+    #   https://github.com/pypa/virtualenv/issues/201#issuecomment-3145690
+    return codecs.open(os.path.join(here, *parts), 'r').read()
+
+def find_version(*parts):
+    version_file = read(*parts)
+    version_match = re.search(r"^__version__ = ['\"]([^'\"]*)['\"]",
+                              version_file, re.M)
+    if version_match:
+        return version_match.group(1)
+    raise RuntimeError("Unable to find version string.")
+
+long_description = read('README.rst')
 
 setup(
     name='channelpack',
-    version='0.1.0',
+    version=find_version('channelpack', '__init__.py'),
     description='Package for loading, analyzing and slicing acqusition data',
     long_description=long_description,
-    platform='Any',
     url='https://github.com/tomnor/channelpack',
-    # Author details
     author='Tomas Nordin',
     author_email='tomasn@kth.se',
-    # Choose your license
     license='GPLv3+',
-    # See https://pypi.python.org/pypi?%3Aaction=list_classifiers
     classifiers=[
-        # How mature is this project? Common values are
-        # 3 - Alpha
-        # 4 - Beta
-        # 5 - Production/Stable
         'Development Status :: 3 - Alpha',
-        # Indicate who your project is intended for
         'Intended Audience :: Developers',
         'Intended Audience :: Science/Research',
         'Topic :: Scientific/Engineering',
         'Operating System :: OS Independent',
-        # Pick your license as you wish (should match "license" above)
         'License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)',
-        # Specify the Python versions you support here. In particular, ensure
-        # that you indicate whether you support Python 2, Python 3 or both.
         'Programming Language :: Python :: 2',
         ],
-    # What does your project relate to?
-    keywords='data mining datafile daq masking conditions evaluation ad hoc',
-    # You can just specify the packages manually here if your project is
-    # simple. Or you can use find_packages().
+    keywords='data-mining datafile daq masking conditions evaluation ad-hoc',
     packages=['channelpack'],
+    # Requires numpy but channelpack choose not to provide
     # install_requires=['numpy'],
-
-    # If there are data files included in your packages that need to be
-    # installed, specify them here. If using Python 2.6 or less, then these
-    # have to be included in MANIFEST.in as well.
-    # package_data={
-    #     'sample': ['package_data.dat'],
-    #     },
-    # Although 'package_data' is the preferred approach, in some case you may
-    # need to place data files outside of your packages.
-    # see http://docs.python.org/3.4/distutils/setupscript.html#installing-additional-files
-    # In this case, 'data_file' will be installed into '<sys.prefix>/my_data'
-    # data_files=[('my_data', ['data/data_file'])],
-    # To provide executable scripts, use entry points in preference to the
-    # "scripts" keyword. Entry points provide cross-platform support and allow
-    # pip to create the appropriate form of executable for the target platform.
-    # entry_points={
-    #     'console_scripts': [
-    #         'sample=sample:main',
-    #         ],
-    # },
 )
