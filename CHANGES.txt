@@ -1,7 +1,23 @@
+**0.2.0 (2014-08-??)**
+
+
+* Update append_load method in pack.ChannelPack. Keep data on all files loaded
+  in metamulti dict, including the new file.
+
+* Add method rebase in ChannelPack, rebase and align a channel.
+
+* Add a module lazyutils. Helpers to get file names, remembering locations.???
+
+* Docs initiated and uploaded. http://pythonhosted.org/channelpack.???
+
+
 **0.1.1 (2014-08-16)**
+
 
 * Editorials on the README file. Some updates in the setup.py file.
 
+
 **0.1.0 (2014-08-16)**
+
 
 * Initial release

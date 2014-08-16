@@ -11,48 +11,6 @@ the data file. Keys are integers corresponding to the "columns" used,
 0-based. The loadfunc is called from an instance of ChannelPack by
 calling 'load'.
 
-----------------------------
-Written thinking
-
-Say that I need to load some data from a measurement that repeats,
-(every week or so). The measurement is the same every time, but the
-set-up configuration files might have been altered so order and spelling
-of channel names might suddenly change. I will need to know how the
-channels are ordered. There is no obvious way for channelpack to know
-this order. So it shall be possible to call channels by index
-number. This solves the problem of not knowing the exact spelling of
-channel names from a given measurement session. But not the ordering of
-channels. 
-
-There could be a function to spit out a config file to the directory
-where the data file is sitting. This file is a config file. It has a
-section called 'NAMES' where each option is a channel name with
-corresponding index as value. 'NAMES' can be extended with an asterisk
-saying what data files the mapping is valid for, being all files with an
-asterisk. It's a shell pattern, so to limit valid file names, it can be
-[NAMES "<valid prefix>*.csv"], or [NAMES "mes_M*.*"] or similar.
-
-Another section gives a possibility to remap the channel index order,
-it's called [REMAP], one option: neworder = [3, 2 , 4, 1, 0]. No? This
-should conflict with the NAMES section. Not applicable I think. Just
-provide a method for this. remap is good name of such a method.
-
-Now the mtime thing. Where should the possible file extensions to look
-for be located. This question solve later. Now just store a global list
-here with such extensions. 
-
-Now the conditions thing. 
-
-TO DO: Figure out how to specify shell patterns to use when searching
-for a possible origin file. Hopefully some default can be set in the
-spitted file. Provide smart solution for user to specify
-ORIGINEXTENSIONS, which somehow doesn't need to be repeated. It boils
-down to all the time that I need some infant location to persist config
-data. 
-
-
-----------------------------
-
 """
 import re
 import glob, fnmatch
@@ -160,7 +118,7 @@ class ChannelPack:
 
         self._make_mask()
 
-    def append_load(self, *args, **kwargs):
+    def append_loadBAK(self, *args, **kwargs):
         """Append data using loadfunc.
         
         args, kwargs: 
@@ -214,6 +172,123 @@ class ChannelPack:
         self.set_basefilemtime()
 
         self._make_mask()
+
+    def append_load(self, *args, **kwargs):
+        """Append data using loadfunc.
+        
+        args, kwargs: 
+            forward to the loadfunc. args[0] must be the filename, so it
+            means that loadfunc must take the filename as it's first
+            argument.
+
+        If self is not already a loaded instance, call load and return.
+
+        Make error if there is a missmatch of channels indexes or
+        channels count.
+
+        Append the data to selfs existing data. Set filename to the new
+        file.
+
+        Create new attribute - a dict with metadata on all files loaded,
+        'metamulti.'
+        """
+        if not self.D:
+            self.load(*args, **kwargs)
+            return
+
+        newD = self.loadfunc(*args, **kwargs)
+
+        s1, s2 = set(self.D.keys()), set(newD.keys())
+        offenders = s1 ^ s2
+        if offenders:
+            mess = ('Those keys (respectively) were in one of the dicts ' + 
+                    'but not the other: {}.')
+            offs = ', '.join([str(n) for n in offenders])
+            raise KeyError(mess.format(offs))
+
+        # Append the data early to fail if fail before other actions.
+        for k, a in self.D.iteritems():
+            self.D[k] = np.append(a, newD.pop(k))
+
+        if not hasattr(self, 'metamulti'):
+            self.metamulti = dict(filenames=[], mtimestamps=[], mtimenames=[],
+                                  slices=[])
+
+            self.metamulti['filenames'].append(self.filename)
+            self.metamulti['mtimestamps'].append(self.mtimestamp)
+            self.metamulti['mtimenames'].append(self.mtimefs)
+            self.metamulti['slices'].append(slice(0, self.rec_cnt))
+
+
+        self.rec_cnt = len(self.D[self.keys[0]])
+        self._set_filename(args[0])
+        self.set_basefilemtime()
+
+        start = self.metamulti['slices'][-1].stop
+        stop = self.rec_cnt
+
+        self.metamulti['filenames'].append(self.filename)
+        self.metamulti['mtimestamps'].append(self.mtimestamp)
+        self.metamulti['mtimenames'].append(self.mtimefs)
+        self.metamulti['slices'].append(slice(start, stop))
+
+        self._make_mask()    
+
+    def rebase(self, key, start=None, decimals=5):
+        """Rebase a channel (key) on start. 
+
+        The step (between elements) need to be constant all through,
+        else ValueError is raised. The exception to this is the border
+        step between data loaded from two different files.
+
+        key: int or str
+            The key for the channel to rebase.
+
+        start: int or float or None
+            If specified - replace the first element in the first loaded
+            data channel with start.
+        
+        decimals: int
+            Diffs are rounded to this number of decimals before the step
+            through arrays are checked. The diffs are otherwise likely never to
+            be all equal.
+
+        Typically this would be used to make a time channel
+        continous. Like, not start over from 0, when data is appended
+        from multiple files. Or simply to rebase a channel on 'start'.
+
+        If start is None, and the instance is loaded from one file only,
+        this method has no effect.
+
+        NOTE: The instance channel is modified on success.
+        """
+        diffs = []
+        
+        def diffsappend(d, sc):
+            diff = np.around(np.diff(d), decimals)
+            diffs.append((diff, diff[0], sc))
+
+        if hasattr(self, 'metamulti'):
+            for sc in self.metamulti['slicelist']:
+                diffsappend(self(key)[sc], sc)
+        else:
+            diffsappend(self(key), slice(0, self.rec_cnt))
+
+        for diff, d, sc in diffs:
+            if not np.all(diff == d):
+                raise ValueError('All diffs not equal within ' + 
+                                 'indexes ' + str(sc))
+
+        S = set([t[1] for t in diffs])
+        if len(S) > 1:
+            raise ValueError('Diffs not equal between appended data files: ' + 
+                             str(S))
+
+        # Now modify:
+        start = start or self(key)[0]
+        self.D[self._key(key)] = np.arange(start, d * self.rec_cnt + start, d)
+
+        assert len(self(key)) == self.rec_cnt, 'Semantic error'
 
     def _set_filename(self, fn):
         """Set the filename attributes. (They are multiple for personal
