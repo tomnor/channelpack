@@ -417,16 +417,16 @@ class ChannelPack:
             names until eat_config is called.
 
         Sections in the ini/cfg kind of file can be:
-        [channels]
+       
+            [channels]
             A mapping of self.D integer keys to channel names. Options
             are numbers corresponding to the keys. Values are the
             channel names, being the fallback names if custom names are
             not available (self.chnames). (When spitting that is).
 
-        [conditions]
+            [conditions]
             Options correspond to the keys in self.conditions, values
             correspond to the values in the same.
-
         """
         
         chroot = os.path.dirname(self.filename)
