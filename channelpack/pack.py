@@ -451,11 +451,12 @@ class ChannelPack:
 
         conf_file: str or Falseish
             If conf_file is Falseish, look in the directory where
-            self.filename sits, if self is not already associated with a
+            self.filename sits if self is not already associated with a
             conf_file. If associated, and conf_file arg is Falseish,
             read self.conf_file. If conf_file arg is a file name, read
             from that file, but do not update self.conf_file
-            accordingly. 
+            accordingly. An Implicit IOError is raised if no conf_file
+            was found.
 
         See spit_config for documentation on the file layout.
 
@@ -920,11 +921,12 @@ def txtpack(fn, **kwargs):
 
     This is a lazy function to get a loaded instance, using the
     cleverness provided by pulltxt module. No delimiter or rows-to-skip
-    and such need to be provided. However, if necessary, **kwargs can be
-    used to override clevered items to provide to numpys
+    and such need to be provided. However, if necessary, `**kwargs` can
+    be used to override clevered items to provide to numpys
     loadtxt. usecols might be such an item for example.
 
-    Note that the call signature is the same as numpys loadtxt."""
+    Note that the call signature is the same as numpys `loadtxt
+    <http://www.numpy.org/>`_."""
 
     loadfunc = pulltxt.loadtxt_asdict
     cp = ChannelPack(loadfunc)

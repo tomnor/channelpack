@@ -4,16 +4,21 @@
    contain the root `toctree` directive.
 
 Welcome to channelpack's documentation!
-=======================================
+***************************************
+
+A python package for loading, analyzing and slicing out acqusition data based on
+conditions. Conditions and naming of channels can be saved as config files and
+reused later in a convenient way.
 
 Contents:
 
 .. toctree::
    :maxdepth: 2
 
-   reference.rst
-
-
+   installation.rst
+   overview_examples.rst
+   api_reference.rst
+   changelog.rst
 
 Indices and tables
 ==================
