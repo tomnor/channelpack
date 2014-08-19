@@ -139,6 +139,7 @@ def startstop_bool(pack):
     slice, and the rest of the array is set to False.
 
     NOTE: This function does not work yet. IN WORK.
+    UPDATE: I think it does work now. Update the docstring.
     """ 
     
     d = pack.D

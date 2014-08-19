@@ -9,6 +9,8 @@ install that for you during installation of channelpack. It's not a huge deal to
 install numpy, but maybe not trivial either, and there might be reasons you
 prefer to do that yourself.
 
+.. automodule:: channelpack
+
 Loading and exploring data files
 ================================
 

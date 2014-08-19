@@ -23,9 +23,19 @@ import numpy as np
 from . import pulltxt, pulldbf
 from . import datautils
 
-CHANNELPACK_RC_FILE = '.channelpackrc'
+ORIGINEXTENSIONS =  []
+"""A list of file extensions excluding the dot.  See
+:py:meth:`~.ChannelPack.set_basefilemtime` for a description.
+"""
 
-ORIGINEXTENSIONS =  [] # A list of file extensions excluding the dot.
+CHANNELPACK_RC_FILE = '.channelpackrc'
+"""The humble rc file of channelpack. It can exist and have a section
+``[channelpack]``. In this section, an option is ``originextensions``
+with a comma separated list of extensions as value that will be loaded
+to the ORIGINEXTENSIONS list on import of channelpack. Use
+`os.path.expanduser('~')` to see where channelpack look for this file,
+and then place it there.
+"""
 
 CONFIG_FILE = "conf_file.cfg"
 CONFIG_SECS = ['channels',  'conditions']
@@ -113,61 +123,6 @@ class ChannelPack:
 
         fallnames  = _fallback_names(self.keys)
         self.chnames_0 = dict(zip(self.keys, fallnames))
-        self._set_filename(args[0])
-        self.set_basefilemtime()
-
-        self._make_mask()
-
-    def append_loadBAK(self, *args, **kwargs):
-        """Append data using loadfunc.
-        
-        args, kwargs: 
-            forward to the loadfunc. args[0] must be the filename, so it
-            means that loadfunc must take the filename as it's first
-            argument.
-
-        If self is not already a loaded instance, call load and return.
-
-        Make error if there is a missmatch of channels indexes or
-        channels count.
-
-        Append the data to selfs existing data. Set filename to the new
-        file.
-
-        Create new attribute - a dict with metadata on files previously
-        loaded - metamulti.
-        """
-        if not self.D:
-            self.load(*args, **kwargs)
-            return
-
-        newD = self.loadfunc(*args, **kwargs)
-
-        s1, s2 = set(self.D.keys()), set(newD.keys())
-        offenders = s1 ^ s2
-        if offenders:
-            mess = ('Those keys (respectively) were in one of the dicts ' + 
-                    'but not the other: {}.')
-            offs = ', '.join([str(n) for n in offenders])
-            raise KeyError(mess.format(offs))
-
-        if not hasattr(self, 'metamulti'):
-            self.metamulti = dict(filenames=[], mtimestamps=[], mtimenames=[],
-                                  slices=[])
-            start = 0
-        else:
-            start = self.metamulti['slices'][-1].stop
-        stop = self.rec_cnt
-
-        for k, a in self.D.iteritems():
-            self.D[k] = np.append(a, newD.pop(k))
-
-        self.metamulti['filenames'].append(self.filename)
-        self.metamulti['mtimestamps'].append(self.mtimestamp)
-        self.metamulti['mtimenames'].append(self.mtimefs)
-        self.metamulti['slices'].append(slice(start, stop))
-
-        self.rec_cnt = len(self.D[self.keys[0]])
         self._set_filename(args[0])
         self.set_basefilemtime()
 
@@ -730,8 +685,10 @@ class ChannelPack:
         ORIGINEXTENSIONS include any items, try and look for files (in
         the directory where self.filename is sitting) with the same base
         name as the loaded file, but with an extension specified in
-        ORIGINEXTENSIONS. mtimestamp is a timestamp and mtimefs is the
-        file (name) with that timestamp.
+        ORIGINEXTENSIONS. 
+
+        mtimestamp is a timestamp and mtimefs is the file (name) with
+        that timestamp.
 
         ORIGINEXTENSIONS is empty on delivery. Which means that the
         attributes discussed will be based on the file that was loaded,
@@ -925,8 +882,16 @@ def txtpack(fn, **kwargs):
     be used to override clevered items to provide to numpys
     loadtxt. usecols might be such an item for example.
 
-    Note that the call signature is the same as numpys `loadtxt
-    <http://www.numpy.org/>`_."""
+    Note that the call signature is the same as numpys loadtxt, which
+    look like this::
+
+        np.loadtxt(fname, dtype=<type 'float'>, comments='#',
+        delimiter=None, converters=None, skiprows=0, usecols=None,
+        unpack=False, ndmin=0)
+
+    But, when using this function as a wrapper, the only meaningful
+    argument to override should be `usecols`.
+"""
 
     loadfunc = pulltxt.loadtxt_asdict
     cp = ChannelPack(loadfunc)

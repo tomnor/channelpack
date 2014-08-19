@@ -19,6 +19,7 @@ Install
 
 Download from pypi, unpack, and cd to the unpacked directory with setup.py in
 it:
+
     ``python setup.py install``
 
 If you have `pip <https://pypi.python.org/pypi/pip/>`_ or `easy_install
@@ -26,6 +27,7 @@ If you have `pip <https://pypi.python.org/pypi/pip/>`_ or `easy_install
 environment:
 
     ``pip install channelpack``
+
 or
 
     ``easy_install channelpack``

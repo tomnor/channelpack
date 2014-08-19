@@ -18,7 +18,8 @@
 The functions `txtpack` and `dbfpack`, returning laoded instances of the
 ChannelPack class, are available by an import of channelpack. The class
 `ChannelPack` is also made available. Those objects are what channelpack
-mainly mean to deliver, and live in the module `pack`.
+mainly mean to deliver, and live in the module `pack`. So, most of the
+time it should be enough to import the namespace of channelpack:
 
     >>> import channelpack as cp
     >>> cp.txtpack
