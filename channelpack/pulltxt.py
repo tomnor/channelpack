@@ -2,14 +2,14 @@
 # -*- coding: UTF-8 -*-
 
 """
-The study of a data file works by extracting matches of a digit pattern on
-each row up to a count of rows. When the count of matches start to be
-constant, it is assumed the data rows has started. Comma or point is
-accepted as decimal delimiter. So there is two patterns for digits. Both
-are tried, and the wrong one normally give a higher count of matches on
-each row, because matches are then found around the correct decimal
-delimiter. It is then simply assumed that the pattern with lesser match
-count is the correct one.
+The study of a numerical data file works by extracting matches of a
+digit pattern on each row up to a count of rows. When the count of
+matches start to be constant, it is assumed the data rows has
+started. Comma or point is accepted as decimal delimiter. So there is
+two patterns for digits. Both are tried, and the wrong one normally give
+a higher count of matches on each row, because matches are then found
+around the correct decimal delimiter. It is then simply assumed that the
+pattern with lesser match count is the correct one.
 
 When the decimal delimiter and start row is determined, the delimiter
 for data is determined. This is done by doing a re match with the digits
