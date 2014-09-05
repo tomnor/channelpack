@@ -38,6 +38,10 @@ def dbfreader(f):
     # See
     # http://stackoverflow.com/questions/11548005/numpy-or-pandas-keeping-array-type-as-integer-while-having-a-nan-value
     # The limitation is not solved it seems. (Numpy).
+    # Consider doing this in the numpytypes function. Just dont make ints from
+    # the N type. I see now that it was already a potential problem because N
+    # could be a float. But after this - there will never be any integers.
+
 
     terminator = f.read(1)
     assert terminator == '\r'
