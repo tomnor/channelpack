@@ -880,7 +880,8 @@ def txtpack(fn, **kwargs):
     cleverness provided by pulltxt module. No delimiter or rows-to-skip
     and such need to be provided. However, if necessary, `**kwargs` can
     be used to override clevered items to provide to numpys
-    loadtxt. usecols might be such an item for example.
+    loadtxt. usecols might be such an item for example. Also, the
+    cleverness is only clever if all data is numerical.
 
     Note that the call signature is the same as numpys `loadtxt
     <http://docs.scipy.org/doc/numpy/reference/generated/numpy.loadtxt.html#numpy-loadtxt>`_, which look like this::

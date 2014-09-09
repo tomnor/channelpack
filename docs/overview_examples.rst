@@ -12,15 +12,27 @@ reasons you prefer to do that yourself.
 .. automodule:: channelpack
 
 
-The function :func:`pack.txtpack` is limited to nemerical data, since it is a
-wrapper around numpys loadtxt. There is no limitation of the
-:class:`channelpack.ChannelPack` class for the data arrays it holds - the arrays
-are numpy 1d arrays.
+The function :func:`pack.txtpack` try to determine delimiters and possible
+"channel" names and start of data automatically, but this works only if data is
+numerical. There is no limitation of the :class:`channelpack.ChannelPack` class
+for the data it holds - the arrays are numpy 1d arrays.
 
 Loading and exploring data files
 ================================
 
-Examples of loading files.
+Examples of loading files. Load a file. Have some original file in the same
+directory.
+
+Show how to see channel names, the back-up names. How to retreive data
+channels. Show how they can be operated on as numpy objects.
+
+Esoteric
+--------
+
+Describe the mtimefs and mtimestamp thing. Esoteric might be a cool header,
+making clear that this might be of interrest for only a few. Keep in mind that
+ORIGINEXTENSIONS has to be set manually in version 0.1.1. And have some
+automagics in next version.
 
 Slicing out relevant parts of data
 ==================================
