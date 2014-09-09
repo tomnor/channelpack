@@ -1,4 +1,4 @@
-**0.2.0 (2014-08-??)**
+**0.2.0 (2014-??-??)**
 
 
 * Update append_load method in pack.ChannelPack. Keep data on all files loaded
@@ -9,6 +9,10 @@
 * Add a module lazyutils. Helpers to get file names, remembering locations.???
 
 * Docs initiated and uploaded. http://pythonhosted.org/channelpack.???
+
+* The dbf reader function replace missing values with numpy.NaN if the data is
+  numeric. This means that all numeric values will be floats, even though they
+  are specified as integers in the source data file.
 
 
 **0.1.1 (2014-08-16)**

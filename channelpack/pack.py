@@ -24,7 +24,7 @@ from . import pulltxt, pulldbf
 from . import datautils
 
 ORIGINEXTENSIONS =  []
-"""A list of file extensions excluding the dot.  See
+"""A list of file extensions excluding the dot. See
 :py:meth:`~.ChannelPack.set_basefilemtime` for a description.
 """
 

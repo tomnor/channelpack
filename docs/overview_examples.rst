@@ -4,12 +4,18 @@ Overview and examples
 The idea behind `channelpack` is to provide a quick and convinient way of
 loading and anlyzing (test) data.
 
-channelpack requires `numpy <https://pypi.python.org/pypi/numpy>`_, but does not attempt to
-install that for you during installation of channelpack. It's not a huge deal to
-install numpy, but maybe not trivial either, and there might be reasons you
-prefer to do that yourself.
+channelpack requires `numpy <https://pypi.python.org/pypi/numpy>`_, but does not
+attempt to install that for you during installation of channelpack. It's not a
+huge deal to install numpy, but maybe not trivial either, and there might be
+reasons you prefer to do that yourself.
 
 .. automodule:: channelpack
+
+
+The function :func:`pack.txtpack` is limited to nemerical data, since it is a
+wrapper around numpys loadtxt. There is no limitation of the
+:class:`channelpack.ChannelPack` class for the data arrays it holds - the arrays
+are numpy 1d arrays.
 
 Loading and exploring data files
 ================================
