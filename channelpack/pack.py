@@ -882,8 +882,8 @@ def txtpack(fn, **kwargs):
     be used to override clevered items to provide to numpys
     loadtxt. usecols might be such an item for example.
 
-    Note that the call signature is the same as numpys loadtxt, which
-    look like this::
+    Note that the call signature is the same as numpys `loadtxt
+    <http://docs.scipy.org/doc/numpy/reference/generated/numpy.loadtxt.html#numpy-loadtxt>`_, which look like this::
 
         np.loadtxt(fname, dtype=<type 'float'>, comments='#',
         delimiter=None, converters=None, skiprows=0, usecols=None,
