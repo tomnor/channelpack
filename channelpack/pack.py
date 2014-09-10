@@ -622,6 +622,11 @@ class ChannelPack:
         
         self.chnames = dict(zip(self.keys, names))
 
+    def slicelist(self):
+        """Return a slicelist based on self.mask."""
+
+        return datautils.slicelist(self.mask)
+
     def __call__(self, key, part=None):
         """Make possible to retreive channels by key.
         
