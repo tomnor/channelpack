@@ -10,10 +10,10 @@ A python package for loading, analyzing and slicing out acqusition data based on
 conditions. Conditions and naming of channels can be saved as config files and
 reused later in a convenient way.
 
-Contents:
+Site contents:
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
 
    installation.rst
    overview_examples.rst

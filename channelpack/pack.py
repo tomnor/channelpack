@@ -81,7 +81,7 @@ class ChannelPack:
         arrays, being the channels. Keys are the index integer numbers,
         (column numbers). Each array is of np.shape(N,).
 
-        See method load.
+        See method :meth:`~channelpack.ChannelPack.load`.
         
         """
         self.loadfunc = loadfunc
