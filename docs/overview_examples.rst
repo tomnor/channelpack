@@ -94,14 +94,73 @@ with an extension as listed in `originextensions` value. The loaded file was::
     '/path/to/data/MesA1.csv'
 
 The idea behind this is that the modification time of the original file (if any)
-might be the date when some measurement was done, and so this date is
+might be the time when some measurement was done, and so this time is made
 available. Such a file is only searched for in the same directory as the loaded
 file.
 
 Slicing out relevant parts of data
 ==================================
 
-Examples of conditions. Spitting and eating conditions from a conf_file file.
+.. note:: to myself
+
+   Examples of conditions. Spitting and eating conditions from a conf_file
+   file. Use data in /home/tomas/pyfiles/channelpack/testdata/1380/
+
+   * 6 = RPT        Show this on ax2, rest on ax1
+   * 7 = B_CACT     
+   * 9 = P_CACT
+   * 12 = BASE
+   * 14 = VG_STOP   Show
+   * 25 = AR_BST    Make this or
+   * 27 = PLRT_1
+   * 33 = TOQ_BUM
+
+   A tuple of numbers: (6, 7, 9, 12, 14, 25, 27, 33)
+   Put condition RPT > AR_BST and then show VG_STOP on plot by masking. Also
+   show how filter works and that it gives arrays of reduced size.
+
+A dbf file with some of the channel names (columns) of interrest::
+
+    >>> dp = cp.dbfpack('mesdat.dbf', (6, 7, 9, 12, 14, 25, 27, 33))
+    >>> dp.chnames
+    {33: 'TOQ_BUM', 6: 'RPT', 7: 'B_CACT', 9: 'P_CACT', 12: 'BASE', 14: 'VG_STOP', 25: 'AR_BST', 27: 'PLRT_1'}
+    >>> dp.chnames_0
+    {33: 'ch33', 6: 'ch6', 7: 'ch7', 9: 'ch9', 12: 'ch12', 14: 'ch14', 25: 'ch25', 27: 'ch27'}
+
+.. note:: The chnames and chnames_0 attributes are currently dicts, but will be
+   ordered dicts in a coming update. Nicer interactive output (channels in
+   order).
+
+Using your favourite plotting library, (`matplotlib <http://matplotlib.org/>`_)
+plot some channels::
+
+    import matplotlib.pyplot as pp
+
+    import channelpack as cp
+
+    dp = cp.dbfpack('mesdat.dbf', (6, 7, 9, 12, 14, 25, 27, 33))
+    dp.eat_config()                 # Don't show
+
+    pp.figure(figsize=(13.5, 7))
+
+    ax1 = pp.subplot(111)
+    ax2 = pp.twinx(ax1)
+
+    for n in (14, 25):
+        ax1.plot(dp(n), label=dp.name(n))
+
+    ax2.plot(dp(6), label=dp.name(6), color='red')
+    ax2.set_ylim(top=1200)
+
+    prop = {'size': 12}
+    ax1.legend(loc='upper left', prop=prop)
+    ax2.legend(loc='upper right', prop=prop)
+
+    pp.show()
+
+.. image:: pics/plot1.png
+
+Fantastic
 
 AND and OR conditions
 ---------------------
@@ -119,8 +178,8 @@ Duration conditions
 
 When given conditions is not enough.
 
-Spitting to and eating from a file
-==================================
+Spitting and eating a file
+==========================
 
 Store the conditions figured out for later use with a data file with the same
 lay-out.
