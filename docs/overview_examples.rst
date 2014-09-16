@@ -42,7 +42,7 @@ the channel names::
     {0: 'ch0', 1: 'ch1', 2: 'ch2', 3: 'ch3', 4: 'ch4', 5: 'ch5'}
 
 
-The attribute chnames_0 is always available, it is a sort of fall-back names if
+The attribute chnames_0 is always available, it is a sort of fall-back if
 chnames is not set. If not set, chnames is None.
 
 The ChannelPack objects are made callable::
@@ -72,7 +72,7 @@ Esoteric
    making clear that this might be of interrest for only a few.
 
 channelpack make use of a humble rc file. If a file exist in
-:func:`os.path.expanduser`, with the name
+`os.path.expanduser('~')`, with the name
 :data:`channelpack.pack.CHANNELPACK_RC_FILE`, being ``.channelpackrc``, it can
 have this content::
 
@@ -87,7 +87,7 @@ only functionality from this currently is that two attributes are set::
     >>> tp.mtimestamp
     'Tue Sep  9 23:00:04 2014'
 
-Given that there was some file with the same base name as the loaded file, but
+given that there was some file with the same base name as the loaded file, but
 with an extension as listed in `originextensions` value. The loaded file was::
 
     >>> tp.filename
@@ -96,7 +96,7 @@ with an extension as listed in `originextensions` value. The loaded file was::
 The idea behind this is that the modification time of the original file (if any)
 might be the time when some measurement was done, and so this time is made
 available. Such a file is only searched for in the same directory as the loaded
-file.
+file sits in.
 
 Slicing out relevant parts of data
 ==================================
@@ -119,7 +119,7 @@ Slicing out relevant parts of data
    Put condition RPT > AR_BST and then show VG_STOP on plot by masking. Also
    show how filter works and that it gives arrays of reduced size.
 
-A dbf file with some of the channel names (columns) of interrest::
+Assume a dbf file with some of the channel names (columns) of interrest::
 
     >>> dp = cp.dbfpack('mesdat.dbf', (6, 7, 9, 12, 14, 25, 27, 33))
     >>> dp.chnames
@@ -128,11 +128,13 @@ A dbf file with some of the channel names (columns) of interrest::
     {33: 'ch33', 6: 'ch6', 7: 'ch7', 9: 'ch9', 12: 'ch12', 14: 'ch14', 25: 'ch25', 27: 'ch27'}
 
 .. note:: The chnames and chnames_0 attributes are currently dicts, but will be
-   ordered dicts in a coming update. Nicer interactive output (channels in
-   order).
+   ordered dicts in a coming update. That should give nicer interactive output
+   (channels in order).
 
-Using your favourite plotting library, (`matplotlib <http://matplotlib.org/>`_)
-plot some channels::
+Using your favourite plotting library, (`matplotlib <http://matplotlib.org/>`_),
+make a script and plot some channels::
+
+    # plotit1.py
 
     import matplotlib.pyplot as pp
 
@@ -141,16 +143,37 @@ plot some channels::
     dp = cp.dbfpack('mesdat.dbf', (6, 7, 9, 12, 14, 25, 27, 33))
     dp.eat_config()                 # Don't show
 
-    pp.figure(figsize=(13.5, 7))
+    pp.figure(figsize=(12.5, 6.5))
 
     ax1 = pp.subplot(111)
-    ax2 = pp.twinx(ax1)
 
-    for n in (14, 25):
+    for n in (6, 14, 25):
         ax1.plot(dp(n), label=dp.name(n))
 
-    ax2.plot(dp(6), label=dp.name(6), color='red')
-    ax2.set_ylim(top=1200)
+    prop = {'size': 12}
+    ax1.legend(loc='upper left', prop=prop)
+
+    pp.show()
+
+.. image:: pics/plot1.png
+
+code debug rst::
+
+    # plotit1.py
+
+    import matplotlib.pyplot as pp
+
+    import channelpack as cp
+
+    dp = cp.dbfpack('mesdat.dbf', (6, 7, 9, 12, 14, 25, 27, 33))
+    dp.eat_config()                 # Don't show
+
+    pp.figure(figsize=(12.5, 6.5))
+
+    ax1 = pp.subplot(111)
+
+    for n in (6, 14, 25):
+        ax1.plot(dp(n), label=dp.name(n))
 
     prop = {'size': 12}
     ax1.legend(loc='upper left', prop=prop)
@@ -158,7 +181,8 @@ plot some channels::
 
     pp.show()
 
-.. image:: pics/plot1.png
+
+Rewrite above. See plotit2.py
 
 Fantastic
 
