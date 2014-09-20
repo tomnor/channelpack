@@ -114,19 +114,38 @@ need to be either 70 or 90:
 .. image:: pics/fig2.png
 
 ::
+
+   # A hint on what was available in the VG_STOP channel:
    >>> tp.set_mask_on(False)
    >>> sorted(set(tp('VG_STOP')))
    [50.0, 60.0, 70.0, 90.0, 110.0]
 
 Any channel called will have nan's the same way.
 
-Work is here...
-
 START and STOP conditions
 -------------------------
 
 Often referred to as `start trigger` and `stop trigger` with data acqusition
 tools.
+
+Sometimes it is easier to slize out relevant parts by specifiying a start and a
+stop. This can be done using the same method as above,
+:func:`~channelpack.ChannelPack.add_conditions`, (or
+:func:`~channelpack.ChannelPack.set_conditions`) setting the `conkey` argument to one
+of
+
+* 'start_and'
+* 'start_or'
+* 'stop_and'
+* 'stop_or'
+
+From the record where the start condition(s) are True, the part will remain True
+until the condition(s) for stop is True, even though the start conditions might
+cease to be True in between.
+
+A similar script again:
+
+Work is here
 
 Duration conditions
 -------------------
