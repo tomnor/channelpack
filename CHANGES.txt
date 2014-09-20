@@ -1,3 +1,8 @@
+**0.1.2 (2014-09-21)**
+
+* Bugfix (hopefully) with the start and stop conditions. Addition in function
+  _startstop_bool in datautils module. Start conditions could be "ignored".
+
 **0.1.1 (2014-08-16)**
 
 * Editorials on the README file. Some updates in the setup.py file.
