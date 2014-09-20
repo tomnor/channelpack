@@ -20,14 +20,6 @@ for the data it holds - the arrays are numpy 1d arrays.
 Loading and exploring data files
 ================================
 
-.. note:: to myself
-
-   Examples of loading files. Load a file. Have some original file in the same
-   directory.
-
-   Show how to see channel names, the back-up names. How to retreive data
-   channels. Show how they can be operated on as numpy objects.
-
 If your data is numeric and in a textfile, the function `txtpack` try to be
 smart and figure out data delimiter, decimal separator, start-row of data and
 the channel names::
@@ -66,11 +58,6 @@ The ChannelPack objects are made callable::
 Esoteric
 --------
 
-.. note:: to myself
-
-   Describe the mtimefs and mtimestamp thing. Esoteric might be a cool header,
-   making clear that this might be of interrest for only a few.
-
 channelpack make use of a humble rc file. If a file exist in
 `os.path.expanduser('~')`, with the name
 :data:`channelpack.pack.CHANNELPACK_RC_FILE`, being ``.channelpackrc``, it can
@@ -101,95 +88,39 @@ file sits in.
 Slicing out relevant parts of data
 ==================================
 
-.. note:: to myself
+Assume a script like this, using your favourite plotting library, (`matplotlib
+<http://matplotlib.org/>`_):
 
-   Examples of conditions. Spitting and eating conditions from a conf_file
-   file. Use data in /home/tomas/pyfiles/channelpack/testdata/1380/
+.. literalinclude:: ../testdata/plotit1.py
 
-   * 6 = RPT        Show this on ax2, rest on ax1
-   * 7 = B_CACT     
-   * 9 = P_CACT
-   * 12 = BASE
-   * 14 = VG_STOP   Show
-   * 25 = AR_BST    Make this or
-   * 27 = PLRT_1
-   * 33 = TOQ_BUM
+producing an overview plot:
 
-   A tuple of numbers: (6, 7, 9, 12, 14, 25, 27, 33)
-   Put condition RPT > AR_BST and then show VG_STOP on plot by masking. Also
-   show how filter works and that it gives arrays of reduced size.
+.. image:: pics/fig1.png
 
-Assume a dbf file with some of the channel names (columns) of interrest::
-
-    >>> dp = cp.dbfpack('mesdat.dbf', (6, 7, 9, 12, 14, 25, 27, 33))
-    >>> dp.chnames
-    {33: 'TOQ_BUM', 6: 'RPT', 7: 'B_CACT', 9: 'P_CACT', 12: 'BASE', 14: 'VG_STOP', 25: 'AR_BST', 27: 'PLRT_1'}
-    >>> dp.chnames_0
-    {33: 'ch33', 6: 'ch6', 7: 'ch7', 9: 'ch9', 12: 'ch12', 14: 'ch14', 25: 'ch25', 27: 'ch27'}
-
-.. note:: The chnames and chnames_0 attributes are currently dicts, but will be
-   ordered dicts in a coming update. That should give nicer interactive output
-   (channels in order).
-
-Using your favourite plotting library, (`matplotlib <http://matplotlib.org/>`_),
-make a script and plot some channels::
-
-    # plotit1.py
-
-    import matplotlib.pyplot as pp
-
-    import channelpack as cp
-
-    dp = cp.dbfpack('mesdat.dbf', (6, 7, 9, 12, 14, 25, 27, 33))
-    dp.eat_config()                 # Don't show
-
-    pp.figure(figsize=(12.5, 6.5))
-
-    ax1 = pp.subplot(111)
-
-    for n in (6, 14, 25):
-        ax1.plot(dp(n), label=dp.name(n))
-
-    prop = {'size': 12}
-    ax1.legend(loc='upper left', prop=prop)
-
-    pp.show()
-
-.. image:: pics/plot1.png
-
-code debug rst::
-
-    # plotit1.py
-
-    import matplotlib.pyplot as pp
-
-    import channelpack as cp
-
-    dp = cp.dbfpack('mesdat.dbf', (6, 7, 9, 12, 14, 25, 27, 33))
-    dp.eat_config()                 # Don't show
-
-    pp.figure(figsize=(12.5, 6.5))
-
-    ax1 = pp.subplot(111)
-
-    for n in (6, 14, 25):
-        ax1.plot(dp(n), label=dp.name(n))
-
-    prop = {'size': 12}
-    ax1.legend(loc='upper left', prop=prop)
-    ax2.legend(loc='upper right', prop=prop)
-
-    pp.show()
-
-
-Rewrite above. See plotit2.py
-
-Fantastic
 
 AND and OR conditions
 ---------------------
 
-Basic conditions
+An update of the script follows to show `and` and `or` conditions to sort out
+some relevant parts of data:
+
+.. literalinclude:: ../testdata/plotit2.py
+
+Setting the mask on sets the samples not fulfilling the criteria to numpy.nan,
+on calls. This is useful when plotting since nans are nicely handled by
+matplotlib. In this case, `RPT` need to be bigger than `AR_BST` and `VG_STOP`
+need to be either 70 or 90:
+
+.. image:: pics/fig2.png
+
+::
+   >>> tp.set_mask_on(False)
+   >>> sorted(set(tp('VG_STOP')))
+   [50.0, 60.0, 70.0, 90.0, 110.0]
+
+Any channel called will have nan's the same way.
+
+Work is here...
 
 START and STOP conditions
 -------------------------
