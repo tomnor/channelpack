@@ -231,6 +231,11 @@ def _startstop_bool(startb, stopb, runflag, stop_extend):
             if stop.start > start.start:
                 res[start.start: stop.start + stop_extend] = True
                 break           # Next start
+        else:
+            # On a given start slice, the entire list of stop slices was
+            # exhausted, none being later than the given start. It must mean
+            # that from this given start, the rest is to be True:
+            break
 
     if start.start > stop.start: # There was no stop for the last start in loop.
         res[start.start:] = True
