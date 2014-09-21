@@ -41,4 +41,4 @@ channelpack, you already have numpy installed.
 Documentation and examples
 ==========================
 
-TODO: Upload docs to readthedocs (I think).
+`Documentation <http://channelpack.readthedocs.org/en/latest/>`_
