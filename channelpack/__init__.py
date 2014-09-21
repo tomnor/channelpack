@@ -36,4 +36,4 @@ objects.
 
 from .pack import ChannelPack, txtpack, dbfpack
 
-__version__ = '0.1.2'
+__version__ = '0.1.3'
