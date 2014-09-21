@@ -40,6 +40,14 @@ import numpy as np
 DATPRX = r'[-+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?' # With decimal point.
 DATCRX = r'[-+]?(?:\d+(?:,\d*)?|,\d+)(?:[eE][-+]?\d+)?' # With decimal comma.
 
+# Consider this pattern:
+# '(?<![A-Za-z])[-+]?(?:\\d+(?:,\\d*)?|,\\d+)(?:[eE][-+]?\\d+)?' (for comma)
+# This comment added in dox branch because discovered that when channel names
+# are cluttered with some numbers, those numbers can qualify as a valid data
+# row, in case just before actual data. This is maybe risky however. Or at least
+# it requires that numbers are never directly preceeded by a letter
+# A-Za-z. (negative lookbehind assertion).
+
 ALPHAS = tuple(string.lowercase + string.uppercase + '_' +  u'åäöÅÄÖ')
 
 EQUAL_CNT_REQ = 10              # Number of rows with equal number of data

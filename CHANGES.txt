@@ -17,6 +17,7 @@
 **0.1.3 (2014-09-??)**
 
 * Docs made available. Readme updated.
+* Update docstring in ChannelPack.load
 
 **0.1.2 (2014-09-21)**
 

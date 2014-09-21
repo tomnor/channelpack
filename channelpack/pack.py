@@ -112,6 +112,28 @@ class ChannelPack:
 
         Set the filename attribute.
 
+        ChannelPack is assuming a need for loading data from disc. If
+        there is a desire to load some made-up data, a filename pointing
+        to some actual file is nevertheless required. Here is a
+        suggestion:
+
+        >>> import channelpack as cp
+        >>> import tempfile
+
+        >>> tf = tempfile.NamedTemporaryFile()
+
+        >>> d = {2: np.arange(5), 5: np.arange(10, 15)}
+        >>> def lf(fn):
+        ...     return d
+        ... 
+
+        >>> pack = cp.ChannelPack(lf)
+        >>> pack.load(tf.name)
+        >>> pack.filename
+        # maybe '/tmp/tmp9M4PqD'
+        >>> pack.chnames_0
+        {2: 'ch2', 5: 'ch5'}
+
         """
         # D = self.loadfunc(*args, **kwargs)
         self.D = self.loadfunc(*args, **kwargs)
