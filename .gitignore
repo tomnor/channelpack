@@ -5,6 +5,7 @@ testdata/?*
 !testdata/plot*.py
 !testdata/sample*.txt
 !testdata/dat_0000.txt
+!testdata/conf_file*
 docs/_build/
 in_work.txt
 *.egg*
