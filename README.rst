@@ -9,7 +9,7 @@ reused later in a convenient way.
 
 channelpack origins from test engineering experience of handling data files from
 test measurements. If those file are text kind of files, they might have some
-inconvinient need-to-know featarues before loadable into python:
+inconvinient need-to-know features before loadable into python:
 
 * Rows to skip - a number of lines (file meta data) prior to test data.
 * Data delimiter - The character used to separate one data from the other, often
@@ -38,7 +38,7 @@ channelpack imports numpy. Installation of channelpack will not arrange for
 numpy to be installed. Do it your way. It is likely that if you consider
 channelpack, you already have numpy installed.
 
-Examples
-========
+Documentation and examples
+==========================
 
-TODO: Make examples.
+`Documentation <http://channelpack.readthedocs.org/en/latest/>`_
