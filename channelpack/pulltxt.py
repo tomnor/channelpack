@@ -2,14 +2,14 @@
 # -*- coding: UTF-8 -*-
 
 """
-The study of a data file works by extracting matches of a digit pattern on
-each row up to a count of rows. When the count of matches start to be
-constant, it is assumed the data rows has started. Comma or point is
-accepted as decimal delimiter. So there is two patterns for digits. Both
-are tried, and the wrong one normally give a higher count of matches on
-each row, because matches are then found around the correct decimal
-delimiter. It is then simply assumed that the pattern with lesser match
-count is the correct one.
+The study of a numerical data file works by extracting matches of a
+digit pattern on each row up to a count of rows. When the count of
+matches start to be constant, it is assumed the data rows has
+started. Comma or point is accepted as decimal delimiter. So there is
+two patterns for digits. Both are tried, and the wrong one normally give
+a higher count of matches on each row, because matches are then found
+around the correct decimal delimiter. It is then simply assumed that the
+pattern with lesser match count is the correct one.
 
 When the decimal delimiter and start row is determined, the delimiter
 for data is determined. This is done by doing a re match with the digits
@@ -39,6 +39,14 @@ import numpy as np
 # the re module: r'[-+]?(\d+(\.\d*)?|\.\d+)([eE][-+]?\d+)?'
 DATPRX = r'[-+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?' # With decimal point.
 DATCRX = r'[-+]?(?:\d+(?:,\d*)?|,\d+)(?:[eE][-+]?\d+)?' # With decimal comma.
+
+# Consider this pattern:
+# '(?<![A-Za-z])[-+]?(?:\\d+(?:,\\d*)?|,\\d+)(?:[eE][-+]?\\d+)?' (for comma)
+# This comment added in dox branch because discovered that when channel names
+# are cluttered with some numbers, those numbers can qualify as a valid data
+# row, in case just before actual data. This is maybe risky however. Or at least
+# it requires that numbers are never directly preceeded by a letter
+# A-Za-z. (negative lookbehind assertion).
 
 ALPHAS = tuple(string.lowercase + string.uppercase + '_' +  u'åäöÅÄÖ')
 
@@ -290,7 +298,7 @@ def loadtxt(fn, **kwargs):
     """Study the text data file fn. Call numpys loadtxt with keyword
     arguments based on the study.
 
-    Return data returned from numpy loadtxt.
+    Return data returned from numpy `loadtxt <http://docs.scipy.org/doc/numpy/reference/generated/numpy.loadtxt.html#numpy-loadtxt>`_.
     
     kwargs: keyword arguments accepted by numpys loadtxt. Any keyword
     arguments provided will take prescedence over the ones resulting
