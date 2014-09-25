@@ -699,13 +699,13 @@ class ChannelPack:
             print sc
             # Review this code.
 
-        diffs = abs(self(ch0[sc]) - val)
+        diffs = abs(self(ch0)[sc] - val)
         m = min(diffs)
         t = np.where(diffs == m)
-        i = t[0][0]             # First one found
+        i = t[0][0] + sc.start             # First one found
 
         # BUG: Need to translate back to index for the full array. (As given by
-        # the call).
+        # the call). + sc.start ok?
         return self(ch1)[i]
 
     def name(self, ch, firstwordonly=False):
