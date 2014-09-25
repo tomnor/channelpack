@@ -652,6 +652,62 @@ class ChannelPack:
 
         raise KeyError(ch)
 
+    def valforvalin(self, val, ch0, ch1, portion=None):
+        """Return value in ch1 where value in ch0 is closest to val.
+
+        val: int, float
+            The value to look for in ch0.
+
+        ch0: str or int
+            The channel name or indexed number for the array with a
+            value close to val.
+
+        ch0: str or int
+            The channel name or indexed number for the array to return
+            the corresponding value from.
+
+        portion: None or tuple
+            If a tuple it is percentage portion of the data arrays to
+            study. (start, stop), where the full array is (0, 100).
+
+            NOTE: Not implemented. (Or testing)
+
+        If ch0 has multiple values equally close to val, return the
+        first one found.
+
+        NOTES: This might or might not be very helpful. If val is
+        repeatadly close in ch0, propably a not desired value in ch1 is
+        returned.
+
+        TO DO: Interpolation. If values are few. Does one want some sort
+        of interpolation? What happens then if ... Nahh. I think
+        not. Either this is of help or it is not.
+
+        TO DO: Think about how this shall function in combination with
+        the conditions. It is depending on conditions as for now becaues
+        data is called for.
+        """
+        
+        ch = self(ch0)
+        sc = slice(0, ch.size)
+        if portion is not None:
+            start = int(portion[0] / 100.0 * ch.size) - 1
+            if start < 0:
+                start = 0
+            stop = int(portion[1] / 100.0 * ch.size)
+            sc = slice(start, stop)
+            print sc
+            # Review this code.
+
+        diffs = abs(self(ch0[sc]) - val)
+        m = min(diffs)
+        t = np.where(diffs == m)
+        i = t[0][0]             # First one found
+
+        # BUG: Need to translate back to index for the full array. (As given by
+        # the call).
+        return self(ch1)[i]
+
     def name(self, ch, firstwordonly=False):
         """Return channel name for ch. ch is the channel name or the
         index number for the channel name, 0-based.
