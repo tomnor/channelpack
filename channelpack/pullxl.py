@@ -32,7 +32,9 @@ Spread sheet reading principles:
     row 3.
   - If startcell is given (say 'C3') and header is 'sheet3:E20', data
     start at row 3, and the header row is picked starting from cell E20
-    in sheet 'sheet3'.
+    in sheet 'sheet3'. No, remove the idea with supporting field names
+    in another sheet. But do support finding field names at arbitary
+    location within the data sheet.
 
 6 Type detection is done by checking the Cell object's ctype
   attribute for each field's data range. If the ctype is all the same,
@@ -44,10 +46,14 @@ Spread sheet reading principles:
 
 """
 import re
+from collections import namedtuple
 
 import xlrd
+import numpy as np
 
 XLNOT_RX = r'([A-Za-z]+)(\d+)'
+
+StartStop = namedtuple('StartStop', ('row', 'col'))
 
 # Type symbol      Type     Python value
 #                  number  
@@ -138,7 +144,6 @@ def _get_startstop(sheet, startcell=None, stopcell=None):
 
     start = [0, 0]              # [row, col]
     stop = [sheet.nrows, sheet.ncols]
-    # For this function, ignore the headers argument.
 
     if startcell:
         m = re.match(XLNOT_RX, startcell)
@@ -153,9 +158,76 @@ def _get_startstop(sheet, startcell=None, stopcell=None):
                                                       # letter. Stop
                                                       # enumerations are
                                                       # exclusive.
-    return [tuple(start), tuple(stop)]
+    # return [tuple(start), tuple(stop)]
+    return [StartStop(*start), StartStop(*stop)]
 
-def sheet_asdict(sheet, header=True, startcell=None, stopcell=None, 
+def prepread(sheet, header=True, startcell=None, stopcell=None):
+    """Return four StartStop tuples (namedtuples defined in this
+    module), defining the outer bounds of header row and data range. If
+    header is False, the first two items will be None.
+
+    --> [headerstart, headerstop, datastart, datastop]
+
+    sheet: xlrd.sheet.Sheet instance
+        Ready for use.
+
+    header: bool or str
+        True if the defined data range includes a header with field
+        names. Else False - the whole range is data. If a string, it is
+        spread sheet style notation of the startcell for the header
+        ("F9"). The "width" of this record is the same as for the data.
+
+    startcell: str or None
+        If given, a spread sheet style notation of the cell where reading
+        start, ("F9").
+
+    stopcell: str or None
+        A spread sheet style notation of the cell where data end,
+        ("F9"). startcell and stopcell can be used in any combination.
+
+    """
+    raise NotImplementedError
+
+def sheet_asdict(sheet, startstop, usecols=None):
+    """Read data from a spread sheet. Return the data in a dict with
+    column numbers as keys.
+
+    sheet: xlrd.sheet.Sheet instance
+        Ready for use.
+
+    startstop: list
+        Four StartStop tuples defining the data to read. See
+        :func:`~channelpack.pullxl.prepread`.
+
+    usecols: str or seqence of ints
+        The columns to use, 0-based. 0 is the spread sheet column
+        "A". Can be given as a string also - 'C:E, H' for columns C, D,
+        E and H.
+    
+    Values in the returned dict are numpy arrays. Types are set based on
+    the types in the spread sheet.
+    """
+
+    raise NotImplementedError
+
+def headerlist(sheet, startstop, usecols):
+    """Return the channel names in a list suitable as an argument to
+    ChannelPack's `set_channel_names` method.
+
+    sheet: xlrd.sheet.Sheet instance
+        Ready for use.
+
+    startstop: list
+        Four StartStop tuples defining the data to read. See
+        :func:`~channelpack.pullxl.prepread`, returning such a list.
+
+    usecols: str or seqence of ints
+        The columns to use, 0-based. 0 is the spread sheet column
+        "A". Can be given as a string also - 'C:E, H' for columns C, D,
+        E and H.
+    """
+
+def sheet_asdictBAK(sheet, header=True, startcell=None, stopcell=None,
                  usecols=None):
     """Read data from a spread sheet. Return the data in a dict with
     column numbers as keys.
@@ -192,12 +264,23 @@ def sheet_asdict(sheet, header=True, startcell=None, stopcell=None,
     # Make a usecols always, whether it is specified as an argument or
     # not. (Even if None). Sanitize usecols to integers always.
 
+    raise DeprecationWarning('Not gonna use it.')
+
     start, stop = _get_startstop(sheet, startcell=startcell, stopcell=stopcell)
     usecols = _sanitize_usecols(usecols)
     if usecols is not None:
         mess =  'Column in usecols outside defined range.'
         assert start[1] <= min(usecols) and stop[1] > max(usecols), mess
-    
+    else:                       # usecols is None.
+        usecols = tuple(range(start.col, stop.col))
+
+    # Sort out if the header is on top of defined data range:
+    tickit = False
+    if header is True:
+        tickit = True
+    elif header:                # Then it is a string if not False.
+        m = re.match(XLNOT_RX, header)
+        headrow = int(m.group(2)) - 1
 
 def _sanitize_usecols(usecols):
     """Make a tuple of sorted integers and return it. Return None if
