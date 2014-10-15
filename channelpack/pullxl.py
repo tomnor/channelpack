@@ -7,7 +7,7 @@ Spread sheet reading principles:
 
 2 Default is to read a whole sheet. nrows, ncols is assumed (attributes
   in xlrd:s Sheet objects). Top row defaults to be a header row with
-  field names.
+  field names, (header=True).
 
 3 Default sheet is sheet with index 0. Selectable with a string name or
   index number. No. Actually, functions in this module take a sheet
@@ -16,13 +16,13 @@ Spread sheet reading principles:
 4 A startcell can be given. It is then given in spread sheet notation
   ("B15"). If startcell is given - a stopcell is mandatory. The range
   defined assumes to include the header row if any.
-  
+
   Rewrite, because stopcell is not mandatory just because startcell is
   given. Any combination allowed.
 
 5 The interpretation of startcell and stopcell in combination with
   header is as follows:
-  
+
   - If nothing specified, see 2.
   - If startcell is given (say 'C3') and header is True, header row is
     3 with spread sheet enumeration. Data start at row 4
@@ -42,21 +42,34 @@ Spread sheet reading principles:
   'XL_CELL_EMPTY', the type is assumed to be the other. Then the empty
   cell's values will be replaced by numpy nan if the type is float, else
   None. If there are more than two ctypes in the data range, the type
-  will be object, and empty cells replaced by None.
+  will be object, and empty cells replaced by None. Dates will be python
+  datetime objects.
 
 """
 import re
-from collections import namedtuple
+import datetime
 
 import xlrd
 import numpy as np
 
-XLNOT_RX = r'([A-Za-z]+)(\d+)'
+XLNOT_RX = r'([A-Za-z]+)(\d+)'  # Two groups, col and row spread sheet notation.
 
-StartStop = namedtuple('StartStop', ('row', 'col'))
+# StartStop = namedtuple('StartStop', ('row', 'col'))
+
+class StartStop:
+    """Zero-based integers for row and column, xlrd style. Meaning, the
+    stop values are non-inclusive. This object is used for either start
+    or stop."""
+    def __init__(self, row, col):
+        self.row = row
+        self.col = col
+    def __getitem__(self, k):
+        return [self.row, self.col][k]
+    def __repr__(self):
+        return 'StartStop({}, {})'.format(*self)
 
 # Type symbol      Type     Python value
-#                  number  
+#                  number
 # XL_CELL_EMPTY    0 	    empty string u''
 # XL_CELL_TEXT     1 	    a Unicode string
 # XL_CELL_NUMBER   2 	    float
@@ -72,63 +85,13 @@ StartStop = namedtuple('StartStop', ('row', 'col'))
 # https://secure.simplistix.co.uk/svn/xlrd/trunk/xlrd/doc/xlrd.html?p=4966#sheet.Cell-class
 # for details.
 
-def read_sheet(sheet, startcell=None, stopcell=None):
-    """Read data from a spread sheet. Yield each record as a list of
-    cell objects.
-
-    sheet: xlrd.sheet.Sheet instance
-        Ready for use.
-
-    startcell: str or None
-        If given, a spread sheet style notation of the cell where data
-        start, ("F9").
-
-    stopcell: str or None
-        A spread sheet style notation of the cell where data end,
-        ("F9"). startcell and stopcell can be used in any combination.
-
-    Return an iterator over the records. But first, monkey-patch the
-    sheet object with attributes channelpack_start and channelpack_stop,
-    as determined here. Keep in mind that stop is non-inclusive, (like
-    python indexing). Also keep in mind that at least one record need to
-    be consumed before the sheet object have the monkey-patched
-    attributes, since this is a generator.
-
-    It seems I am already on the way to depricate this function. Make a
-    version of it called `parse_range` and keep the part parsing the cell
-    notations.
-    """
-    raise DeprecationWarning('Not gonna use this function')
-
-    start = [0, 0]              # [row, col]
-    stop = [sheet.nrows, sheet.ncols]
-    # For this function, ignore the headers argument.
-
-    if startcell:
-        m = re.match(XLNOT_RX, startcell)
-        start[0] = int(m.group(2)) - 1 # The row number
-        start[1] = letter2num(m.group(1), zbase=True) # The column number from
-                                                      # letter.
-
-    if stopcell:
-        m = re.match(XLNOT_RX, stopcell)
-        stop[0] = int(m.group(2)) # The row number
-        stop[1] = letter2num(m.group(1), zbase=False) # The column number from
-                                                      # letter. Stop
-                                                      # enumerations are
-                                                      # exclusive.
-    
-    # Monkey-patch the sheet object. Since we have an object here. Is this
-    # risky?
-    sheet.channelpack_start = tuple(start)
-    sheet.channelpack_stop = tuple(stop)
-
-    for rownum in range(start[0], stop[0]):
-        yield sheet.row_slice(rownum, start_colx=start[1], end_colx=stop[1])
+NANABLE = set((xlrd.XL_CELL_NUMBER, xlrd.XL_CELL_EMPTY))
+NONABLES = (xlrd.XL_CELL_EMPTY, xlrd.XL_CELL_ERROR)
 
 def _get_startstop(sheet, startcell=None, stopcell=None):
     """
-    Return a start and stop tuple [(row0, col0), (row1, col1)].
+    Return two StartStop objects, based on the sheet and startcell and
+    stopcell.
 
     sheet: xlrd.sheet.Sheet instance
         Ready for use.
@@ -140,6 +103,7 @@ def _get_startstop(sheet, startcell=None, stopcell=None):
     stopcell: str or None
         A spread sheet style notation of the cell where data end,
         ("F9"). startcell and stopcell can be used in any combination.
+
     """
 
     start = [0, 0]              # [row, col]
@@ -162,11 +126,11 @@ def _get_startstop(sheet, startcell=None, stopcell=None):
     return [StartStop(*start), StartStop(*stop)]
 
 def prepread(sheet, header=True, startcell=None, stopcell=None):
-    """Return four StartStop tuples (namedtuples defined in this
-    module), defining the outer bounds of header row and data range. If
-    header is False, the first two items will be None.
+    """Return four StartStop objects, defining the outer bounds of
+    header row and data range, respectively. If header is False, the
+    first two items will be None.
 
-    --> [headerstart, headerstop, datastart, datastop]
+    --> [headstart, headstop, datstart, datstop]
 
     sheet: xlrd.sheet.Sheet instance
         Ready for use.
@@ -183,42 +147,58 @@ def prepread(sheet, header=True, startcell=None, stopcell=None):
 
     stopcell: str or None
         A spread sheet style notation of the cell where data end,
-        ("F9"). startcell and stopcell can be used in any combination.
+        ("F9").
+
+   startcell and stopcell can both be None, either one specified or
+   both specified.
+
+   Note to self: consider making possible to specify headers in a column.
 
     """
-    raise NotImplementedError
+    datstart, datstop = _get_startstop(sheet, startcell, stopcell)
+    headstart, headstop = StartStop(0, 0), StartStop(0, 0) # Holders
 
-def sheet_asdict(sheet, startstop, usecols=None):
-    """Read data from a spread sheet. Return the data in a dict with
-    column numbers as keys.
+    def typicalprep():
+        headstart.row, headstart.col = datstart.row, datstart.col
+        headstop.row, headstop.col = datstart.row, datstop.col
+        # Tick the data start row by 1:
+        datstart.row += 1
 
-    sheet: xlrd.sheet.Sheet instance
-        Ready for use.
+    def offsetheaderprep():
+        headstart.row, headstart.col = headrow, headcol
+        headstop.row = headrow
+        headstop.col = headcol + (datstop.col - datstart.col)
 
-    startstop: list
-        Four StartStop tuples defining the data to read. See
-        :func:`~channelpack.pullxl.prepread`.
+    if header is True:          # Simply the toprow of the table.
+        typicalprep()
+        print headstop.row, headstop.col
+        return [headstart, headstop, datstart, datstop]
+    elif header:                # Then it is a string if not False. ("F9")
+        m = re.match(XLNOT_RX, header)
+        headrow = int(m.group(2)) - 1
+        headcol = letter2num(m.group(1), zbase=True)
+        if headrow == datstart.row and headcol == datstart.col:
+            typicalprep()
+            return [headstart, headstop, datstart, datstop]
+        elif headrow == datstart.row:
+            typicalprep()
+            offsetheaderprep()
+            return [headstart, headstop, datstart, datstop]
+        else:
+            offsetheaderprep()
+            return [headstart, headstop, datstart, datstop]
+    else:                       # header is False
+        return [None, None, datstart, datstop]
 
-    usecols: str or seqence of ints
-        The columns to use, 0-based. 0 is the spread sheet column
-        "A". Can be given as a string also - 'C:E, H' for columns C, D,
-        E and H.
-    
-    Values in the returned dict are numpy arrays. Types are set based on
-    the types in the spread sheet.
-    """
-
-    raise NotImplementedError
-
-def headerlist(sheet, startstop, usecols):
+def sheetheader(sheet, startstops, busecols):
     """Return the channel names in a list suitable as an argument to
     ChannelPack's `set_channel_names` method.
 
     sheet: xlrd.sheet.Sheet instance
         Ready for use.
 
-    startstop: list
-        Four StartStop tuples defining the data to read. See
+    startstops: list
+        Four StartStop objects defining the data to read. See
         :func:`~channelpack.pullxl.prepread`, returning such a list.
 
     usecols: str or seqence of ints
@@ -226,6 +206,62 @@ def headerlist(sheet, startstop, usecols):
         "A". Can be given as a string also - 'C:E, H' for columns C, D,
         E and H.
     """
+
+    raise NotImplementedError
+
+    headstart, headstop, _, _ = startstops
+
+def sheet_asdict(sheet, startstops, usecols=None):
+    """Read data from a spread sheet. Return the data in a dict with
+    column numbers as keys.
+
+    sheet: xlrd.sheet.Sheet instance
+        Ready for use.
+
+    startstops: list
+        Four StartStop objects defining the data to read. See
+        :func:`~channelpack.pullxl.prepread`.
+
+    usecols: str or seqence of ints
+        The columns to use, 0-based. 0 is the spread sheet column
+        "A". Can be given as a string also - 'C:E, H' for columns C, D,
+        E and H.
+
+    Values in the returned dict are numpy arrays. Types are set based on
+    the types in the spread sheet.
+    """
+
+    _, _, start, stop = startstops
+    # Consider checking if usecols is within range.
+    cols = usecols or range(start.col, stop.col)
+    D = dict()
+
+    for c in cols:
+        cells = sheet.col(c, start_rowx=start.row, end_rowx=stop.row)
+        types = set([cell.ctype for cell in cells])
+
+        # Replace empty values with nan if appropriate:
+        if (not types - NANABLE) and xlrd.XL_CELL_NUMBER in types:
+            D[c] = np.array([np.nan if cell.value is '' else cell.value for cell
+                          in cells])
+        elif xlrd.XL_CELL_DATE in types:
+            dm = sheet.book.datemode
+            vals = []
+            for cell in cells:
+                if cell.ctype == xlrd.XL_CELL_DATE:
+                    dtuple = xlrd.xldate_as_tuple(cell.value, dm)
+                    vals.append(datetime.datetime(*dtuple))
+                elif cell.ctype in NONABLES:
+                    vals.append(None)
+                else:
+                    vals.append(cell.value)
+            D[c] = np.array(vals)
+        else:
+            vals = [None if cell.ctype in NONABLES else cell.value
+                    for cell in cells]
+            D[c] = np.array([vals])
+
+    return D
 
 def sheet_asdictBAK(sheet, header=True, startcell=None, stopcell=None,
                  usecols=None):
@@ -253,7 +289,7 @@ def sheet_asdictBAK(sheet, header=True, startcell=None, stopcell=None,
         The columns to use, 0-based. 0 is the spread sheet column
         "A". Can be given as a string also - 'C:E, H' for columns C, D,
         E and H.
-    
+
     Values in the returned dict are numpy arrays. Types are set based on
     the types in the spread sheet.
     """
@@ -285,7 +321,7 @@ def sheet_asdictBAK(sheet, header=True, startcell=None, stopcell=None,
 def _sanitize_usecols(usecols):
     """Make a tuple of sorted integers and return it. Return None if
     usecols is None"""
-    
+
     if usecols is None:
         return None
 
