@@ -10,6 +10,10 @@
 
 * Add method slicelist to channelpack. (Exist in devel branch).
 
+**0.1.5 (2014-10-15)**
+
+* Bugfix in function rebase in the ChannelPack class. Was a KeyError.
+
 **0.1.4 (2014-09-22)**
 
 * Corrections in the changes file, (this file). Some changes was stated as
