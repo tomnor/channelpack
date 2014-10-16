@@ -106,24 +106,20 @@ def _get_startstop(sheet, startcell=None, stopcell=None):
 
     """
 
-    start = [0, 0]              # [row, col]
-    stop = [sheet.nrows, sheet.ncols]
+    start = StartStop(0, 0)     # row, col
+    stop = StartStop(sheet.nrows, sheet.ncols)
 
     if startcell:
         m = re.match(XLNOT_RX, startcell)
-        start[0] = int(m.group(2)) - 1 # The row number
-        start[1] = letter2num(m.group(1), zbase=True) # The column number from
-                                                      # letter.
+        start.row = int(m.group(2)) - 1
+        start.col = letter2num(m.group(1), zbase=True)
 
     if stopcell:
         m = re.match(XLNOT_RX, stopcell)
-        stop[0] = int(m.group(2)) # The row number
-        stop[1] = letter2num(m.group(1), zbase=False) # The column number from
-                                                      # letter. Stop
-                                                      # enumerations are
-                                                      # exclusive.
-    # return [tuple(start), tuple(stop)]
-    return [StartStop(*start), StartStop(*stop)]
+        stop.row = int(m.group(2))
+        stop.col = letter2num(m.group(1), zbase=False) # Stop number is exclusive.
+
+    return [start, stop]
 
 def prepread(sheet, header=True, startcell=None, stopcell=None):
     """Return four StartStop objects, defining the outer bounds of
@@ -160,13 +156,13 @@ def prepread(sheet, header=True, startcell=None, stopcell=None):
 
     def typicalprep():
         headstart.row, headstart.col = datstart.row, datstart.col
-        headstop.row, headstop.col = datstart.row, datstop.col
+        headstop.row, headstop.col = datstart.row + 1, datstop.col
         # Tick the data start row by 1:
         datstart.row += 1
 
     def offsetheaderprep():
         headstart.row, headstart.col = headrow, headcol
-        headstop.row = headrow
+        headstop.row = headrow + 1
         headstop.col = headcol + (datstop.col - datstart.col)
 
     if header is True:          # Simply the toprow of the table.
@@ -190,9 +186,14 @@ def prepread(sheet, header=True, startcell=None, stopcell=None):
     else:                       # header is False
         return [None, None, datstart, datstop]
 
-def sheetheader(sheet, startstops, busecols):
+def sheetheader(sheet, startstops, usecols=None):
     """Return the channel names in a list suitable as an argument to
-    ChannelPack's `set_channel_names` method.
+    ChannelPack's `set_channel_names` method. Return None if first two
+    StartStops are None.
+
+    This function is slightly confusing, because it shall be called with
+    the same parameters as sheet_asdict. But knowing that, it should be
+    convenient.
 
     sheet: xlrd.sheet.Sheet instance
         Ready for use.
@@ -201,15 +202,29 @@ def sheetheader(sheet, startstops, busecols):
         Four StartStop objects defining the data to read. See
         :func:`~channelpack.pullxl.prepread`, returning such a list.
 
-    usecols: str or seqence of ints
+    usecols: str or seqence of ints or None
         The columns to use, 0-based. 0 is the spread sheet column
         "A". Can be given as a string also - 'C:E, H' for columns C, D,
         E and H.
     """
 
-    raise NotImplementedError
+    headstart, headstop, dstart, _ = startstops
+    if headstart is None:
+        return None
+    assert headstop.row - headstart.row == 1, ('Field names must be in '
+                                               'same row so far. Or '
+                                               'this is a bug')
+    header = []
+    # One need to make same offsets within start and stop as in usecols:
+    usecols = _sanitize_usecols(usecols)
+    cols = usecols or range(headstart.col, headstop.col)
+    headcols = [c + (headstart.col - dstart.col) for c in cols]
 
-    headstart, headstop, _, _ = startstops
+    for col in headcols:
+        fieldname = sheet.cell(headstart.row, col).value
+        header.append(fieldname)
+
+    return header
 
 def sheet_asdict(sheet, startstops, usecols=None):
     """Read data from a spread sheet. Return the data in a dict with
@@ -222,7 +237,7 @@ def sheet_asdict(sheet, startstops, usecols=None):
         Four StartStop objects defining the data to read. See
         :func:`~channelpack.pullxl.prepread`.
 
-    usecols: str or seqence of ints
+    usecols: str or seqence of ints or None
         The columns to use, 0-based. 0 is the spread sheet column
         "A". Can be given as a string also - 'C:E, H' for columns C, D,
         E and H.
@@ -233,6 +248,7 @@ def sheet_asdict(sheet, startstops, usecols=None):
 
     _, _, start, stop = startstops
     # Consider checking if usecols is within range.
+    usecols = _sanitize_usecols(usecols)
     cols = usecols or range(start.col, stop.col)
     D = dict()
 
