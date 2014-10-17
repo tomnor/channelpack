@@ -279,7 +279,7 @@ def sheet_asdict(fn, sheet, startstops, usecols=None):
         else:
             vals = [None if cell.ctype in NONABLES else cell.value
                     for cell in cells]
-            D[c] = np.array([vals])
+            D[c] = np.array(vals)
 
     return D
 
