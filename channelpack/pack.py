@@ -19,8 +19,9 @@ import ConfigParser
 from collections import OrderedDict
 
 import numpy as np
+import xlrd
 
-from . import pulltxt, pulldbf
+from . import pulltxt, pulldbf, pullxl
 from . import datautils
 
 ORIGINEXTENSIONS =  []
@@ -998,6 +999,58 @@ def dbfpack(fn, usecols=None):
     names = pulldbf.channel_names(fn, usecols)
     cp.set_channel_names(names)
     # cp.set_basefilemtime()
+    return cp
+
+def sheetpack(fn, sheet=0, header=True, startcell=None, stopcell=None, 
+              usecols=None):
+    """Return a ChannelPack instance loaded with data from the spread
+    sheet file fn, (xls, xlsx).
+
+    fn: str
+        The file to read from.
+
+    sheet: int or str
+        If int is the index for the 0-based. Else the sheet name.
+
+    header: bool or str
+        True if the defined data range includes a header with field
+        names. Else False - the whole range is data. If a string, it is
+        spread sheet style notation of the startcell for the header
+        ("F9"). The "width" of this record is the same as for the data.
+
+    startcell: str or None
+        If given, a spread sheet style notation of the cell where reading
+        start, ("F9").
+
+    stopcell: str or None
+        A spread sheet style notation of the cell where data end,
+        ("F9").
+
+    startcell and stopcell can both be None, either one specified or
+    both specified.
+
+    NOTE: Big misstake. All pullxl module functionality assumes a sheet
+    instance. Now I remember loadfunc must take the filename as first
+    argument. pullxl:s loadfunc was meant to be sheet_asdict, and it
+    takes the sheet as first argument. Now I dont know. It will feel
+    stupid to send both the file name and the sheet. Re-write.
+
+
+    """
+    raise NotImplementedError
+    
+    book = xlrd.open_workbook(fn)
+    try:
+        sh = book.sheet_by_index(sheet)
+    except TypeError:
+        sh = book.sheet_by_name(sheet)
+
+    ss = pullxl.prepread(sh, header=header, startcell=startcell,
+                         stopcell=stopcell)
+    
+    cp = ChannelPack(pullxl.sheet_asdict)
+    cp.load(fn, ss, usecols=usecols)
+    cp.set_channel_names(pullxl.sheetheader(sh, ss, usecols=usecols))
     return cp
 
 # Look for rc file:
