@@ -138,7 +138,6 @@ class ChannelPack:
         """
         # D = self.loadfunc(*args, **kwargs)
         self.D = self.loadfunc(*args, **kwargs)
-        usecols = kwargs.get('usecols', None) # Whats this for? Remove
         self.keys = sorted(self.D.keys())
         self.rec_cnt = len(self.D[self.keys[0]]) # If not all the same, there
                                            # should have been an error
@@ -1010,12 +1009,13 @@ def sheetpack(fn, sheet=0, header=True, startcell=None, stopcell=None,
         The file to read from.
 
     sheet: int or str
-        If int is the index for the 0-based. Else the sheet name.
+        If int, it is the index for the sheet 0-based. Else the sheet
+        name.
 
     header: bool or str
         True if the defined data range includes a header with field
         names. Else False - the whole range is data. If a string, it is
-        spread sheet style notation of the startcell for the header
+        a spread sheet style notation of the startcell for the header
         ("F9"). The "width" of this record is the same as for the data.
 
     startcell: str or None
@@ -1026,16 +1026,15 @@ def sheetpack(fn, sheet=0, header=True, startcell=None, stopcell=None,
         A spread sheet style notation of the cell where data end,
         ("F9").
 
-    startcell and stopcell can both be None, either one specified or
-    both specified.
+    usecols: str or seqence of ints
+        The columns to use, 0-based. 0 is the spread sheet column
+        "A". Can be given as a string also - 'C:E, H' for columns C, D,
+        E and H.
 
-    NOTE: Big misstake. All pullxl module functionality assumes a sheet
-    instance. Now I remember loadfunc must take the filename as first
-    argument. pullxl:s loadfunc was meant to be sheet_asdict, and it
-    takes the sheet as first argument. Now I dont know. It will feel
-    stupid to send both the file name and the sheet. Re-write.
-
-
+    Might not be a favourite, but the header row can be offset from the
+    data range. The meaning of usecols is then applied on both the data
+    range and the header row. However, usecols is always specified with
+    regards to the data range.
     """
 
     book = xlrd.open_workbook(fn)

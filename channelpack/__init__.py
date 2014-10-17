@@ -15,12 +15,12 @@
     # along with channelpack.  If not, see <http://www.gnu.org/licenses/>.
 
 """
-The functions :func:`~pack.txtpack` and :func:`~pack.dbfpack`, returning
-laoded instances of the ChannelPack class, are made available by an
-import of channelpack. The class `ChannelPack` is also made
-available. Those objects are what channelpack mainly mean to deliver,
-and live in the module `pack`. So, most of the time it should be enough
-to import the namespace of channelpack:
+The functions :func:`~pack.txtpack` and :func:`~pack.dbfpack` and
+:func:`~pack.sheetpack`, returning laoded instances of the ChannelPack
+class, are made available by an import of channelpack. The class
+`ChannelPack` is also made available. Those objects are what channelpack
+mainly mean to deliver, and live in the module `pack`. So, most of the
+time it should be enough to import the namespace of channelpack:
 
     >>> import channelpack as cp
     >>> cp.txtpack
@@ -34,6 +34,6 @@ The intention is to make channelpack self-documenting. Try introspecting the
 objects.
 """
 
-from .pack import ChannelPack, txtpack, dbfpack
+from .pack import ChannelPack, txtpack, dbfpack, sheetpack
 
 __version__ = '0.1.5'

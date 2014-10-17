@@ -23,6 +23,8 @@ Functions
 
 .. autofunction:: channelpack.pack.txtpack
 
+.. autofunction:: channelpack.pack.sheetpack
+
 Data
 ----
 
@@ -62,3 +64,8 @@ http://code.activestate.com/recipes/362715/ with a minor edit.
 .. autofunction:: channelpack.pulldbf.dbf_asdict
 .. autofunction:: channelpack.pulldbf.channel_names
 
+pullxl module
+==============
+
+.. automodule:: channelpack.pullxl
+   :members:

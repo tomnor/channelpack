@@ -3,47 +3,41 @@ Helper module for reading tabular data from spread sheets.
 
 Spread sheet reading principles:
 
-1 Data is assumed to be arranged column-wise.
+1. Data is assumed to be arranged column-wise.
 
-2 Default is to read a whole sheet. nrows, ncols is assumed (attributes
-  in xlrd:s Sheet objects). Top row defaults to be a header row with
-  field names, (header=True).
+2. Default is to read a whole sheet. nrows, ncols is assumed (attributes
+   in xlrd:s Sheet objects). Top row defaults to be a header row with
+   field names, (header=True).
 
-3 Default sheet is sheet with index 0. Selectable with a string name or
-  index number. No. Actually, functions in this module take a sheet
-  object, so it's already defined here.
+3. pullxl module operate on a xlrd.sheet instance. So an already loaded
+   sheet is assumed.
 
-4 A startcell can be given. It is then given in spread sheet notation
-  ("B15"). If startcell is given - a stopcell is mandatory. The range
-  defined assumes to include the header row if any.
+4. A startcell and stopcell can be given. It is then given in spread
+   sheet notation ("B15"). header option can be True or False or a cell
+   specification of where the header start ("B15").
 
-  Rewrite, because stopcell is not mandatory just because startcell is
-  given. Any combination allowed.
+5. The interpretation of startcell and stopcell in combination with
+   header is as follows:
 
-5 The interpretation of startcell and stopcell in combination with
-  header is as follows:
+   - If nothing specified, see 2.
 
-  - If nothing specified, see 2.
-  - If startcell is given (say 'C3') and header is True, header row is
-    3 with spread sheet enumeration. Data start at row 4
-  - If startcell is given (say 'C3') and header is 'C3', header row is
-    3 with spread sheet enumeration. Data start at row 4.
-  - If startcell is given (say 'C3') and header is False, data start at
-    row 3.
-  - If startcell is given (say 'C3') and header is 'sheet3:E20', data
-    start at row 3, and the header row is picked starting from cell E20
-    in sheet 'sheet3'. No, remove the idea with supporting field names
-    in another sheet. But do support finding field names at arbitary
-    location within the data sheet.
+   - If startcell is given (say 'C3') and header is True, header row is
+     3 with spread sheet enumeration. Data start at row 4
 
-6 Type detection is done by checking the Cell object's ctype
-  attribute for each field's data range. If the ctype is all the same,
-  the type is given. If there are two types, and one of them is
-  'XL_CELL_EMPTY', the type is assumed to be the other. Then the empty
-  cell's values will be replaced by numpy nan if the type is float, else
-  None. If there are more than two ctypes in the data range, the type
-  will be object, and empty cells replaced by None. Dates will be python
-  datetime objects.
+   - If startcell is given, say 'C3', and header is 'C3', header row is
+     3 with spread sheet enumeration. Data start at row 4.
+
+   - If startcell is given (say 'C3') and header is False, data start at
+     row 3.
+
+6. Type detection is done by checking the Cell object's ctype attribute
+   for each field's data range. If the ctype is all the same, the type
+   is given. If there are two types, and one of them is 'XL_CELL_EMPTY',
+   the type is assumed to be the other. Then the empty cell's values
+   will be replaced by numpy nan if the type is float, else None. If
+   there are more than two ctypes in the data range, the type will be
+   object, and empty cells replaced by None. Dates will be python
+   datetime objects.
 
 """
 import re
@@ -167,7 +161,6 @@ def prepread(sheet, header=True, startcell=None, stopcell=None):
 
     if header is True:          # Simply the toprow of the table.
         typicalprep()
-        print headstop.row, headstop.col
         return [headstart, headstop, datstart, datstop]
     elif header:                # Then it is a string if not False. ("F9")
         m = re.match(XLNOT_RX, header)
@@ -398,7 +391,6 @@ def letter2num(letters, zbase=False):
     assert weight >= 0, letters
     for i, c in enumerate(letters):
         assert 65 <= ord(c) <= 90, c # A-Z
-        # print c, ord(c)
         res += (ord(c) - 64) * 26**(weight - i)
     if not zbase:
         return res
