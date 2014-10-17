@@ -27,7 +27,7 @@ Data files:
 * Any text kind of file (numpy's loadtxt is used).
 * dbf files (Raymond Hettinger `recipe
   <http://code.activestate.com/recipes/362715>`_ as low level reader).
-* MS excel file support coming up. (Will use xlrd).
+* Spread sheet files (xlrd is used).
 * Any file read by your own tools, provide a function returning a dict
   with channels to the ChannelPack class.
 
