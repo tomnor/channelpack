@@ -1001,7 +1001,7 @@ def dbfpack(fn, usecols=None):
     # cp.set_basefilemtime()
     return cp
 
-def sheetpack(fn, sheet=0, header=True, startcell=None, stopcell=None, 
+def sheetpack(fn, sheet=0, header=True, startcell=None, stopcell=None,
               usecols=None):
     """Return a ChannelPack instance loaded with data from the spread
     sheet file fn, (xls, xlsx).
@@ -1038,7 +1038,7 @@ def sheetpack(fn, sheet=0, header=True, startcell=None, stopcell=None,
 
     """
     raise NotImplementedError
-    
+
     book = xlrd.open_workbook(fn)
     try:
         sh = book.sheet_by_index(sheet)
@@ -1047,7 +1047,7 @@ def sheetpack(fn, sheet=0, header=True, startcell=None, stopcell=None,
 
     ss = pullxl.prepread(sh, header=header, startcell=startcell,
                          stopcell=stopcell)
-    
+
     cp = ChannelPack(pullxl.sheet_asdict)
     cp.load(fn, ss, usecols=usecols)
     cp.set_channel_names(pullxl.sheetheader(sh, ss, usecols=usecols))
