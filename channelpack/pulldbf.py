@@ -31,6 +31,18 @@ def dbfreader(f):
     yield [field[0] for field in fields]
     yield [tuple(field[1:]) for field in fields]
 
+    # TO DO: Problem with replacing missing values with np.NaN. Suggesting
+    # trade-off to make integers as floats. It must be done by altering the
+    # fieldspec that is passed to the numpytypes function. And then below
+    # uncomment # value = np.NaN # 0 is a value.
+    # See
+    # http://stackoverflow.com/questions/11548005/numpy-or-pandas-keeping-array-type-as-integer-while-having-a-nan-value
+    # The limitation is not solved it seems. (Numpy).
+    # Consider doing this in the numpytypes function. Just dont make ints from
+    # the N type. I see now that it was already a potential problem because N
+    # could be a float. But after this - there will never be any integers.
+
+
     terminator = f.read(1)
     assert terminator == '\r'
 
@@ -49,6 +61,7 @@ def dbfreader(f):
                 value = value.replace('\0', '').lstrip()
                 if value == '':
                     value = 0
+                    # value = np.NaN # 0 is a value.
                 elif deci:
                     value = float(value)
                     # value = decimal.Decimal(value) Not necessary.

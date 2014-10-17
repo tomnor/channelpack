@@ -226,9 +226,13 @@ def sheetheader(sheet, startstops, usecols=None):
 
     return header
 
-def sheet_asdict(sheet, startstops, usecols=None):
+def sheet_asdict(fn, sheet, startstops, usecols=None):
     """Read data from a spread sheet. Return the data in a dict with
     column numbers as keys.
+
+    fn: str
+        Dummy argument to be compatible with ChannelPacks loadfunc
+        interface
 
     sheet: xlrd.sheet.Sheet instance
         Ready for use.
@@ -275,7 +279,7 @@ def sheet_asdict(sheet, startstops, usecols=None):
         else:
             vals = [None if cell.ctype in NONABLES else cell.value
                     for cell in cells]
-            D[c] = np.array([vals])
+            D[c] = np.array(vals)
 
     return D
 

@@ -19,8 +19,9 @@ import ConfigParser
 from collections import OrderedDict
 
 import numpy as np
+import xlrd
 
-from . import pulltxt, pulldbf
+from . import pulltxt, pulldbf, pullxl
 from . import datautils
 
 ORIGINEXTENSIONS =  []
@@ -55,7 +56,7 @@ class ChannelPack:
     """
 
     # TO DO: More important - start and stop trigger conditions. Enabling
-    # hysterises kind of checking. Like start: "ch21 > 4.3" and 
+    # hysterises kind of checking. Like start: "ch21 > 4.3" and
     # stop: "ch21 < 1.3". Include it to the conditions dict. DONE, (testing).
 
     # TO DO: Consider possibility to write some chanel names with indexing, like
@@ -82,7 +83,7 @@ class ChannelPack:
         (column numbers). Each array is of np.shape(N,).
 
         See method :meth:`~channelpack.ChannelPack.load`.
-        
+
         """
         self.loadfunc = loadfunc
         self.D = None           # Dict of data.
@@ -98,14 +99,14 @@ class ChannelPack:
         self.mask = None
         # Dict with condition specs for the mask array:
         # self.conditions = {'and': '', 'or': '', 'dur': 0, 'durtype': 'min',
-                           # 'start': '', 'stop': ''} 
+                           # 'start': '', 'stop': ''}
         self.conconf = _ConditionConfigure(self)
-        
+
 
     def load(self, *args, **kwargs):
         """Load data using loadfunc.
 
-        args, kwargs: 
+        args, kwargs:
             forward to the loadfunc. args[0] must be the filename, so it
             means that loadfunc must take the filename as it's first
             argument.
@@ -125,7 +126,7 @@ class ChannelPack:
         >>> d = {2: np.arange(5), 5: np.arange(10, 15)}
         >>> def lf(fn):
         ...     return d
-        ... 
+        ...
 
         >>> pack = cp.ChannelPack(lf)
         >>> pack.load(tf.name)
@@ -152,8 +153,8 @@ class ChannelPack:
 
     def append_load(self, *args, **kwargs):
         """Append data using loadfunc.
-        
-        args, kwargs: 
+
+        args, kwargs:
             forward to the loadfunc. args[0] must be the filename, so it
             means that loadfunc must take the filename as it's first
             argument.
@@ -178,7 +179,7 @@ class ChannelPack:
         s1, s2 = set(self.D.keys()), set(newD.keys())
         offenders = s1 ^ s2
         if offenders:
-            mess = ('Those keys (respectively) were in one of the dicts ' + 
+            mess = ('Those keys (respectively) were in one of the dicts ' +
                     'but not the other: {}.')
             offs = ', '.join([str(n) for n in offenders])
             raise KeyError(mess.format(offs))
@@ -209,10 +210,10 @@ class ChannelPack:
         self.metamulti['mtimenames'].append(self.mtimefs)
         self.metamulti['slices'].append(slice(start, stop))
 
-        self._make_mask()    
+        self._make_mask()
 
     def rebase(self, key, start=None, decimals=5):
-        """Rebase a channel (key) on start. 
+        """Rebase a channel (key) on start.
 
         The step (between elements) need to be constant all through,
         else ValueError is raised. The exception to this is the border
@@ -224,7 +225,7 @@ class ChannelPack:
         start: int or float or None
             If specified - replace the first element in the first loaded
             data channel with start.
-        
+
         decimals: int
             Diffs are rounded to this number of decimals before the step
             through arrays are checked. The diffs are otherwise likely never to
@@ -240,7 +241,7 @@ class ChannelPack:
         NOTE: The instance channel is modified on success.
         """
         diffs = []
-        
+
         def diffsappend(d, sc):
             diff = np.around(np.diff(d), decimals)
             diffs.append((diff, diff[0], sc))
@@ -253,12 +254,12 @@ class ChannelPack:
 
         for diff, d, sc in diffs:
             if not np.all(diff == d):
-                raise ValueError('All diffs not equal within ' + 
+                raise ValueError('All diffs not equal within ' +
                                  'indexes ' + str(sc))
 
         S = set([t[1] for t in diffs])
         if len(S) > 1:
-            raise ValueError('Diffs not equal between appended data files: ' + 
+            raise ValueError('Diffs not equal between appended data files: ' +
                              str(S))
 
         # Now modify:
@@ -274,8 +275,8 @@ class ChannelPack:
         self.filename = self.fs = self.fn = fn
 
     def set_sample_rate(self, rate):
-        """Set sample rate to rate. 
-        
+        """Set sample rate to rate.
+
         rate: int or float
 
         rate is given as samples / timeunit. If sample rate is set, it
@@ -301,7 +302,7 @@ class ChannelPack:
             a custom channel name if available.
 
         NOTE: If custom names are used, they must consist of one word
-        only, not delimited with spaces. 
+        only, not delimited with spaces.
 
         """
 
@@ -327,7 +328,7 @@ class ChannelPack:
         """
         conres = constr
 
-        matches = re.findall(r'ch\d+', conres)        
+        matches = re.findall(r'ch\d+', conres)
         for ch in matches:
             i = self._key(ch)
             conres = conres.replace(ch, 'd[' + str(i) + ']')
@@ -336,7 +337,7 @@ class ChannelPack:
             if conres == constr: # No mapping.
                 raise ValueError('This condition did not resolve to a valid' +
                                  ' channel: ' + constr)
-            else: 
+            else:
                 return conres
 
         for ch in self.chnames.values():
@@ -364,7 +365,7 @@ class ChannelPack:
             a custom channel name if available.
 
         NOTE: If custom names are used, they must consist of one word
-        only, not delimited with spaces. 
+        only, not delimited with spaces.
         """
         # TODO: This function should maybe not be limited to certain
         # conditions. Not intuitive.
@@ -380,7 +381,7 @@ class ChannelPack:
 
     def spit_config(self, conf_file=None, firstwordonly=False):
         """Write a config_file based on this instance.
-        
+
         conf_file: str (or Falseish)
             If conf_file is Falseish, write the file to the directory
             where self.filename sits, if self is not already associated
@@ -394,7 +395,7 @@ class ChannelPack:
             names until eat_config is called.
 
         Sections in the ini/cfg kind of file can be:
-       
+
             [channels]
             A mapping of self.D integer keys to channel names. Options
             are numbers corresponding to the keys. Values are the
@@ -405,7 +406,7 @@ class ChannelPack:
             Options correspond to the keys in self.conditions, values
             correspond to the values in the same.
         """
-        
+
         chroot = os.path.dirname(self.filename)
         chroot = os.path.abspath(chroot)
 
@@ -419,7 +420,7 @@ class ChannelPack:
 
         with open(cfgfn, 'wb') as fo:
             self.conconf.spit_config(fo, firstwordonly=firstwordonly)
-        
+
         self.conf_file = os.path.abspath(cfgfn)
 
     def eat_config(self, conf_file=None):
@@ -447,7 +448,7 @@ class ChannelPack:
         The message then is that, if channel names are updated, you
         should spit before you eat.
         """
-            
+
         chroot = os.path.dirname(self.filename) # "channels root dir"
         chroot = os.path.abspath(chroot)
 
@@ -472,7 +473,7 @@ class ChannelPack:
 
     def set_stop_extend(self, n):
         """n is an integer >= 0."""
-        self.conconf.set_condition('stop_extend', n)        
+        self.conconf.set_condition('stop_extend', n)
         self._make_mask()
 
     def set_duration(self, dur, durtype='min'):
@@ -482,7 +483,7 @@ class ChannelPack:
             The count of duration. If self.samplerate is not set, dur is
             the number of records to count. If samplerate is set, number
             of records to count is int(self.samplerate * dur).
-        
+
         durtype: str
             Accepted is one of 'strict', 'min' or 'max'. Default is
             'min'.
@@ -494,7 +495,7 @@ class ChannelPack:
         # Test:
         assert durtype in DURTYPES, durtype
         float(dur)
-        
+
         self.conconf.set_condition('dur', dur)
         self.conconf.set_condition('durtype', durtype)
         self._make_mask()
@@ -529,7 +530,7 @@ class ChannelPack:
         Setting mask on, turns the filter off."""
 
         self._mask_on = b == True
-        if self._mask_on: 
+        if self._mask_on:
             self._filter_on = False
 
     def set_filter_on(self, b=True):
@@ -538,7 +539,7 @@ class ChannelPack:
         conditions are removed. It means that self.rec_cnt is probably
         greater than the len of the array returned from a call. However,
         any array called for, will have the same len as the other.
-        
+
         Setting filter on, turns the mask off.
 
         TODO: Implement the effect of this. Probably a slicelist
@@ -548,7 +549,7 @@ class ChannelPack:
         """
 
         self._filter_on = b == True
-        if self._filter_on: 
+        if self._filter_on:
             self._mask_on = False
 
     def mask_or_filter(self):
@@ -589,7 +590,7 @@ class ChannelPack:
             column order. self.chnames will be a dict with channel
             integer indexes as keys. If names is None, self.chnames will
             be None.
-            
+
         """
         if not names:
             self.chnames = None
@@ -597,12 +598,17 @@ class ChannelPack:
 
         if len(names) != len(self.keys):
             raise ValueError('len(names) != len(self.D.keys())')
-        
+
         self.chnames = dict(zip(self.keys, names))
+
+    def slicelist(self):
+        """Return a slicelist based on self.mask."""
+
+        return datautils.slicelist(self.mask)
 
     def __call__(self, key, part=None):
         """Make possible to retreive channels by key.
-        
+
         key: string or integer.
             The channel index number or channel name.
 
@@ -629,7 +635,7 @@ class ChannelPack:
         """Return the integer key for ch. It is the key for the first
         value found in chnames and chnames_0, that matches ch. Or if
         ch is an int, ch is returned if it is a key in self.D"""
-        
+
         try:
             int(ch)
             if ch in self.D:
@@ -647,11 +653,67 @@ class ChannelPack:
 
         raise KeyError(ch)
 
+    def valforvalin(self, val, ch0, ch1, portion=None):
+        """Return value in ch1 where value in ch0 is closest to val.
+
+        val: int, float
+            The value to look for in ch0.
+
+        ch0: str or int
+            The channel name or indexed number for the array with a
+            value close to val.
+
+        ch0: str or int
+            The channel name or indexed number for the array to return
+            the corresponding value from.
+
+        portion: None or tuple
+            If a tuple it is percentage portion of the data arrays to
+            study. (start, stop), where the full array is (0, 100).
+
+            NOTE: Not implemented. (Or testing)
+
+        If ch0 has multiple values equally close to val, return the
+        first one found.
+
+        NOTES: This might or might not be very helpful. If val is
+        repeatadly close in ch0, propably a not desired value in ch1 is
+        returned.
+
+        TO DO: Interpolation. If values are few. Does one want some sort
+        of interpolation? What happens then if ... Nahh. I think
+        not. Either this is of help or it is not.
+
+        TO DO: Think about how this shall function in combination with
+        the conditions. It is depending on conditions as for now becaues
+        data is called for.
+        """
+
+        ch = self(ch0)
+        sc = slice(0, ch.size)
+        if portion is not None:
+            start = int(portion[0] / 100.0 * ch.size) - 1
+            if start < 0:
+                start = 0
+            stop = int(portion[1] / 100.0 * ch.size)
+            sc = slice(start, stop)
+            print sc
+            # Review this code.
+
+        diffs = abs(self(ch0)[sc] - val)
+        m = min(diffs)
+        t = np.where(diffs == m)
+        i = t[0][0] + sc.start             # First one found
+
+        # BUG: Need to translate back to index for the full array. (As given by
+        # the call). + sc.start ok?
+        return self(ch1)[i]
+
     def name(self, ch, firstwordonly=False):
         """Return channel name for ch. ch is the channel name or the
         index number for the channel name, 0-based.
 
-        ch: str or int. 
+        ch: str or int.
             The channel name or indexed number.
 
         firstwordonly: bool or "pattern".
@@ -682,7 +744,7 @@ class ChannelPack:
 
     def query_names(self, pat):
         """pat a shell pattern. See fnmatch.fnmatchcase. Print the
-        results to stdout.""" 
+        results to stdout."""
 
         for item in self.chnames.items():
             if fnmatch.fnmatchcase(item[1], pat):
@@ -707,7 +769,7 @@ class ChannelPack:
         ORIGINEXTENSIONS include any items, try and look for files (in
         the directory where self.filename is sitting) with the same base
         name as the loaded file, but with an extension specified in
-        ORIGINEXTENSIONS. 
+        ORIGINEXTENSIONS.
 
         mtimestamp is a timestamp and mtimefs is the file (name) with
         that timestamp.
@@ -729,11 +791,11 @@ class ChannelPack:
                 self.mtimefs = os.path.normpath(res[0]) # If some shell patterns
                                                         # will be used later.
                 # Time stamp string:
-                self.mtimestamp = time.ctime(os.path.getmtime(self.mtimefs)) 
+                self.mtimestamp = time.ctime(os.path.getmtime(self.mtimefs))
                 break
         else:
             self.mtimefs = self.filename
-            self.mtimestamp = time.ctime(os.path.getmtime(self.mtimefs)) 
+            self.mtimestamp = time.ctime(os.path.getmtime(self.mtimefs))
 
 def _fallback_names(nums):
     """Return a list like ['ch0', 'ch1',...], based on nums. nums is a
@@ -770,7 +832,7 @@ class _ConditionConfigure:
 
     def set_condition(self, conkey, val):
         """Set condition conkey to value val. Convert val to str if not
-        None.  
+        None.
 
         conkey: str
             A condition that exist in the conditions dict (as a key).
@@ -817,7 +879,7 @@ class _ConditionConfigure:
 
         # Update channel names:
         sec = 'channels'
-        mess = 'missmatch of channel keys' 
+        mess = 'missmatch of channel keys'
         assert(set(self.pack.D.keys()) == set([int(i) for i in cfg.options(sec)])), mess
         if not self.pack.chnames:
             self.pack.chnames = dict(self.pack.chnames_0)
@@ -869,7 +931,7 @@ class _ConditionConfigure:
             return int(self.conditions['stop_extend'])
         except TypeError:
             return 0
-        
+
     def get_duration(self):
         """Get duration as an integer."""
 
@@ -891,7 +953,7 @@ class _ConditionConfigure:
     def pprint_conditions(self):
         for key, val in self.conditions.items():
             print key + ':', val
-        
+
 def txtpack(fn, **kwargs):
     """Return a ChannelPack instance loaded with text data file fn.
 
@@ -939,6 +1001,57 @@ def dbfpack(fn, usecols=None):
     # cp.set_basefilemtime()
     return cp
 
+def sheetpack(fn, sheet=0, header=True, startcell=None, stopcell=None,
+              usecols=None):
+    """Return a ChannelPack instance loaded with data from the spread
+    sheet file fn, (xls, xlsx).
+
+    fn: str
+        The file to read from.
+
+    sheet: int or str
+        If int is the index for the 0-based. Else the sheet name.
+
+    header: bool or str
+        True if the defined data range includes a header with field
+        names. Else False - the whole range is data. If a string, it is
+        spread sheet style notation of the startcell for the header
+        ("F9"). The "width" of this record is the same as for the data.
+
+    startcell: str or None
+        If given, a spread sheet style notation of the cell where reading
+        start, ("F9").
+
+    stopcell: str or None
+        A spread sheet style notation of the cell where data end,
+        ("F9").
+
+    startcell and stopcell can both be None, either one specified or
+    both specified.
+
+    NOTE: Big misstake. All pullxl module functionality assumes a sheet
+    instance. Now I remember loadfunc must take the filename as first
+    argument. pullxl:s loadfunc was meant to be sheet_asdict, and it
+    takes the sheet as first argument. Now I dont know. It will feel
+    stupid to send both the file name and the sheet. Re-write.
+
+
+    """
+
+    book = xlrd.open_workbook(fn)
+    try:
+        sh = book.sheet_by_index(sheet)
+    except TypeError:
+        sh = book.sheet_by_name(sheet)
+
+    ss = pullxl.prepread(sh, header=header, startcell=startcell,
+                         stopcell=stopcell)
+
+    cp = ChannelPack(pullxl.sheet_asdict)
+    cp.load(fn, sh, ss, usecols=usecols)
+    cp.set_channel_names(pullxl.sheetheader(sh, ss, usecols=usecols))
+    return cp
+
 # Look for rc file:
 _aspirants = []
 if os.getenv('HOME'):
@@ -956,7 +1069,7 @@ for _asp in _aspirants:
                 ORIGINEXTENSIONS += [ext.strip() for ext in exts.split(',')]
                 print 'ORIGINEXTENSIONS:', ORIGINEXTENSIONS
                 break           # First read satisfy.
-            except (ConfigParser.NoSectionError, 
+            except (ConfigParser.NoSectionError,
                     ConfigParser.NoOptionError,
                     ConfigParser.ParsingError) as e:
                 print fp.name, 'exist, but:'
