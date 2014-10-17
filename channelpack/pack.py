@@ -246,7 +246,7 @@ class ChannelPack:
             diffs.append((diff, diff[0], sc))
 
         if hasattr(self, 'metamulti'):
-            for sc in self.metamulti['slicelist']:
+            for sc in self.metamulti['slices']:
                 diffsappend(self(key)[sc], sc)
         else:
             diffsappend(self(key), slice(0, self.rec_cnt))
