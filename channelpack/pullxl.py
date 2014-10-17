@@ -226,9 +226,13 @@ def sheetheader(sheet, startstops, usecols=None):
 
     return header
 
-def sheet_asdict(sheet, startstops, usecols=None):
+def sheet_asdict(fn, sheet, startstops, usecols=None):
     """Read data from a spread sheet. Return the data in a dict with
     column numbers as keys.
+
+    fn: str
+        Dummy argument to be compatible with ChannelPacks loadfunc
+        interface
 
     sheet: xlrd.sheet.Sheet instance
         Ready for use.

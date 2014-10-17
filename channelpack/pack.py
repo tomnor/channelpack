@@ -1037,7 +1037,6 @@ def sheetpack(fn, sheet=0, header=True, startcell=None, stopcell=None,
 
 
     """
-    raise NotImplementedError
 
     book = xlrd.open_workbook(fn)
     try:
@@ -1049,7 +1048,7 @@ def sheetpack(fn, sheet=0, header=True, startcell=None, stopcell=None,
                          stopcell=stopcell)
 
     cp = ChannelPack(pullxl.sheet_asdict)
-    cp.load(fn, ss, usecols=usecols)
+    cp.load(fn, sh, ss, usecols=usecols)
     cp.set_channel_names(pullxl.sheetheader(sh, ss, usecols=usecols))
     return cp
 
