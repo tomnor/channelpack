@@ -39,6 +39,11 @@ Spread sheet reading principles:
    object, and empty cells replaced by None. Dates will be python
    datetime objects.
 
+NOTE TO SELF: This module take a sheet instance to work with. This is
+unfortunate in case of a user call error. The book has to be loaded
+again in the next call which can take a lot of time sometimes. Making a
+cach of the book should maybe be concidered.
+
 """
 import re
 import datetime
@@ -157,7 +162,7 @@ def prepread(sheet, header=True, startcell=None, stopcell=None):
     def offsetheaderprep():
         headstart.row, headstart.col = headrow, headcol
         headstop.row = headrow + 1
-        headstop.col = headcol + (datstop.col - datstart.col)
+        headstop.col = headcol + (datstop.col - datstart.col) # stop > start
 
     if header is True:          # Simply the toprow of the table.
         typicalprep()
@@ -201,7 +206,7 @@ def sheetheader(sheet, startstops, usecols=None):
         E and H.
     """
 
-    headstart, headstop, dstart, _ = startstops
+    headstart, headstop, dstart, dstop = startstops
     if headstart is None:
         return None
     assert headstop.row - headstart.row == 1, ('Field names must be in '
@@ -210,7 +215,7 @@ def sheetheader(sheet, startstops, usecols=None):
     header = []
     # One need to make same offsets within start and stop as in usecols:
     usecols = _sanitize_usecols(usecols)
-    cols = usecols or range(headstart.col, headstop.col)
+    cols = usecols or range(dstart.col, dstop.col)
     headcols = [c + (headstart.col - dstart.col) for c in cols]
 
     for col in headcols:
@@ -244,12 +249,19 @@ def sheet_asdict(fn, sheet, startstops, usecols=None):
     """
 
     _, _, start, stop = startstops
-    # Consider checking if usecols is within range.
     usecols = _sanitize_usecols(usecols)
-    cols = usecols or range(start.col, stop.col)
+
+    if usecols is not None:
+        iswithin = start.col <= min(usecols) and stop.col > max(usecols)
+        mess =  'Column in usecols outside defined data range, got '
+        assert iswithin, mess + str(usecols)
+    else:                       # usecols is None.
+        usecols = tuple(range(start.col, stop.col))
+
+    # cols = usecols or range(start.col, stop.col)
     D = dict()
 
-    for c in cols:
+    for c in usecols:
         cells = sheet.col(c, start_rowx=start.row, end_rowx=stop.row)
         types = set([cell.ctype for cell in cells])
 

@@ -1035,6 +1035,9 @@ def sheetpack(fn, sheet=0, header=True, startcell=None, stopcell=None,
     data range. The meaning of usecols is then applied on both the data
     range and the header row. However, usecols is always specified with
     regards to the data range.
+
+    Note to self: As it currently is, usecols can be specified outside
+    the data range. This must probably not be possible.
     """
 
     book = xlrd.open_workbook(fn)
