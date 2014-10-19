@@ -38,7 +38,9 @@ channelpack imports numpy. Installation of channelpack will not arrange for
 numpy to be installed. Do it your way. It is likely that if you consider
 channelpack, you already have numpy installed.
 
-Documentation and examples
-==========================
+Documentation and changes
+=========================
 
 `Documentation <http://channelpack.readthedocs.org/en/latest/>`_
+
+`Changes <http://channelpack.readthedocs.org/en/latest/changelog.html>`_

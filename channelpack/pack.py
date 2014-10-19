@@ -597,7 +597,14 @@ class ChannelPack:
         self.chnames = dict(zip(self.keys, names))
 
     def slicelist(self):
-        """Return a slicelist based on self.mask."""
+        """Return a slicelist based on self.mask.
+
+        This is a list of python slice objects corresponding to the True
+        sections in self.mask. If no conditions are set, there shall be
+        one slice in the list with start == 0 and stop == self.rec_cnt +
+        1, (the mask is all True). The len of this list corresponds to
+        the number of True sections in self.mask. (So a hint on the
+        result from the conditions)."""
 
         return datautils.slicelist(self.mask)
 
