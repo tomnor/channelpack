@@ -1,14 +1,16 @@
-**0.2.0 (2014-??-??)**
-
-* Add a module lazyutils. Helpers to get file names, remembering locations.???
+**0.3.0 (2014-??-??)**
 
 * The dbf reader function replace missing values with numpy.NaN if the data is
   numeric. This means that all numeric values will be floats, even though they
   are specified as integers in the source data file.
 
-* Reader for reading from spreadsheet data.
+* Add a module lazyutils. Helpers to get file names, remembering locations.???
 
-* Add method slicelist to channelpack. (Exist in devel branch).
+**0.2.0 (2014-10-19)**
+
+* Support for reading spreadsheet data (xlrd as backend).
+
+* Add method slicelist to channelpack.
 
 **0.1.5 (2014-10-15)**
 

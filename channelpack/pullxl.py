@@ -39,11 +39,6 @@ Spread sheet reading principles:
    object, and empty cells replaced by None. Dates will be python
    datetime objects.
 
-NOTE TO SELF: This module take a sheet instance to work with. This is
-unfortunate in case of a user call error. The book has to be loaded
-again in the next call which can take a lot of time sometimes. Making a
-cach of the book should maybe be concidered.
-
 """
 import re
 import datetime

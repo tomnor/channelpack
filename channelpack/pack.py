@@ -541,10 +541,6 @@ class ChannelPack:
 
         Setting filter on, turns the mask off.
 
-        TODO: Implement the effect of this. Probably a slicelist
-        functionality is desired then. A way to specify one of possibly
-        multiple true sections which are otherwise just merged
-        together. Consider a keyword argument to the __call__ func.
         """
 
         self._filter_on = b == True
