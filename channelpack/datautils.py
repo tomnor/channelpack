@@ -31,7 +31,7 @@ def array_and(d, conditions):
     """
 
     conlist = [con.strip() for con in conditions]
-    print conlist, "'and'"
+    # print conlist, "'and'"
     a = np.ones(len(d[d.keys()[0]])) == 1.0 # Initial True array.
     if not conditions:                      # Maybe empty.
         return a
@@ -60,7 +60,7 @@ def array_or(d, conditions):
     Return all elements True if conditions is an empty list.
     """    
     conlist = [con.strip() for con in conditions]
-    print conlist, "'or'"
+    # print conlist, "'or'"
     a = np.ones(len(d[d.keys()[0]])) == 1.0 # True
     if not conlist or not conditions:
         return a                # All True if no conditions.
