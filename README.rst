@@ -34,6 +34,9 @@ Data files:
 Depends
 =======
 
+There is a dependency on xlrd as of version 0.2.0. It is installed if not
+available.
+
 channelpack imports numpy. Installation of channelpack will not arrange for
 numpy to be installed. Do it your way. It is likely that if you consider
 channelpack, you already have numpy installed.

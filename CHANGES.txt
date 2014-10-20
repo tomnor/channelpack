@@ -6,6 +6,12 @@
 
 * Add a module lazyutils. Helpers to get file names, remembering locations.???
 
+**0.2.1 (2014-10-20)**
+
+* xlrd added to install_requires list in setup.py
+
+* Docstring fix in slicelist method. Was wrong.
+
 **0.2.0 (2014-10-19)**
 
 * Support for reading spreadsheet data (xlrd as backend).

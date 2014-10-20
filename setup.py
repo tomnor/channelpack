@@ -41,5 +41,5 @@ setup(
     keywords='data-mining datafile daq masking conditions evaluation ad-hoc',
     packages=['channelpack'],
     # Requires numpy but channelpack choose not to provide
-    # install_requires=['numpy'],
+    install_requires=['xlrd'],
 )
