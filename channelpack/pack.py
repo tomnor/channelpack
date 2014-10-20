@@ -601,10 +601,10 @@ class ChannelPack:
 
         This is a list of python slice objects corresponding to the True
         sections in self.mask. If no conditions are set, there shall be
-        one slice in the list with start == 0 and stop == self.rec_cnt +
-        1, (the mask is all True). The len of this list corresponds to
-        the number of True sections in self.mask. (So a hint on the
-        result from the conditions)."""
+        one slice in the list with start == 0 and stop == self.rec_cnt,
+        (the mask is all True). The len of this list corresponds to the
+        number of True sections in self.mask. (So a hint on the result
+        from the conditions)."""
 
         return datautils.slicelist(self.mask)
 
