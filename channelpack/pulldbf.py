@@ -3,7 +3,7 @@ import struct, datetime, decimal, itertools
 
 import numpy as np
 
-# Created by Raymond Hettinger on Tue, 11 Jan 2005 (PSF) 
+# Created by Raymond Hettinger on Tue, 11 Jan 2005 (PSF)
 # http://code.activestate.com/recipes/362715/
 # There is also a writer there. Keep in mind, should I need it.
 def dbfreader(f):
@@ -20,13 +20,13 @@ def dbfreader(f):
     # See DBF format spec at:
     #     http://www.pgts.com.au/download/public/xbase.htm#DBF_STRUCT
 
-    numrec, lenheader = struct.unpack('<xxxxLH22x', f.read(32))    
+    numrec, lenheader = struct.unpack('<xxxxLH22x', f.read(32))
     numfields = (lenheader - 33) // 32
 
     fields = []
     for fieldno in xrange(numfields):
         name, typ, size, deci = struct.unpack('<11sc4xBB14x', f.read(32))
-        name = name.replace('\0', '')       # eliminate NULs from string   
+        name = name.replace('\0', '')       # eliminate NULs from string
         fields.append((name, typ, size, deci))
     yield [field[0] for field in fields]
     yield [tuple(field[1:]) for field in fields]
@@ -60,8 +60,8 @@ def dbfreader(f):
             if typ == "N":
                 value = value.replace('\0', '').lstrip()
                 if value == '':
-                    value = 0
-                    # value = np.NaN # 0 is a value.
+                    # value = 0
+                    value = np.NaN # 0 is a value.
                 elif deci:
                     value = float(value)
                     # value = decimal.Decimal(value) Not necessary.
@@ -72,7 +72,7 @@ def dbfreader(f):
                 value = datetime.date(y, m, d)
             elif typ == 'L':
                 value = (value in 'YyTt' and 'T') or (value in 'NnFf' and 'F') or '?'
-            elif typ == 'F':
+            elif typ == 'F':    # Can this type not be null?
                 value = float(value)
             result.append(value)
         yield result
@@ -83,7 +83,14 @@ def numpytypes(field_specs):
     numpys dtype function.
 
     field_specs is the second record from Hettingers dbf iterator,
-    "dbfreader"."""
+    "dbfreader".
+
+    .. warning::
+       This function will be removed from here in a coming release,
+       because it's not used by this module anymore. There seem to be no
+       reason to force a type on numpy. Let nympy select the type.
+
+    """
 
     typestr = ''
     for spec in field_specs:
@@ -96,11 +103,11 @@ def numpytypes(field_specs):
             typestr += 'object,' # datetime
         else:                    # Assume a string then?
             typestr += 'a{},'.format(size)
-            
+
     return typestr[:-1]
 
 def dbf_asdict(fn, usecols=None, keystyle='ints'):
-    """Return data from dbf file fn as a dict. 
+    """Return data from dbf file fn as a dict.
 
     fn: str
         The filename string.
@@ -117,7 +124,7 @@ def dbf_asdict(fn, usecols=None, keystyle='ints'):
 
     if not keystyle in ['ints', 'names']:
         raise ValueError('Unknown keyword: ' + str(keystyle))
-    
+
     with open(fn, 'rb') as fo:
         rit = dbfreader(fo)
         names = rit.next()
@@ -125,7 +132,46 @@ def dbf_asdict(fn, usecols=None, keystyle='ints'):
         R = [tuple(r) for r in rit]
 
     def getkey(i):
-        if keystyle == 'ints': 
+        if keystyle == 'ints':
+            return i
+        else:
+            return names[i]
+
+    # R = np.array(R, dtype=numpytypes(specs))
+    R = zip(*R)
+    d = dict()
+    for i in usecols or range(len(names)):
+        # d[getkey(i)] = R['f' + str(i)]  # Default numpy fieldname
+        d[getkey(i)] = np.array(R[i])
+    return d
+
+def _dbf_asdictBAK(fn, usecols=None, keystyle='ints'):
+    """Return data from dbf file fn as a dict.
+
+    fn: str
+        The filename string.
+
+    usecols: seqence
+        The columns to use, 0-based.
+
+    keystyle: str
+        'ints' or 'names' accepted. Should be 'ints' (default) when this
+        function is given to a ChannelPack as loadfunc. If 'names' is
+        used, keys will be the field names from the dbf file.
+
+    """
+
+    if not keystyle in ['ints', 'names']:
+        raise ValueError('Unknown keyword: ' + str(keystyle))
+
+    with open(fn, 'rb') as fo:
+        rit = dbfreader(fo)
+        names = rit.next()
+        specs = rit.next()
+        R = [tuple(r) for r in rit]
+
+    def getkey(i):
+        if keystyle == 'ints':
             return i
         else:
             return names[i]
@@ -140,9 +186,9 @@ def channel_names(fn, usecols=None):
     """Return the fieldnames (channel names) from dbf file fn. With
     usecols, return only names corresponding to the integers in
     usecols."""
-    
+
     with open(fn, 'rb') as fo:
         names = dbfreader(fo).next()
 
     return usecols and [names[i] for i in usecols] or names # A bit too smart.
-                       
+
