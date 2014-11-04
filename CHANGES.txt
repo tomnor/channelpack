@@ -4,8 +4,8 @@
 
 * Informative __repr__ implemented.
 
-* Improved parsing for the eval enabling more advanced conditions. Can fail
-  currently if the channel name is not surrounded by space.
+* Improved parsing of conditions for the eval enabling more advanced
+  conditions. Can fail currently if the channel name is not surrounded by space.
 
 * Add a module lazyutils. Helpers to get file names, remembering locations.???
 

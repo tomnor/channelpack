@@ -24,7 +24,7 @@ above.
 
 Data files:
 
-* Any text kind of file (numpy's loadtxt is used).
+* Any text (numeric) kind of file (numpy's loadtxt is used).
 * dbf files (Raymond Hettinger `recipe
   <http://code.activestate.com/recipes/362715>`_ as low level reader).
 * Spread sheet files (xlrd is used).
