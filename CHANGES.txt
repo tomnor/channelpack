@@ -16,9 +16,9 @@
   numbers were lost. The result was repeating equal numbers that should not be
   equal.
 
-* Since forcing types on numpy was deprecated, an issue with missing values was
-  easy to fix. Now, null values are replaced with numpy nan, was (0). Also very
-  important.
+* Since forcing types on numpy was deprecated, an issue with missing values in a
+  dbf file (nulls) was easy to fix. Now, null values are replaced with numpy
+  nan, was (0). Also very important.
 
 **0.2.1 (2014-10-20)**
 
