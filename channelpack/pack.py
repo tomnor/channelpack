@@ -24,6 +24,12 @@ import xlrd
 from . import pulltxt, pulldbf, pullxl
 from . import datautils
 
+# TO DO: Use this  rx = r'%\(([\w ]+)\)' and rewrite the whole parsing and
+# condition set-up. Conditions to be written like 
+# %(channel name 1) > 120 & %(channel2) < %(channel 3)
+# Also the conditions will be called cond1 and if more is added there will be
+# cond2 and so on. The clear condition also to be rewritten.
+
 ORIGINEXTENSIONS =  []
 """A list of file extensions excluding the dot. See
 :py:meth:`~.ChannelPack.set_basefilemtime` for a description.
