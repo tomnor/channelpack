@@ -25,7 +25,7 @@ from . import pulltxt, pulldbf, pullxl
 from . import datautils
 
 # TO DO: Use this  rx = r'%\(([\w ]+)\)' and rewrite the whole parsing and
-# condition set-up. Conditions to be written like 
+# condition set-up. Conditions to be written like
 # %(channel name 1) > 120 & %(channel2) < %(channel 3)
 # Also the conditions will be called cond1 and if more is added there will be
 # cond2 and so on. The clear condition also to be rewritten.
@@ -51,6 +51,26 @@ FALLBACK_PREFIX = 'ch'              # TO DO: Use this global constant so it is
                                     # possible to work-around a possible
                                     # conflict. DONE (in _fallback func).
 NONES = [None, 'None', 'none', "''", '""', '']
+
+_CHANNEL_RX = r'%\(([\w ]+)\)'
+"""Pattern used to find format strings for the channel identifiers. The
+pattern can be monkey patched for specific needs. It is used as is, not
+compiled or held by some instance of something apart from this module in
+the python session."""
+
+CHANNEL_IDENTIFIER_RX = r'[\w ]+'
+"""Pattern used to find format strings for the channel identifiers. The
+pattern can be monkey patched for specific needs. It is used as is, not
+compiled or held by some instance of something apart from this module in
+the python session."""
+
+CHANNEL_FMT_RX = r'%\(({})\)'
+"""Pattern used for the format string. The enclosing part around the
+channel identifier. It includes the re group, which must remain, (the
+inner-most ´´()´´). The ´´{}´´ part is replaced with
+CHANNEL_IDENTIFIER_RX."""
+
+CHANNEL_RX = CHANNEL_FMT_RX.format(CHANNEL_IDENTIFIER_RX) # Debug
 
 class ConditionMappingError(Exception):
     """Raise when channels are not found in conditions."""
@@ -357,6 +377,27 @@ class ChannelPack:
 
         return conres
 
+    def _parse_cond(self, cond):
+        """Replace the format strings in cond with ´´self(i)´´ so it can
+        be used in eval calls. Use ´´CHANNEL_RX´´ as pattern."""
+
+        CHANNEL_RX = CHANNEL_FMT_RX.format(CHANNEL_IDENTIFIER_RX)
+
+        res = re.findall(CHANNEL_RX, cond)
+        for ident in res:
+            rx = CHANNEL_FMT_RX.format(ident)
+            i = self._key(ident) # integer key
+            repl = 'self(' + str(i) + ')'
+            cond = re.sub(rx, repl, cond) # %(<identifier>) replaced with self(i). I
+                                    # hope - What about the capturing group?
+
+        return cond
+
+    def _mask_array(self, cond):
+        """Dummy func to try the new condition structure."""
+        cond = self._parse_cond(cond)
+        return eval(cond)
+
     def set_conditions(self, conkey, con):
         """Remove existing conditions in conkey and replace with con.
 
@@ -645,7 +686,8 @@ class ChannelPack:
         ch is an int, ch is returned if it is a key in self.D"""
 
         try:
-            int(ch)
+            # int(ch)
+            ch = int(ch)        # I must have meant this.
             if ch in self.D:
                 return ch
         except ValueError:
