@@ -11,6 +11,133 @@ the data file. Keys are integers corresponding to the "columns" used,
 0-based. The loadfunc is called from an instance of ChannelPack by
 calling 'load'.
 
+evolve branch
+=============
+
+.. Note::
+
+   The evolve branch text will be removed when evolve branch is merged
+   into master.
+
+I will rewrite channelpack. There will be a new way of handling the
+conditions. More mature and pythonic to my opinion. I will use string
+formatting kind of solution. (Or string interpolation if you want.)
+
+Brainstorming
+-------------
+
+TO DO: Use this ``rx = r'%\(([\w ]+)\)'`` and rewrite the whole parsing
+and condition set-up. Conditions to be written like::
+
+    %(channel name 1) > 120 & %(channel2) < %(channel 3)
+
+Also the conditions will be called cond1 and if more is added there will
+be cond2 and so on. The clear condition also to be rewritten.
+
+I want to decide how I want it to be. I have realized I want the
+addcondition function give an opurtunity to name the condition. Then it
+should be possible to toggle individual conditions on and off. If not
+explicitly named, it's given enumerated names like "cond1".
+
+What about the mask_on and filter_on thing? This doesn't feel so cool.
+But it should be ok. The call on parts is cool.
+
+More evolve
+-----------
+
+* The above is valid. About the string formatting and the regular
+  expression at least.
+
+* This text about evolve branch will be removed when the code works as
+  described here.
+
+* A call on a channel. The call signature could be like this:
+  ``__call__(self, key, *part, **kwargs)``. Independent on the mask, a call
+  is by default returning the complete array. ``*part`` is the part
+  enumeration, and can be one integer up to the number of available
+  parts integers. A kwarg could be ``nof="mask"`` or ``nof="filter"``,
+  nof stands for "nan or filter". If parts is given and more than one, a
+  list of the requested parts (arrays) is returned. So they can be
+  nicely unpacked.
+
+* Shit, but the nof keyword is not meaningful together with ``*parts``. One
+  then has to decide that if any ``*parts`` is given - nof is ignored.
+
+* Shall it then not be possible to turn mask or filter on and off? I
+  thought my main point was to keep the calls really easy and
+  convinient. Hmmm. Yes, it will be possible. There will be a variable
+  called ``nof`` that will have the value 'nan', 'filter' or None.
+
+* The conf_file structure will be the channels as before. But the
+  [conditions] section will contain the options::
+
+      cond<n>
+      start_cond<n>
+      stop_cond<n>
+      stop_extend
+      dur
+      samplerate
+
+  The <n> is an incremented number, incremented by each added condition.
+  I was thinking about some way to let the user call the condition
+  whatever desired, and the above being the default, but then some
+  complexity is added since the start and stop conditions are treated
+  specially.
+
+  The durtype option is removed. Instead, dur is an expression like::
+
+      dur = 'cnt == 150 or cnt > 822'
+
+  or::
+
+      dur = 'cnt == 20 or cnt == 22'
+
+  The cnt is for each true part set to the len of the true part or, if
+  samplerate is set, len(part) * samplerate. For the parts where the dur
+  rule is not fulfilled, the part will be false.
+
+  .. note::
+
+     The logical ``or`` and ``and`` operators must be used. ``cnt`` is a
+     primitive, not an array.
+
+* The clear_conditions function should make use of a pattern kind of
+  matching for selecting the conditions to clear. Signature: (pat,
+  noclear=False)
+
+* I have to concider keeping attributes of the conditions for easy
+  retrieval. Might be that one want to merge two conditions for example.
+  But I dont like it maybe. Seems complex. I think there will be an...
+  Or actually, there is already a dict holding the conditions, could be
+  cool if that one again could be held by the pack class and then there
+  will be no problem getting the strings as desired.
+
+* The ChannelPack class has a mask attribute as before, and there must
+  be no complication with the user making his own mask. Only, if any
+  action is performed such as adding conditions, it will be
+  over-written. Yes, how is this supposed to work.
+
+* It is wierd that the pack can be instantiated with no load func. Or
+  what is the idea with this? Well, possibly for some experimental play
+  trying out different functions on the same instance but seems pretty
+  wierd still.
+
+This is all good because one can experiment with the pack on conditions
+and the when satisfied, do basically the same in string form and the
+pack variable name replaced by '%', like ``%(2) == ...`` instead of
+``tp(2) == ...`` with a pack variable called 'tp'.
+
+List of tasks
+-------------
+
+Now perform the following tasks:
+
+1: Start with the parts handling the conf_file and condition strings.
+Really check if it suffices to keep a dict in the pack class with the
+conditions. That would be great.
+
+2: Do next task.
+
 """
 import re
 import glob, fnmatch
@@ -23,12 +150,6 @@ import xlrd
 
 from . import pulltxt, pulldbf, pullxl
 from . import datautils
-
-# TO DO: Use this  rx = r'%\(([\w ]+)\)' and rewrite the whole parsing and
-# condition set-up. Conditions to be written like
-# %(channel name 1) > 120 & %(channel2) < %(channel 3)
-# Also the conditions will be called cond1 and if more is added there will be
-# cond2 and so on. The clear condition also to be rewritten.
 
 ORIGINEXTENSIONS =  []
 """A list of file extensions excluding the dot. See
@@ -47,6 +168,8 @@ and then place it there.
 CONFIG_FILE = "conf_file.cfg"
 CONFIG_SECS = ['channels',  'conditions']
 DURTYPES = ['strict', 'min', 'max'] # TO DO: Check validity with this.
+COND_PREFIXES = ['cond', 'startcond', 'stopcond', 'stop_extend',  'dur',
+                 'samplerate']
 FALLBACK_PREFIX = 'ch'              # TO DO: Use this global constant so it is
                                     # possible to work-around a possible
                                     # conflict. DONE (in _fallback func).
@@ -67,39 +190,15 @@ the python session."""
 CHANNEL_FMT_RX = r'%\(({})\)'
 """Pattern used for the format string. The enclosing part around the
 channel identifier. It includes the re group, which must remain, (the
-inner-most ´´()´´). The ´´{}´´ part is replaced with
+inner-most ``()``). The ``{}`` part is replaced with
 CHANNEL_IDENTIFIER_RX."""
 
 CHANNEL_RX = CHANNEL_FMT_RX.format(CHANNEL_IDENTIFIER_RX) # Debug
-
-class ConditionMappingError(Exception):
-    """Raise when channels are not found in conditions."""
-    pass
 
 class ChannelPack:
     """Pack of data. Hold a dict with channel index numbers as keys
     (column number).  This object is callable by channel name or index.
     """
-
-    # TO DO: More important - start and stop trigger conditions. Enabling
-    # hysterises kind of checking. Like start: "ch21 > 4.3" and
-    # stop: "ch21 < 1.3". Include it to the conditions dict. DONE, (testing).
-
-    # TO DO: Consider possibility to write some chanel names with indexing, like
-    # MyCh3[0] > MyCh5.
-
-    # TODO: Make some sort of steady_state condition. Some way to detect a
-    # signal that keeps it's values within a tolerance. A flat value, so I guess
-    # steady_state refers to a naive kind of steady_state. This might be
-    # implemented by a meethod. The method makes a mask based on steady_state,
-    # then the "normal" _make_mask method is called.
-
-    # TODO: A proper way of concatenating packs. I would prefer not to
-    # have to have already loaded packs to merge, that makes for
-    # duplicates. I want the possibility to have them added based on
-    # basefilemtime, (if available). Maybe I need a MultiPack class. Not
-    # so nice. But else, how will base files be tracked. Always the last
-    # file?
 
     def __init__(self, loadfunc=None):
         """Return a pack
@@ -392,8 +491,8 @@ class ChannelPack:
         return conres
 
     def _parse_cond(self, cond):
-        """Replace the format strings in cond with ´´self(i)´´ so it can
-        be used in eval calls. Use ´´CHANNEL_RX´´ as pattern."""
+        """Replace the format strings in cond with ``self(i)`` so it can
+        be used in eval calls. Use ``CHANNEL_RX`` as pattern."""
 
         CHANNEL_RX = CHANNEL_FMT_RX.format(CHANNEL_IDENTIFIER_RX)
 
@@ -404,7 +503,6 @@ class ChannelPack:
             repl = 'self(' + str(i) + ')'
             cond = re.sub(rx, repl, cond) # %(<identifier>) replaced with self(i). I
                                     # hope - What about the capturing group?
-
         return cond
 
     def _mask_array(self, cond):
@@ -815,6 +913,90 @@ def _fallback_names(nums):
     return [FALLBACK_PREFIX + str(i) for i in nums]
 
 class _ConditionConfigure:
+
+    def __init__(self, pack):
+
+        self.pack = pack
+        conpairs = [('cond1', None), ('startcond1', None),
+                    ('stopcond1', None), ('stop_extend', None),
+                    ('dur', None), ('samplerate', None)]
+        self.conditions = OrderedDict(conpairs)
+
+    def set_condition(self, conkey, val):
+        """Set condition conkey to value val. Convert val to str if not
+        None.
+
+        conkey: str
+            A valid condition key.
+
+        val: str, int, float, None
+            Can always be None. Can be number or string depending on conkey.
+        """
+
+        if not any([conkey.startswith(c) for c in COND_PREFIXES]):
+            raise KeyError(conkey)
+
+        if val in NONES:
+            self.conditions[conkey] = None
+        else:
+            self.conditions[conkey] = str(val)
+
+    def spit_config(self, conf_file, firstwordonly=False):
+        """conf_file a file opened for writing."""
+
+        cfg = ConfigParser.ConfigParser()
+        for sec in CONFIG_SECS:
+            cfg.add_section(sec)
+
+        sec = 'channels'
+        for i in sorted(self.pack.D):
+            cfg.set(sec, str(i), self.pack.name(i, firstwordonly=firstwordonly))
+
+        sec = 'conditions'
+        for k, v in self.conditions.items():
+            cfg.set(sec, k, v)
+
+        cfg.write(conf_file)
+
+    def eat_config(self, conf_file):
+        """conf_file a file opened for reading.
+
+        Update the packs channel names and the conditions, accordingly.
+
+        """
+
+        # Read the file:
+        cfg = ConfigParser.ConfigParser()
+        cfg.readfp(conf_file)
+
+        # Update channel names:
+        sec = 'channels'
+        mess = 'missmatch of channel keys'
+        assert(set(self.pack.D.keys()) == set([int(i) for i in cfg.options(sec)])), mess
+        if not self.pack.chnames:
+            self.pack.chnames = dict(self.pack.chnames_0)
+        for i in cfg.options(sec): # i is a string.
+            self.pack.chnames[self.pack._key(int(i))] = cfg.get(sec, i)
+
+        # Update conditions:
+        sec = 'conditions'
+
+        conkeys = set(self.conditions.keys())
+        conops = set(cfg.options(sec))
+
+        for conkey in conkeys:
+            if not any([conkey.startswith(c) for c in COND_PREFIXES]):
+                raise KeyError(conkey)
+
+        for con in conkeys - conops: # Removed conditions.
+            self.set_condition(con, None)
+        for con in conops:
+            self.set_condition(con, cfg.get(sec, con))
+
+        # That's it
+
+
+class _ConditionConfigureBAK:
     """Provide handling of conditions and the config file as support to
     the ChannelPack class. Provide smooth methods to get one condition
     at a time or a list of conditions. Keep the logic of handling the
