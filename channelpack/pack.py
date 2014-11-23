@@ -86,19 +86,19 @@ More evolve
 
   The durtype option is removed. Instead, dur is an expression like::
 
-      dur = 'cnt == 150 or cnt > 822'
+      dur = 'dur == 150 or dur > 822'
 
   or::
 
-      dur = 'cnt == 20 or cnt == 22'
+      dur = 'dur == 20 or dur == 22'
 
-  The cnt is for each true part set to the len of the true part or, if
+  The dur is for each true part set to the len of the true part or, if
   samplerate is set, len(part) * samplerate. For the parts where the dur
   rule is not fulfilled, the part will be false.
 
   .. note::
 
-     The logical ``or`` and ``and`` operators must be used. ``cnt`` is a
+     The logical ``or`` and ``and`` operators must be used. ``dur`` is a
      primitive, not an array.
 
 * The clear_conditions function should make use of a pattern kind of
@@ -123,20 +123,35 @@ More evolve
   wierd still.
 
 This is all good because one can experiment with the pack on conditions
-and the when satisfied, do basically the same in string form and the
+and then when satisfied, do basically the same in string form and the
 pack variable name replaced by '%', like ``%(2) == ...`` instead of
-``tp(2) == ...`` with a pack variable called 'tp'.
+``tp(2) == ...`` with a pack variable called 'tp', for persistant
+storage of conditions that is.
 
 List of tasks
 -------------
 
 Now perform the following tasks:
 
-1: Start with the parts handling the conf_file and condition strings.
-Really check if it suffices to keep a dict in the pack class with the
-conditions. That would be great.
+#. Start with the parts handling the conf_file and condition strings.
 
-2: Do next task.
+#. Add the nof variable and remember to use it.
+
+#. Go through each and every function in ChannelPack and adjust the
+   behaviour. this will defenetly also mean making changes in the datautils
+   helper module.
+
+Current state
+-------------
+
+.. Note::
+   Non working state. I am here: Testing to load some data. Error with the
+   sorting of options in the conditionconfigure helper. I made some logic
+   misstake. Will be easy to fix. This is with the printing to a file and
+   prettyprint. Also, some conditions are left out for some reason.
+
+   Then still much testing must be done to find
+   all pitfalls. Date: Sun Nov 23 23:11:47 2014
 
 """
 import re
@@ -166,9 +181,9 @@ and then place it there.
 """
 
 CONFIG_FILE = "conf_file.cfg"
-CONFIG_SECS = ['channels',  'conditions']
+_CONFIG_SECS = ['channels',  'conditions']
 DURTYPES = ['strict', 'min', 'max'] # TO DO: Check validity with this.
-COND_PREFIXES = ['cond', 'startcond', 'stopcond', 'stop_extend',  'dur',
+_COND_PREFIXES = ['cond', 'startcond', 'stopcond', 'stop_extend',  'dur',
                  'samplerate']
 FALLBACK_PREFIX = 'ch'              # TO DO: Use this global constant so it is
                                     # possible to work-around a possible
@@ -219,12 +234,10 @@ class ChannelPack:
         self.keys = None          # Sorted list of keys for the data dict.
         self.rec_cnt = 0          # Number of records.
 
-        self._mask_on = False    # Yeahh...
-        self._filter_on = False
+        self._mask_on = False    # Deprication.
+        self.nof = None          # 'nan', 'filter' or None (nan or filter)
+        self._filter_on = False  # Deprication
         self.mask = None
-        # Dict with condition specs for the mask array:
-        # self.conditions = {'and': '', 'or': '', 'dur': 0, 'durtype': 'min',
-                           # 'start': '', 'stop': ''}
         self.conconf = _ConditionConfigure(self)
 
 
@@ -506,7 +519,10 @@ class ChannelPack:
         return cond
 
     def _mask_array(self, cond):
-        """Dummy func to try the new condition structure."""
+        """Dummy func to try the new condition structure.
+
+        Maybe not dummy. Let the boolean array mask production be here.
+        """
         cond = self._parse_cond(cond)
         return eval(cond)
 
@@ -716,7 +732,7 @@ class ChannelPack:
             return 'filter'
         return None
 
-    def _make_mask(self):
+    def _make_maskBAK(self):
         """Set the attribute self.mask to a mask based on
         self.conditions"""
 
@@ -733,6 +749,32 @@ class ChannelPack:
         dur = cc.get_duration()
         durtype = cc.get_duration_type()
         self.mask = datautils.duration_bool(self.mask, dur, durtype)
+
+    def _make_mask(self):
+        """Set the attribute self.mask to a mask based on
+        self.conditions"""
+
+        cc = self.conconf
+        # andmask = datautils.array_and(self.D, cc.conditions_list('and'))
+        # ormask = datautils.array_or(self.D, cc.conditions_list('or'))
+
+        mask = np.ones(self.rec_cnt) == True # All True initially.
+        for cond in cc.conditions_list('cond'):
+            mask = mask & self._mask_array(cond)
+
+        # ssmask = datautils.startstop_bool(self)
+        mask = mask & datautils.startstop_bool(self)
+
+        # self.mask = np.logical_and(andmask, ormask)
+        # self.mask = np.logical_and(self.mask, ssmask)
+
+        # Duration conditions:
+        # dur = cc.get_duration()
+        # durtype = cc.get_duration_type()
+        mask = datautils.duration_bool(mask, cc.get_condition('dur'),
+                                       cc.get_condition('samplerate'))
+        # self.mask = datautils.duration_bool(self.mask, dur, durtype)
+        self.mask = mask
 
     def set_channel_names(self, names):
         """
@@ -917,9 +959,11 @@ class _ConditionConfigure:
     def __init__(self, pack):
 
         self.pack = pack
-        conpairs = [('cond1', None), ('startcond1', None),
-                    ('stopcond1', None), ('stop_extend', None),
+        conpairs = [('cond1', None), ('start_cond1', None),
+                    ('stop_cond1', None), ('stop_extend', None),
                     ('dur', None), ('samplerate', None)]
+        # Ordered dict is of no use any more. cond<n> will be inserted later
+        # on, and that is to be printed together with the cond conditions.
         self.conditions = OrderedDict(conpairs)
 
     def set_condition(self, conkey, val):
@@ -933,7 +977,7 @@ class _ConditionConfigure:
             Can always be None. Can be number or string depending on conkey.
         """
 
-        if not any([conkey.startswith(c) for c in COND_PREFIXES]):
+        if not any([conkey.startswith(c) for c in _COND_PREFIXES]):
             raise KeyError(conkey)
 
         if val in NONES:
@@ -945,7 +989,7 @@ class _ConditionConfigure:
         """conf_file a file opened for writing."""
 
         cfg = ConfigParser.ConfigParser()
-        for sec in CONFIG_SECS:
+        for sec in _CONFIG_SECS:
             cfg.add_section(sec)
 
         sec = 'channels'
@@ -953,8 +997,11 @@ class _ConditionConfigure:
             cfg.set(sec, str(i), self.pack.name(i, firstwordonly=firstwordonly))
 
         sec = 'conditions'
-        for k, v in self.conditions.items():
-            cfg.set(sec, k, v)
+        # Make for defined and sorted output:
+        for cond in _COND_PREFIXES:
+            for k in sorted([key for key in self.conditions
+                             if key.startswith(cond)], key=self.cond_int):
+                cfg.set(sec, k, self.conditions[k])
 
         cfg.write(conf_file)
 
@@ -985,7 +1032,7 @@ class _ConditionConfigure:
         conops = set(cfg.options(sec))
 
         for conkey in conkeys:
-            if not any([conkey.startswith(c) for c in COND_PREFIXES]):
+            if not any([conkey.startswith(c) for c in _COND_PREFIXES]):
                 raise KeyError(conkey)
 
         for con in conkeys - conops: # Removed conditions.
@@ -995,6 +1042,101 @@ class _ConditionConfigure:
 
         # That's it
 
+    # This shouldn't be necessary:
+    def conditions_listBAK(self, conkey):
+        """Return conditions conkey as a list prepared for eval. Return an
+        empty list if there is no condition. conkey should be one of the
+        conditions that can be a list of comma seperated conditions.
+
+        conkey: str
+            One of the conditions that can be a comma seperated list of
+            conditions.
+        """
+
+        if self.conditions[conkey] is None:
+            return []
+        L = self.conditions[conkey].split(',')
+        L = [c.strip() for c in L if c] # if c in case of trailing comma.
+        L = [self.pack._prep_condition(c) for c in L]
+        return L
+
+    def conditions_list(self, conkey):
+        """Return conditions conkey as a list prepared for eval. Return an
+        empty list if there is no condition. conkey should be one of the
+        conditions that can be a list of comma seperated conditions.
+
+        Maybe the conditions will not be parsed here. Returned
+        raw. Under development.
+
+        conkey: str
+            for cond<n>, startcond<n> or stopcond<n>, specify only the
+            prefix. The list will be filled with all conditions.
+        """
+        L = []
+        keys = [k for k in self.conditions if k.startswith(conkey)] # Sloppy
+                                                                    # check
+        if not keys:
+            raise KeyError(conkey)
+        for k in keys:
+            if self.conditions[k] is None:
+                continue
+            raw = self.conditions[k]
+            # L.append(self.pack._parse_cond(raw))
+            L.append(raw)
+
+        return L
+
+    def get_condition(self, conkey):
+        """As it is."""
+        return self.conditions[conkey]
+
+    def get_stop_extend(self):
+        """As an integer. Return 0 if None."""
+
+        try:
+            return int(self.conditions['stop_extend'])
+        except TypeError:
+            return 0
+
+    # This shall not be necessary. The logic is performed with the logic string
+    # directly.
+    # def get_duration(self):
+    #     """Get duration as an integer."""
+
+    #     if self.conditions['samplerate']:
+    #         samplerate = float(self.conditions['samplerate'])
+    #     else:
+    #         samplerate = 1.0
+
+    #     dur = self.conditions['dur'] or 0 # zero default
+
+    #     dur = int(float(dur) * samplerate)
+
+    #     return dur
+
+    # Shall not be necessary:
+    # def get_duration_type(self):
+    #     """Defaults to 'min' if None"""
+    #     return self.conditions['durtype'] or 'min'
+
+
+    def cond_int(self, cond):
+        """Return the trailing number from cond if any, as an int. If no
+        trailing number, return the string dond as is."""
+
+        rx = r'[\w]+?(\d+)'
+        m = re.match(rx, cond)
+        if not m:
+            return cond
+        return int(m.group(1))
+
+    def pprint_conditions(self):
+
+        # Make for defined and sorted output:
+        for cond in _COND_PREFIXES:
+            for k in sorted([key for key in self.conditions
+                             if key.startswith(cond)], key=self.cond_int):
+                print k + ':', self.conditions[k]
 
 class _ConditionConfigureBAK:
     """Provide handling of conditions and the config file as support to
@@ -1043,7 +1185,7 @@ class _ConditionConfigureBAK:
         """conf_file a file opened for writing."""
 
         cfg = ConfigParser.ConfigParser()
-        for sec in CONFIG_SECS:
+        for sec in _CONFIG_SECS:
             cfg.add_section(sec)
 
         sec = 'channels'

@@ -20,11 +20,11 @@ def array_and(d, conditions):
         integers
 
     conditions: list
-        list of string conditions. Like 
+        list of string conditions. Like
         ['d[12] == 2', 'd[1] > d[10]'].
 
     The condition strings are stripped from leading and trailing white
-    space. 
+    space.
 
     Return all elements True if conditions is an empty list.
 
@@ -51,14 +51,14 @@ def array_or(d, conditions):
         integers
 
     conditions: list
-        A list of conditions. Like 
+        A list of conditions. Like
         ['d[12] == 2', 'd[1] > d[10]'].
 
     The condition strings are stripped from leading and trailing white
     space.
-    
+
     Return all elements True if conditions is an empty list.
-    """    
+    """
     conlist = [con.strip() for con in conditions]
     # print conlist, "'or'"
     a = np.ones(len(d[d.keys()[0]])) == 1.0 # True
@@ -85,7 +85,7 @@ def masked(a, b):
     n = np.array([np.nan for i in range(len(a))])
     return np.where(b, a, n) # a if b is True, else n.
 
-def duration_bool(b, dur, durtype):
+def duration_boolBAK(b, dur, durtype):
     """
     Mask the parts in b being True but does not meet the duration
     rules. Return an updated copy of b.
@@ -100,30 +100,66 @@ def duration_bool(b, dur, durtype):
 
     """
     assert durtype in ['strict', 'min', 'max'], durtype
-    
+
     slicelst = slicelist(b)
     b2 = np.array(b)
-    
+
     dt = durtype
     for sc in slicelst:
         cnt = sc.stop - sc.start
-        if ((dt == 'strict' and dur != cnt) or 
+        if ((dt == 'strict' and dur != cnt) or
            (dt == 'min' and dur > cnt) or
            (dt == 'max' and dur < cnt)):
                 b2[sc] = False
-        
+
     return b2
 
+
+def duration_bool(b, rule, samplerate=None):
+    """
+    Mask the parts in b being True but does not meet the duration
+    rules. Return an updated copy of b.
+
+    b: 1d array with True or False elements.
+
+    rule: str
+        The rule including the string 'dur' to be evaled.
+
+    samplerate: int or float
+        Has an effect on the result.
+
+    For each part of b that is True, a variable ``dur`` is set to the
+    count of elements, or the result of int(len(sc) * samplerate). And
+    then eval is called on the rule.
+
+    """
+    if rule is None:
+        return b
+
+    slicelst = slicelist(b)
+    b2 = np.array(b)
+
+    if samplerate is None:
+        samplerate = 1
+
+    for sc in slicelst:
+        dur = int((sc.stop - sc.start) * samplerate)
+        if not eval(rule):
+            b2[sc] = False
+
+    return b2
+
+
 # def startstop_bool(d, start_con, stop_con, start_andor='and', stop_andor='and'):
-def startstop_bool(pack):
+def startstop_boolBAK(pack):
     """Make a bool array based on start and stop conditions.
 
     d: dict
         numpy 1d arrays. All arrays of the same shape (length). Keys are
-        integers 
+        integers
 
     start_and, start_or, stop_and, stop_or_: list
-        lists of conditions. Like 
+        lists of conditions. Like
         ['d[12] == 2', 'd[1] > d[10]'].
 
     Conditions formatting are as with the array_or and array_and
@@ -140,8 +176,8 @@ def startstop_bool(pack):
 
     NOTE: This function does not work yet. IN WORK.
     UPDATE: I think it does work now. Update the docstring.
-    """ 
-    
+    """
+
     d = pack.D
     b = np.ones(len(d[d.keys()[0]])) == True
 
@@ -186,6 +222,90 @@ def startstop_bool(pack):
         stopb = np.logical_and(a1, a2)
     else:
         assert 0, 'Semantic error'
+
+    stop_extend = pack.conconf.get_stop_extend()
+
+    return _startstop_bool(startb, stopb, runflag, stop_extend)
+
+def startstop_bool(pack):
+    """Make a bool array based on start and stop conditions.
+
+    pack:
+        pack.ChannelPack instance
+
+    If there is start conditions but no stop conditions, this is legal,
+    the True section will begin at first start and remain the rest of
+    the array. Likewise, if there is stop conditions but no start
+    condition, the returned array will be all True until the first stop
+    slice, and the rest of the array is set to False.
+
+    """
+    b = np.ones(pack.rec_cnt) == True
+
+    # # Depricate---------------------------------
+    # start_and = pack.conconf.conditions_list('start_and')
+    # start_or = pack.conconf.conditions_list('start_or')
+    # stop_and = pack.conconf.conditions_list('stop_and')
+    # stop_or = pack.conconf.conditions_list('stop_or')
+    # # ---------------------------------
+
+    start_list = pack.conconf.conditions_list('start_cond')
+    stop_list = pack.conconf.conditions_list('stop_cond')
+
+    # Pre-check:
+    runflag = 'startstop'
+    if not start_list and not stop_list:
+        return b
+    elif not start_list:
+        runflag = 'stoponly'
+    elif not stop_list:
+        runflag = 'start_only'
+
+    # # Depricate---------------------------------
+    # # startb:
+    # if runflag == 'stoponly':
+    #     startb = b == False     # All False (Dummy assignment).
+    # elif not start_and and start_or:
+    #     startb = array_or(d, start_or)
+    # elif start_and and not start_or:
+    #     startb = array_and(d, start_and)
+    # elif start_and and start_or:
+    #     a1 = array_and(d, start_and)
+    #     a2 = array_or(d, start_or)
+    #     startb = np.logical_and(a1, a2)
+    # else:
+    #     assert 0, 'Semantic error'
+    # # ---------------------------------
+
+    # startb:
+    if runflag == 'stoponly':
+        startb = b == False     # All False (Dummy assignment).
+    else:
+        for cond in start_list:
+            startb = startb & pack._mask_array(cond)
+
+    # # Depricate---------------------------------
+    # # stopb:
+    # if runflag == 'startonly':
+    #     stopb = b == False      # All False (Dummy assignment).
+    # elif not stop_and and stop_or:
+    #     stopb = array_or(d, stop_or)
+    # elif stop_and and not stop_or:
+    #     stopb = array_and(d, stop_and)
+    # elif stop_and and stop_or:
+    #     a1 = array_and(d, stop_and)
+    #     a2 = array_or(d, stop_or)
+    #     stopb = np.logical_and(a1, a2)
+    # else:
+    #     assert 0, 'Semantic error'
+    # # ---------------------------------
+
+    # stopb:
+    if runflag == 'startonly':
+        stopb = b == False      # All False (Dummy assignment).
+    else:
+        for cond in stop_list:
+            stopb = stopb & pack._mask_array(cond)
 
     stop_extend = pack.conconf.get_stop_extend()
 
@@ -241,7 +361,7 @@ def _startstop_bool(startb, stopb, runflag, stop_extend):
     if start.start > stop.start: # There was no stop for the last start in loop.
         res[start.start:] = True
 
-    return res    
+    return res
 
 def slicelist(b):
     """Produce a list of slices given the boolean array b.
@@ -259,7 +379,7 @@ def slicelist(b):
         elif not e and started:
             slicelst.append(slice(start, i))
             started = False
-    
+
     if e:
         slicelst.append(slice(start, i + 1)) # True in the end.
 
