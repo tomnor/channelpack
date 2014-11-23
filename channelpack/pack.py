@@ -115,7 +115,7 @@ More evolve
 * The ChannelPack class has a mask attribute as before, and there must
   be no complication with the user making his own mask. Only, if any
   action is performed such as adding conditions, it will be
-  over-written. Yes, how is this supposed to work. 
+  over-written. Yes, how is this supposed to work.
 
 * It is wierd that the pack can be instantiated with no load func. Or
   what is the idea with this? Well, possibly for some experimental play
@@ -168,6 +168,8 @@ and then place it there.
 CONFIG_FILE = "conf_file.cfg"
 CONFIG_SECS = ['channels',  'conditions']
 DURTYPES = ['strict', 'min', 'max'] # TO DO: Check validity with this.
+COND_PREFIXES = ['cond', 'startcond', 'stopcond', 'stop_extend',  'dur',
+                 'samplerate']
 FALLBACK_PREFIX = 'ch'              # TO DO: Use this global constant so it is
                                     # possible to work-around a possible
                                     # conflict. DONE (in _fallback func).
@@ -193,34 +195,10 @@ CHANNEL_IDENTIFIER_RX."""
 
 CHANNEL_RX = CHANNEL_FMT_RX.format(CHANNEL_IDENTIFIER_RX) # Debug
 
-class ConditionMappingError(Exception):
-    """Raise when channels are not found in conditions."""
-    pass
-
 class ChannelPack:
     """Pack of data. Hold a dict with channel index numbers as keys
     (column number).  This object is callable by channel name or index.
     """
-
-    # TO DO: More important - start and stop trigger conditions. Enabling
-    # hysterises kind of checking. Like start: "ch21 > 4.3" and
-    # stop: "ch21 < 1.3". Include it to the conditions dict. DONE, (testing).
-
-    # TO DO: Consider possibility to write some chanel names with indexing, like
-    # MyCh3[0] > MyCh5.
-
-    # TODO: Make some sort of steady_state condition. Some way to detect a
-    # signal that keeps it's values within a tolerance. A flat value, so I guess
-    # steady_state refers to a naive kind of steady_state. This might be
-    # implemented by a meethod. The method makes a mask based on steady_state,
-    # then the "normal" _make_mask method is called.
-
-    # TODO: A proper way of concatenating packs. I would prefer not to
-    # have to have already loaded packs to merge, that makes for
-    # duplicates. I want the possibility to have them added based on
-    # basefilemtime, (if available). Maybe I need a MultiPack class. Not
-    # so nice. But else, how will base files be tracked. Always the last
-    # file?
 
     def __init__(self, loadfunc=None):
         """Return a pack
@@ -511,7 +489,6 @@ class ChannelPack:
             repl = 'self(' + str(i) + ')'
             cond = re.sub(rx, repl, cond) # %(<identifier>) replaced with self(i). I
                                     # hope - What about the capturing group?
-
         return cond
 
     def _mask_array(self, cond):
@@ -922,6 +899,90 @@ def _fallback_names(nums):
     return [FALLBACK_PREFIX + str(i) for i in nums]
 
 class _ConditionConfigure:
+
+    def __init__(self, pack):
+
+        self.pack = pack
+        conpairs = [('cond1', None), ('startcond1', None),
+                    ('stopcond1', None), ('stop_extend', None),
+                    ('dur', None), ('samplerate', None)]
+        self.conditions = OrderedDict(conpairs)
+
+    def set_condition(self, conkey, val):
+        """Set condition conkey to value val. Convert val to str if not
+        None.
+
+        conkey: str
+            A valid condition key.
+
+        val: str, int, float, None
+            Can always be None. Can be number or string depending on conkey.
+        """
+
+        if not any([conkey.startswith(c) for c in COND_PREFIXES]):
+            raise KeyError(conkey)
+
+        if val in NONES:
+            self.conditions[conkey] = None
+        else:
+            self.conditions[conkey] = str(val)
+
+    def spit_config(self, conf_file, firstwordonly=False):
+        """conf_file a file opened for writing."""
+
+        cfg = ConfigParser.ConfigParser()
+        for sec in CONFIG_SECS:
+            cfg.add_section(sec)
+
+        sec = 'channels'
+        for i in sorted(self.pack.D):
+            cfg.set(sec, str(i), self.pack.name(i, firstwordonly=firstwordonly))
+
+        sec = 'conditions'
+        for k, v in self.conditions.items():
+            cfg.set(sec, k, v)
+
+        cfg.write(conf_file)
+
+    def eat_config(self, conf_file):
+        """conf_file a file opened for reading.
+
+        Update the packs channel names and the conditions, accordingly.
+
+        """
+
+        # Read the file:
+        cfg = ConfigParser.ConfigParser()
+        cfg.readfp(conf_file)
+
+        # Update channel names:
+        sec = 'channels'
+        mess = 'missmatch of channel keys'
+        assert(set(self.pack.D.keys()) == set([int(i) for i in cfg.options(sec)])), mess
+        if not self.pack.chnames:
+            self.pack.chnames = dict(self.pack.chnames_0)
+        for i in cfg.options(sec): # i is a string.
+            self.pack.chnames[self.pack._key(int(i))] = cfg.get(sec, i)
+
+        # Update conditions:
+        sec = 'conditions'
+
+        conkeys = set(self.conditions.keys())
+        conops = set(cfg.options(sec))
+
+        for conkey in conkeys:
+            if not any([conkey.startswith(c) for c in COND_PREFIXES]):
+                raise KeyError(conkey)
+
+        for con in conkeys - conops: # Removed conditions.
+            self.set_condition(con, None)
+        for con in conops:
+            self.set_condition(con, cfg.get(sec, con))
+
+        # That's it
+
+
+class _ConditionConfigureBAK:
     """Provide handling of conditions and the config file as support to
     the ChannelPack class. Provide smooth methods to get one condition
     at a time or a list of conditions. Keep the logic of handling the
