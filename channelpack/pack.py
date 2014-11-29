@@ -72,9 +72,9 @@ More evolve
   [conditions] section will contain the options::
 
       cond<n>
-      start_cond<n>
-      stop_cond<n>
-      stop_extend
+      startcond<n>
+      stopcond<n>
+      stopextend
       dur
       samplerate
 
@@ -122,6 +122,12 @@ More evolve
   trying out different functions on the same instance but seems pretty
   wierd still.
 
+* The condition of the addable type with the highest number having a
+  value of None, will be used for next addition. If the number is
+  explicitly given in the end of conkey, that one will be
+  overwritten. If the number is not given and the highest number
+  condition is not None, the number will be incremented.
+
 This is all good because one can experiment with the pack on conditions
 and then when satisfied, do basically the same in string form and the
 pack variable name replaced by '%', like ``%(2) == ...`` instead of
@@ -153,6 +159,11 @@ Current state
    Then still much testing must be done to find
    all pitfalls. Date: Sun Nov 23 23:11:47 2014
 
+   I am here: :meth:`~channelpack.ChannelPack.add_condition` Trying to make nice
+   function. Will maybe need to add a helper function in cc.
+
+   I am here: still there. Date: Tue Nov 25 22:27:44 2014
+
 """
 import re
 import glob, fnmatch
@@ -183,8 +194,9 @@ and then place it there.
 CONFIG_FILE = "conf_file.cfg"
 _CONFIG_SECS = ['channels',  'conditions']
 DURTYPES = ['strict', 'min', 'max'] # TO DO: Check validity with this.
-_COND_PREFIXES = ['cond', 'startcond', 'stopcond', 'stop_extend',  'dur',
+_COND_PREFIXES = ['cond', 'startcond', 'stopcond', 'stopextend',  'dur',
                  'samplerate']
+_ADDABLES = ['cond', 'startcond', 'stopcond']
 FALLBACK_PREFIX = 'ch'              # TO DO: Use this global constant so it is
                                     # possible to work-around a possible
                                     # conflict. DONE (in _fallback func).
@@ -286,7 +298,8 @@ class ChannelPack:
         self._set_filename(args[0])
         self.set_basefilemtime()
 
-        self._make_mask()
+        self._make_mask()       # Called here if a reload is done on the current
+                                # instance I guess.
 
     def append_load(self, *args, **kwargs):
         """Append data using loadfunc.
@@ -455,6 +468,13 @@ class ChannelPack:
         NOTE: If custom names are used, they must consist of one word
         only, not delimited with spaces.
 
+        .. deprecated:: 0.3.0 Use
+           :meth:`~channelpack.ChannelPack.add_condition` instead. This
+           will fail. There is a new way of parsing conditions now.
+
+        .. warning::
+           Really. Don't use it.
+
         """
 
         # Audit:
@@ -470,6 +490,47 @@ class ChannelPack:
         self.conconf.set_condition(conkey, newcon)
 
         self._make_mask()       # On every update so errors are detected.
+
+    def add_condition(self, conkey, cond):
+        """Add a condition, one of the addable ones.
+
+        conkey: str
+            One of 'cond', startcond' or 'stopcond'. 'start' or 'stop'
+            is accepted as shorts for 'startcond' or 'stopcond'. If the
+            conkey is given explicit with number (like stopcond3) and
+            already exist, it will be over-written.
+
+        cond: str
+            The condition string. See ...
+
+       When the trailing number is implicit, the first condition with a
+       value of None is taken. If no None value is found, a new
+       condition is added.
+
+        .. seealso::
+           :meth:`~channelpack.ChannelPack.set_stopextend`
+           :meth:`~channelpack.ChannelPack.set_duration`
+           :meth:`~channelpack.ChannelPack.set_samplerate`
+
+        .. warning::
+           Under construction. There is work to do. This function in
+           combination with the cc.next_conkey. But now it's time for
+           bed.
+
+        .. note::
+           The adding is good now. Adding a check for conkey to be one
+           of the "addable" ones.
+           But the added check right now is poor. Need some re parsing,
+           not just the startswith thing. It's not good enough.
+
+        """
+        # Audit:
+        self._parse_cond(cond)
+
+        if not any(conkey.startswith(adbl) for adbl in _ADDABLES):
+            raise KeyError(conkey)
+        conkey = self.conconf.next_conkey(conkey)
+        self.conconf.set_condition(conkey, cond)
 
     def _prep_condition(self, constr):
         """Replace parts in the string constr (ONE condition) that matches
@@ -540,6 +601,10 @@ class ChannelPack:
 
         NOTE: If custom names are used, they must consist of one word
         only, not delimited with spaces.
+
+        .. deprecated:: 0.3.0 Use
+           :meth:`~channelpack.ChannelPack.set_condition` instead. This
+           will fail. There is a new way of parsing conditions now.
         """
         # TODO: This function should maybe not be limited to certain
         # conditions. Not intuitive.
@@ -552,6 +617,11 @@ class ChannelPack:
         self.conconf.set_condition(conkey, con)
 
         self._make_mask()
+
+    def set_condition(self, conkey, cond):
+        """Docstring."""
+
+        raise NotImplementedError
 
     def spit_config(self, conf_file=None, firstwordonly=False):
         """Write a config_file based on this instance.
@@ -645,9 +715,9 @@ class ChannelPack:
 
         self.conconf.pprint_conditions()
 
-    def set_stop_extend(self, n):
+    def set_stopextend(self, n):
         """n is an integer >= 0."""
-        self.conconf.set_condition('stop_extend', n)
+        self.conconf.set_condition('stopextend', n)
         self._make_mask()
 
     def set_duration(self, dur, durtype='min'):
@@ -959,12 +1029,13 @@ class _ConditionConfigure:
     def __init__(self, pack):
 
         self.pack = pack
-        conpairs = [('cond1', None), ('start_cond1', None),
-                    ('stop_cond1', None), ('stop_extend', None),
+        conpairs = [('cond1', None), ('startcond1', None),
+                    ('stopcond1', None), ('stopextend', None),
                     ('dur', None), ('samplerate', None)]
         # Ordered dict is of no use any more. cond<n> will be inserted later
         # on, and that is to be printed together with the cond conditions.
         self.conditions = OrderedDict(conpairs)
+        self.numrx = r'[\w]+?(\d+)' # To extract the trailing number.
 
     def set_condition(self, conkey, val):
         """Set condition conkey to value val. Convert val to str if not
@@ -997,11 +1068,8 @@ class _ConditionConfigure:
             cfg.set(sec, str(i), self.pack.name(i, firstwordonly=firstwordonly))
 
         sec = 'conditions'
-        # Make for defined and sorted output:
-        for cond in _COND_PREFIXES:
-            for k in sorted([key for key in self.conditions
-                             if key.startswith(cond)], key=self.cond_int):
-                cfg.set(sec, k, self.conditions[k])
+        for k in self.sorted_conkeys():
+            cfg.set(sec, k, self.conditions[k])
 
         cfg.write(conf_file)
 
@@ -1042,31 +1110,10 @@ class _ConditionConfigure:
 
         # That's it
 
-    # This shouldn't be necessary:
-    def conditions_listBAK(self, conkey):
-        """Return conditions conkey as a list prepared for eval. Return an
-        empty list if there is no condition. conkey should be one of the
-        conditions that can be a list of comma seperated conditions.
-
-        conkey: str
-            One of the conditions that can be a comma seperated list of
-            conditions.
-        """
-
-        if self.conditions[conkey] is None:
-            return []
-        L = self.conditions[conkey].split(',')
-        L = [c.strip() for c in L if c] # if c in case of trailing comma.
-        L = [self.pack._prep_condition(c) for c in L]
-        return L
-
     def conditions_list(self, conkey):
-        """Return conditions conkey as a list prepared for eval. Return an
-        empty list if there is no condition. conkey should be one of the
-        conditions that can be a list of comma seperated conditions.
-
-        Maybe the conditions will not be parsed here. Returned
-        raw. Under development.
+        """
+        Return a (possibly empty) list of conditions based on
+        conkey. The conditions are returned raw, not parsed.
 
         conkey: str
             for cond<n>, startcond<n> or stopcond<n>, specify only the
@@ -1081,7 +1128,6 @@ class _ConditionConfigure:
             if self.conditions[k] is None:
                 continue
             raw = self.conditions[k]
-            # L.append(self.pack._parse_cond(raw))
             L.append(raw)
 
         return L
@@ -1090,201 +1136,224 @@ class _ConditionConfigure:
         """As it is."""
         return self.conditions[conkey]
 
-    def get_stop_extend(self):
+    def get_stopextend(self):
         """As an integer. Return 0 if None."""
 
         try:
-            return int(self.conditions['stop_extend'])
+            return int(self.conditions['stopextend'])
         except TypeError:
             return 0
 
-    # This shall not be necessary. The logic is performed with the logic string
-    # directly.
-    # def get_duration(self):
-    #     """Get duration as an integer."""
-
-    #     if self.conditions['samplerate']:
-    #         samplerate = float(self.conditions['samplerate'])
-    #     else:
-    #         samplerate = 1.0
-
-    #     dur = self.conditions['dur'] or 0 # zero default
-
-    #     dur = int(float(dur) * samplerate)
-
-    #     return dur
-
-    # Shall not be necessary:
-    # def get_duration_type(self):
-    #     """Defaults to 'min' if None"""
-    #     return self.conditions['durtype'] or 'min'
-
-
-    def cond_int(self, cond):
+    def cond_int(self, conkey):
         """Return the trailing number from cond if any, as an int. If no
-        trailing number, return the string dond as is."""
+        trailing number, return the string conkey as is.
 
-        rx = r'[\w]+?(\d+)'
-        m = re.match(rx, cond)
+        This is used for sorting the conditions properly even when
+        passing the number 10. The name of this function could be
+        improved since it might return a string."""
+
+        # rx = r'[\w]+?(\d+)'
+        m = re.match(self.numrx, conkey)
         if not m:
-            return cond
+            return conkey
         return int(m.group(1))
 
-    def pprint_conditions(self):
+    def next_conkey(self, conkey):
+        """Return the next <conkey><n> based on conkey as a
+        string. Example, if 'startcond3' and 'startcond5' exist, this
+        will return 'startcond6' if 'startcond5' value is not None,
+        else startcond5 is returned.
 
-        # Make for defined and sorted output:
+        It is assumed conkey is a valid condition key.
+
+        .. warning::
+           Under construction. There is work to do. This function in
+           combination with the pack.add_condition. But now it's time for
+           bed.
+
+        """
+
+        if conkey in self.conditions:
+            return conkey       # Explicit conkey
+
+        conkeys = self.sorted_conkeys(prefix=conkey) # Might be empty.
+        if not conkeys:
+            return conkey       # A trailing number given that does not already
+                                # exist. Accept possible gap from previous
+                                # number.
+        for candidate in conkeys:
+            if self.conditions[candidate] is None:
+                return candidate           
+
+        i = self.cond_int(candidate) # The last one.
+        return re.sub(r'\d+', str(i + 1), candidate)
+        
+    def sorted_conkeys(self, prefix=None):
+        """Return all condition keys in self.conditions as a list sorted
+        suitable for print or write to a file. If prefix is given return
+        only the ones prefixed with prefix."""
+
+        # Make for defined and sorted output:        
+        conkeys = []
         for cond in _COND_PREFIXES:
-            for k in sorted([key for key in self.conditions
-                             if key.startswith(cond)], key=self.cond_int):
-                print k + ':', self.conditions[k]
-
-class _ConditionConfigureBAK:
-    """Provide handling of conditions and the config file as support to
-    the ChannelPack class. Provide smooth methods to get one condition
-    at a time or a list of conditions. Keep the logic of handling the
-    config file here.
-
-    Keep a dictionary of conditions. Let's stick to values as either
-    strings or None.
-    """
-
-# TODO: Establish an opportunity to have multiple sections of
-# conditions. Distinguished by an appended digit. Like conditions5.
-
-    def __init__(self, pack):
-
-        self.pack = pack
-        conpairs = [('and', None), ('or', None),
-                    ('start_and', None), ('start_or', None),
-                    ('stop_and', None), ('stop_or', None),
-                    ('stop_extend', None),
-                    ('dur', None), ('durtype', None),
-                    ('samplerate', None)]
-        self.conditions = OrderedDict(conpairs)
-
-    def set_condition(self, conkey, val):
-        """Set condition conkey to value val. Convert val to str if not
-        None.
-
-        conkey: str
-            A condition that exist in the conditions dict (as a key).
-
-        val: str, int, float, None
-            Can always be None. Can be number or string depending on conkey.
-        """
-
-        if conkey not in self.conditions:
-            raise KeyError(conkey)
-
-        if val in NONES:
-            self.conditions[conkey] = None
-        else:
-            self.conditions[conkey] = str(val)
-
-    def spit_config(self, conf_file, firstwordonly=False):
-        """conf_file a file opened for writing."""
-
-        cfg = ConfigParser.ConfigParser()
-        for sec in _CONFIG_SECS:
-            cfg.add_section(sec)
-
-        sec = 'channels'
-        for i in sorted(self.pack.D):
-            cfg.set(sec, str(i), self.pack.name(i, firstwordonly=firstwordonly))
-
-        sec = 'conditions'
-        for k, v in self.conditions.items():
-            cfg.set(sec, k, v)
-
-        cfg.write(conf_file)
-
-    def eat_config(self, conf_file):
-        """conf_file a file opened for reading.
-
-        Update the packs channel names and the conditions, accordingly.
-
-        """
-
-        # Read the file:
-        cfg = ConfigParser.ConfigParser()
-        cfg.readfp(conf_file)
-
-        # Update channel names:
-        sec = 'channels'
-        mess = 'missmatch of channel keys'
-        assert(set(self.pack.D.keys()) == set([int(i) for i in cfg.options(sec)])), mess
-        if not self.pack.chnames:
-            self.pack.chnames = dict(self.pack.chnames_0)
-        for i in cfg.options(sec): # i is a string.
-            self.pack.chnames[self.pack._key(int(i))] = cfg.get(sec, i)
-
-        # Update conditions:
-        sec = 'conditions'
-
-        conkeys = set(self.conditions.keys())
-        conops = set(cfg.options(sec))
-
-        if conops - conkeys:
-            offenders = ["'" + off + "'" for off in conops - conkeys]
-            mess = ', '.join(offenders)
-            raise KeyError('Not valid condition option(s): ' + mess)
-        for con in conkeys - conops: # Removed conditions.
-            self.set_condition(con, None)
-        for con in conops:
-            self.set_condition(con, cfg.get(sec, con))
-
-        # That's it
-
-    def conditions_list(self, conkey):
-        """Return conditions conkey as a list prepared for eval. Return an
-        empty list if there is no condition. conkey should be one of the
-        conditions that can be a list of comma seperated conditions.
-
-        conkey: str
-            One of the conditions that can be a comma seperated list of
-            conditions.
-        """
-
-        if self.conditions[conkey] is None:
-            return []
-        L = self.conditions[conkey].split(',')
-        L = [c.strip() for c in L if c] # if c in case of trailing comma.
-        L = [self.pack._prep_condition(c) for c in L]
-        return L
-
-    def get_condition(self, conkey):
-        """As it is."""
-        return self.conditions[conkey]
-
-    def get_stop_extend(self):
-        """As an integer. Return 0 if None."""
-
-        try:
-            return int(self.conditions['stop_extend'])
-        except TypeError:
-            return 0
-
-    def get_duration(self):
-        """Get duration as an integer."""
-
-        if self.conditions['samplerate']:
-            samplerate = float(self.conditions['samplerate'])
-        else:
-            samplerate = 1.0
-
-        dur = self.conditions['dur'] or 0 # zero default
-
-        dur = int(float(dur) * samplerate)
-
-        return dur
-
-    def get_duration_type(self):
-        """Defaults to 'min' if None"""
-        return self.conditions['durtype'] or 'min'
-
+            conkeys +=  sorted([key for key in self.conditions
+                                if key.startswith(cond)], key=self.cond_int)
+        if not prefix:
+            return conkeys
+        return [key for key in conkeys if key.startswith(prefix)]
+        
     def pprint_conditions(self):
-        for key, val in self.conditions.items():
-            print key + ':', val
+
+        for k in self.sorted_conkeys():
+            print k + ':', self.conditions[k]
+
+# class _ConditionConfigureBAK:
+#     """Provide handling of conditions and the config file as support to
+#     the ChannelPack class. Provide smooth methods to get one condition
+#     at a time or a list of conditions. Keep the logic of handling the
+#     config file here.
+
+#     Keep a dictionary of conditions. Let's stick to values as either
+#     strings or None.
+#     """
+
+# # TODO: Establish an opportunity to have multiple sections of
+# # conditions. Distinguished by an appended digit. Like conditions5.
+
+#     def __init__(self, pack):
+
+#         self.pack = pack
+#         conpairs = [('and', None), ('or', None),
+#                     ('start_and', None), ('start_or', None),
+#                     ('stop_and', None), ('stop_or', None),
+#                     ('stop_extend', None),
+#                     ('dur', None), ('durtype', None),
+#                     ('samplerate', None)]
+#         self.conditions = OrderedDict(conpairs)
+
+#     def set_condition(self, conkey, val):
+#         """Set condition conkey to value val. Convert val to str if not
+#         None.
+
+#         conkey: str
+#             A condition that exist in the conditions dict (as a key).
+
+#         val: str, int, float, None
+#             Can always be None. Can be number or string depending on conkey.
+#         """
+
+#         if conkey not in self.conditions:
+#             raise KeyError(conkey)
+
+#         if val in NONES:
+#             self.conditions[conkey] = None
+#         else:
+#             self.conditions[conkey] = str(val)
+
+#     def spit_config(self, conf_file, firstwordonly=False):
+#         """conf_file a file opened for writing."""
+
+#         cfg = ConfigParser.ConfigParser()
+#         for sec in _CONFIG_SECS:
+#             cfg.add_section(sec)
+
+#         sec = 'channels'
+#         for i in sorted(self.pack.D):
+#             cfg.set(sec, str(i), self.pack.name(i, firstwordonly=firstwordonly))
+
+#         sec = 'conditions'
+#         for k, v in self.conditions.items():
+#             cfg.set(sec, k, v)
+
+#         cfg.write(conf_file)
+
+#     def eat_config(self, conf_file):
+#         """conf_file a file opened for reading.
+
+#         Update the packs channel names and the conditions, accordingly.
+
+#         """
+
+#         # Read the file:
+#         cfg = ConfigParser.ConfigParser()
+#         cfg.readfp(conf_file)
+
+#         # Update channel names:
+#         sec = 'channels'
+#         mess = 'missmatch of channel keys'
+#         assert(set(self.pack.D.keys()) == set([int(i) for i in cfg.options(sec)])), mess
+#         if not self.pack.chnames:
+#             self.pack.chnames = dict(self.pack.chnames_0)
+#         for i in cfg.options(sec): # i is a string.
+#             self.pack.chnames[self.pack._key(int(i))] = cfg.get(sec, i)
+
+#         # Update conditions:
+#         sec = 'conditions'
+
+#         conkeys = set(self.conditions.keys())
+#         conops = set(cfg.options(sec))
+
+#         if conops - conkeys:
+#             offenders = ["'" + off + "'" for off in conops - conkeys]
+#             mess = ', '.join(offenders)
+#             raise KeyError('Not valid condition option(s): ' + mess)
+#         for con in conkeys - conops: # Removed conditions.
+#             self.set_condition(con, None)
+#         for con in conops:
+#             self.set_condition(con, cfg.get(sec, con))
+
+#         # That's it
+
+#     def conditions_list(self, conkey):
+#         """Return conditions conkey as a list prepared for eval. Return an
+#         empty list if there is no condition. conkey should be one of the
+#         conditions that can be a list of comma seperated conditions.
+
+#         conkey: str
+#             One of the conditions that can be a comma seperated list of
+#             conditions.
+#         """
+
+#         if self.conditions[conkey] is None:
+#             return []
+#         L = self.conditions[conkey].split(',')
+#         L = [c.strip() for c in L if c] # if c in case of trailing comma.
+#         L = [self.pack._prep_condition(c) for c in L]
+#         return L
+
+#     def get_condition(self, conkey):
+#         """As it is."""
+#         return self.conditions[conkey]
+
+#     def get_stop_extend(self):
+#         """As an integer. Return 0 if None."""
+
+#         try:
+#             return int(self.conditions['stop_extend'])
+#         except TypeError:
+#             return 0
+
+#     def get_duration(self):
+#         """Get duration as an integer."""
+
+#         if self.conditions['samplerate']:
+#             samplerate = float(self.conditions['samplerate'])
+#         else:
+#             samplerate = 1.0
+
+#         dur = self.conditions['dur'] or 0 # zero default
+
+#         dur = int(float(dur) * samplerate)
+
+#         return dur
+
+#     def get_duration_type(self):
+#         """Defaults to 'min' if None"""
+#         return self.conditions['durtype'] or 'min'
+
+#     def pprint_conditions(self):
+#         for key, val in self.conditions.items():
+#             print key + ':', val
 
 def txtpack(fn, **kwargs):
     """Return a ChannelPack instance loaded with text data file fn.

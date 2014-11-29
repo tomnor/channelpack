@@ -223,9 +223,9 @@ def startstop_boolBAK(pack):
     else:
         assert 0, 'Semantic error'
 
-    stop_extend = pack.conconf.get_stop_extend()
+    stopextend = pack.conconf.get_stopextend()
 
-    return _startstop_bool(startb, stopb, runflag, stop_extend)
+    return _startstop_bool(startb, stopb, runflag, stopextend)
 
 def startstop_bool(pack):
     """Make a bool array based on start and stop conditions.
@@ -249,8 +249,8 @@ def startstop_bool(pack):
     # stop_or = pack.conconf.conditions_list('stop_or')
     # # ---------------------------------
 
-    start_list = pack.conconf.conditions_list('start_cond')
-    stop_list = pack.conconf.conditions_list('stop_cond')
+    start_list = pack.conconf.conditions_list('startcond')
+    stop_list = pack.conconf.conditions_list('stopcond')
 
     # Pre-check:
     runflag = 'startstop'
@@ -307,11 +307,11 @@ def startstop_bool(pack):
         for cond in stop_list:
             stopb = stopb & pack._mask_array(cond)
 
-    stop_extend = pack.conconf.get_stop_extend()
+    stopextend = pack.conconf.get_stopextend()
 
-    return _startstop_bool(startb, stopb, runflag, stop_extend)
+    return _startstop_bool(startb, stopb, runflag, stopextend)
 
-def _startstop_bool(startb, stopb, runflag, stop_extend):
+def _startstop_bool(startb, stopb, runflag, stopextend):
     """Return boolean array based on start and stop conditions.
 
     startb, stopb: Numpy 1D arrays of the same length.
@@ -337,7 +337,7 @@ def _startstop_bool(startb, stopb, runflag, stop_extend):
     elif runflag == 'stoponly':
         try:
             stop = stop_slices[0]
-            res[:stop.start + stop_extend] = True # Make True up to first stop.
+            res[:stop.start + stopextend] = True # Make True up to first stop.
             return res
         except IndexError:
             return res == False # Only stop specified but no stop condition
@@ -350,7 +350,7 @@ def _startstop_bool(startb, stopb, runflag, stop_extend):
             continue
         for stop in stop_slices:
             if stop.start > start.start:
-                res[start.start: stop.start + stop_extend] = True
+                res[start.start: stop.start + stopextend] = True
                 break           # Next start
         else:
             # On a given start slice, the entire list of stop slices was
