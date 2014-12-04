@@ -134,6 +134,19 @@ pack variable name replaced by '%', like ``%(2) == ...`` instead of
 ``tp(2) == ...`` with a pack variable called 'tp', for persistant
 storage of conditions that is.
 
+.. note::
+   But, I just realized that since the string is now "pre-parsed" one
+   need to remove the string quotes if interactively the channel names
+   was used. Like ``tp('RPT')``. One need to change that to ``%(RPT)``,
+   else a match will not be done. This should be a desired workings if
+   conditions are written in a file, but might be a little annoying in
+   case of translating to a string interactively. Things will probably
+   be very messy if to try and do something about it.
+
+   Wow, it seems maybe it was not messy to fix. See the regex for the
+   surrounder, allowing one or zero quotes around the channel name
+   now. Need some testing too see it does not create problems.
+
 List of tasks
 -------------
 
@@ -146,6 +159,9 @@ Now perform the following tasks:
 #. Go through each and every function in ChannelPack and adjust the
    behaviour. this will defenetly also mean making changes in the datautils
    helper module.
+
+#. Fix a no_auto variable set to False by default. If True, the mask
+   will not be automatically updated on every change of conditions.
 
 Current state
 -------------
@@ -197,6 +213,7 @@ DURTYPES = ['strict', 'min', 'max'] # TO DO: Check validity with this.
 _COND_PREFIXES = ['cond', 'startcond', 'stopcond', 'stopextend',  'dur',
                  'samplerate']
 _ADDABLES = ['cond', 'startcond', 'stopcond']
+
 FALLBACK_PREFIX = 'ch'              # TO DO: Use this global constant so it is
                                     # possible to work-around a possible
                                     # conflict. DONE (in _fallback func).
@@ -215,6 +232,7 @@ compiled or held by some instance of something apart from this module in
 the python session."""
 
 CHANNEL_FMT_RX = r'%\(({})\)'
+CHANNEL_FMT_RX = r"""%\(["']?({})["']?\)""" # Allowing quotes to remain
 """Pattern used for the format string. The enclosing part around the
 channel identifier. It includes the re group, which must remain, (the
 inner-most ``()``). The ``{}`` part is replaced with
@@ -238,19 +256,20 @@ class ChannelPack:
 
         """
         self.loadfunc = loadfunc
-        self.D = None           # Dict of data.
+        self.D = None           # Dict of data
         self.fn = None          # The loaded filename
         self.chnames = None       # Channel names maybe. dict
         self.chnames_0 = None     # Fall back names, always available. ch0,
                                   # ch1... dict
-        self.keys = None          # Sorted list of keys for the data dict.
-        self.rec_cnt = 0          # Number of records.
+        self.keys = None          # Sorted list of keys for the data dict
+        self.rec_cnt = 0          # Number of records
 
-        self._mask_on = False    # Deprication.
+        self._mask_on = False    # Deprication
         self.nof = None          # 'nan', 'filter' or None (nan or filter)
         self._filter_on = False  # Deprication
         self.mask = None
         self.conconf = _ConditionConfigure(self)
+        self.no_auto = False    # Implement
 
 
     def load(self, *args, **kwargs):
@@ -497,15 +516,15 @@ class ChannelPack:
         conkey: str
             One of 'cond', startcond' or 'stopcond'. 'start' or 'stop'
             is accepted as shorts for 'startcond' or 'stopcond'. If the
-            conkey is given explicit with number (like stopcond3) and
-            already exist, it will be over-written.
+            conkey is given with an explicit number (like 'stopcond3')
+            and already exist, it will be over-written, else created.
+
+            When the trailing number is implicit, the first condition
+            with a value of None is taken. If no None value is found, a
+            new condition is added.
 
         cond: str
             The condition string. See ...
-
-       When the trailing number is implicit, the first condition with a
-       value of None is taken. If no None value is found, a new
-       condition is added.
 
         .. seealso::
            :meth:`~channelpack.ChannelPack.set_stopextend`
@@ -518,17 +537,20 @@ class ChannelPack:
            bed.
 
         .. note::
-           The adding is good now. Adding a check for conkey to be one
-           of the "addable" ones.
-           But the added check right now is poor. Need some re parsing,
-           not just the startswith thing. It's not good enough.
-
+           Lot's of checkig here, but I hope it will not have to be
+           repeated somewhere. Then I will re-factor. Cool.
         """
-        # Audit:
-        self._parse_cond(cond)
 
-        if not any(conkey.startswith(adbl) for adbl in _ADDABLES):
+        # Audit:
+        if conkey == 'start' or conkey == 'stop':
+            conkey += 'cond'
+        if not any(conkey.startswith(addable) for addable in _ADDABLES):
             raise KeyError(conkey)
+        if not self.conconf.valid_conkey(conkey):
+            raise KeyError(conkey)
+
+        self._parse_cond(cond)  # Checking
+
         conkey = self.conconf.next_conkey(conkey)
         self.conconf.set_condition(conkey, cond)
 
@@ -566,7 +588,11 @@ class ChannelPack:
 
     def _parse_cond(self, cond):
         """Replace the format strings in cond with ``self(i)`` so it can
-        be used in eval calls. Use ``CHANNEL_RX`` as pattern."""
+        be used in eval calls. Use ``CHANNEL_RX`` as pattern. Return the
+        parsed string.
+
+        This method should be exposed so that one can experiment with
+        conditions and see that they are properly parsed."""
 
         CHANNEL_RX = CHANNEL_FMT_RX.format(CHANNEL_IDENTIFIER_RX)
 
@@ -619,7 +645,11 @@ class ChannelPack:
         self._make_mask()
 
     def set_condition(self, conkey, cond):
-        """Docstring."""
+        """Docstring.
+
+        .. note::
+           This might really not be necessary since the same thing can
+           be done using the add_condition method."""
 
         raise NotImplementedError
 
@@ -1158,6 +1188,24 @@ class _ConditionConfigure:
             return conkey
         return int(m.group(1))
 
+    def valid_conkey(self, conkey):
+        """Check that the conkey is a valid one. Return True if valid. A
+        condition key is valid if it is one in the _COND_PREFIXES
+        list. With the prefix removed, the remaining string must be
+        either a number or the empty string."""
+
+        for prefix in _COND_PREFIXES:
+            trailing = conkey.lstrip(prefix)
+            if trailing == '' and conkey: # conkey is not empty
+                return True
+            try:
+                int(trailing)
+                return True
+            except ValueError:
+                pass
+
+        return False
+
     def next_conkey(self, conkey):
         """Return the next <conkey><n> based on conkey as a
         string. Example, if 'startcond3' and 'startcond5' exist, this
@@ -1183,25 +1231,25 @@ class _ConditionConfigure:
                                 # number.
         for candidate in conkeys:
             if self.conditions[candidate] is None:
-                return candidate           
+                return candidate
 
         i = self.cond_int(candidate) # The last one.
         return re.sub(r'\d+', str(i + 1), candidate)
-        
+
     def sorted_conkeys(self, prefix=None):
         """Return all condition keys in self.conditions as a list sorted
         suitable for print or write to a file. If prefix is given return
         only the ones prefixed with prefix."""
 
-        # Make for defined and sorted output:        
+        # Make for defined and sorted output:
         conkeys = []
         for cond in _COND_PREFIXES:
-            conkeys +=  sorted([key for key in self.conditions
-                                if key.startswith(cond)], key=self.cond_int)
+            conkeys += sorted([key for key in self.conditions
+                               if key.startswith(cond)], key=self.cond_int)
         if not prefix:
             return conkeys
         return [key for key in conkeys if key.startswith(prefix)]
-        
+
     def pprint_conditions(self):
 
         for k in self.sorted_conkeys():
