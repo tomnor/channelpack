@@ -229,6 +229,11 @@ Now perform the following tasks:
    behaviour. this will defenetly also mean making changes in the datautils
    helper module.
 
+#. Document the set_stopextend method. I forgot myself whether the
+   variable is affected by the samplerate or not. Right now I think not,
+   and so that is to be documented. It just ticks up the number of
+   elements to include to the result of start and stop condition.
+
 #. Clean up stuff not necessary. Especially dead variables and
    such. Make a commit first, messsaged 'before clean-up'.
 
@@ -1222,7 +1227,7 @@ class _ConditionConfigure:
     def spit_config(self, conf_file, firstwordonly=False):
         """conf_file a file opened for writing."""
 
-        cfg = ConfigParser.ConfigParser()
+        cfg = ConfigParser.RawConfigParser()
         for sec in _CONFIG_SECS:
             cfg.add_section(sec)
 
@@ -1244,7 +1249,7 @@ class _ConditionConfigure:
         """
 
         # Read the file:
-        cfg = ConfigParser.ConfigParser()
+        cfg = ConfigParser.RawConfigParser()
         cfg.readfp(conf_file)
 
         # Update channel names:
@@ -1274,7 +1279,7 @@ class _ConditionConfigure:
         conops = cfg.options(sec)
         self.reset()            # Scary
         for con in conops:
-            self.set_condition(con, cfg.get(sec, con, raw=True))
+            self.set_condition(con, cfg.get(sec, con))
 
         # That's it
 
@@ -1645,7 +1650,7 @@ if os.getenv('HOME'):
     _aspirants.append(os.getenv('HOME'))
 _aspirants += [os.path.expanduser('~')]
 
-_cfg = ConfigParser.ConfigParser()
+_cfg = ConfigParser.RawConfigParser()
 
 for _asp in _aspirants:
     try:
