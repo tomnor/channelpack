@@ -240,7 +240,7 @@ def startstop_bool(pack):
     slice, and the rest of the array is set to False.
 
     """
-    b = np.ones(pack.rec_cnt) == True
+    b_TRUE = np.ones(pack.rec_cnt) == True
 
     # # Depricate---------------------------------
     # start_and = pack.conconf.conditions_list('start_and')
@@ -255,7 +255,7 @@ def startstop_bool(pack):
     # Pre-check:
     runflag = 'startstop'
     if not start_list and not stop_list:
-        return b
+        return b_TRUE
     elif not start_list:
         runflag = 'stoponly'
     elif not stop_list:
@@ -279,8 +279,9 @@ def startstop_bool(pack):
 
     # startb:
     if runflag == 'stoponly':
-        startb = b == False     # All False (Dummy assignment).
+        startb = b_TRUE == False     # All False (Dummy assignment).
     else:
+        startb = b_TRUE
         for cond in start_list:
             startb = startb & pack._mask_array(cond)
 
@@ -302,8 +303,9 @@ def startstop_bool(pack):
 
     # stopb:
     if runflag == 'startonly':
-        stopb = b == False      # All False (Dummy assignment).
+        stopb = b_TRUE == False      # All False (Dummy assignment).
     else:
+        stopb = b_TRUE
         for cond in stop_list:
             stopb = stopb & pack._mask_array(cond)
 

@@ -32,6 +32,7 @@ time it should be enough to import the namespace of channelpack:
 
 The intention is to make channelpack self-documenting. Try introspecting the
 objects.
+
 """
 
 from .pack import ChannelPack, txtpack, dbfpack, sheetpack

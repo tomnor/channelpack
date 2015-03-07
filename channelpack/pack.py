@@ -16,7 +16,7 @@ evolve branch
 
 .. Note::
 
-   The evolve branch text will be removed when evolve branch is merged
+   This evolve branch text will be removed when evolve branch is merged
    into master.
 
 I will rewrite channelpack. There will be a new way of handling the
@@ -154,31 +154,99 @@ Now perform the following tasks:
 
 #. Start with the parts handling the conf_file and condition strings.
 
+       - add_condition done. Much is done also in cc.
+       - The clear_conditions seem to work now. The idea with
+         fn-matching not implemented.
+       - Need to fix the start and stop and dur and so on. Seem to work
+         - under testing.
+
 #. Add the nof variable and remember to use it.
+
+       - Implemented in the ``__call__`` method. Doing this it was
+         realized that the parsing of conditon format strings had to be
+         changed from ``self(i)`` to ``self.D[i]`` since in the
+         ``__call__`` method arrays are manipulated.
+
+       - I have a confusion. I am still calling it 'mask'. But I
+         decided to call it 'nan'. Fix it.
+
+#. Implement the no_auto variable. Also expose the ``_make_mask``
+   function, meaning rename it to ``make_mask`` and update it's
+   docstring.
+
+       - Done. Hopefully no nasty side-effect suprises.
+
+#. Fix a no_auto variable set to False by default. If True, the mask
+   will not be automatically updated on every change of conditions. This
+   must mean also that the _make_mask function is to be exposed.
+
+       - Done. Same as above.
+
+#. Update the spitting and eating of files. Need some extra
+   attention. Specifically, all calls to ConfigParser reading values
+   need to be given this ``raw`` argument so it doesn't produce error on
+   my format strings.
+
+       - Working on the eat_config and realized problem. I want to make
+         a check that the conditions and names pass before actually
+         updating the state of the instance. I am at line 1237 in cc. I
+         made an option to dry-run tha make_mask. But then I have not
+         decided how to make the pre-check. Or should I just let be. Let
+         it become a non-working state if user made something wrong?
+         Preferably not, check should be. But it must be nice. Shit, why
+         did this suddenly happen.
+
+       - Possibly, the back-up functionality could be built into the cc
+         class. That is maybe a bit more nice. At least it gets less
+         circular. Add a back_up=True argument to eat_config method. And
+         a method that do the back-up revert. But that should only be
+         the condition dict, because that is the responsibility of
+         cc. The channel names is handled in pack, although updated
+         through cc when eat. So a back-up of the names must be in the
+         pack's eat function.
+
+       - I am hopefully totally wrong above. The error resulting from
+         something that doesn't work should provide safety against a
+         non-working state of the instance - it's built into the
+         language.
+
+       - I was not wrong. I have learned that I am not really so certain
+         on how the exceptions work, a room for studies. However, I will
+         not wonder myself into any un-necessary back-up structure,
+         totally pointless. Just try to make easy to understand where
+         the error is produced.
+
+       - Done. Kind of. Next point remain.
+
+#. Play forth and back with the eat and spit functionality. Adjust code
+   as necessary. Play also with names and location of the file.
+
+       - Need to use the method valid_conkey. Now it is possible to have
+         a conkey like cond3whatever. Even condwhatever. That doesn't
+         feel good.
 
 #. Go through each and every function in ChannelPack and adjust the
    behaviour. this will defenetly also mean making changes in the datautils
    helper module.
 
-#. Fix a no_auto variable set to False by default. If True, the mask
-   will not be automatically updated on every change of conditions.
+#. Clean up stuff not necessary. Especially dead variables and
+   such. Make a commit first, messsaged 'before clean-up'.
+
+#. Update documentation. Minimum where it conflicts with the new way of
+   doing things.
+
+#. Remove this evolve text.
 
 Current state
 -------------
 
-.. Note::
-   Non working state. I am here: Testing to load some data. Error with the
-   sorting of options in the conditionconfigure helper. I made some logic
-   misstake. Will be easy to fix. This is with the printing to a file and
-   prettyprint. Also, some conditions are left out for some reason.
+Play forth and back with the eat and...
 
-   Then still much testing must be done to find
-   all pitfalls. Date: Sun Nov 23 23:11:47 2014
-
-   I am here: :meth:`~channelpack.ChannelPack.add_condition` Trying to make nice
-   function. Will maybe need to add a helper function in cc.
-
-   I am here: still there. Date: Tue Nov 25 22:27:44 2014
+There is something to improve with the no_auto variable. It is now
+checked before each call to make_mask. This is not good, instead, check
+it once in the make_mask function. Also, it seems I want to dry run the
+make_mask sometimes even if no_auto is True, so always do that, and then
+set the mask only if no_auto is False.
 
 """
 import re
@@ -317,8 +385,9 @@ class ChannelPack:
         self._set_filename(args[0])
         self.set_basefilemtime()
 
-        self._make_mask()       # Called here if a reload is done on the current
-                                # instance I guess.
+        if not self.no_auto:
+            self.make_mask()       # Called here if a reload is done on
+                                    # the current instance I guess.
 
     def append_load(self, *args, **kwargs):
         """Append data using loadfunc.
@@ -379,7 +448,8 @@ class ChannelPack:
         self.metamulti['mtimenames'].append(self.mtimefs)
         self.metamulti['slices'].append(slice(start, stop))
 
-        self._make_mask()
+        if not self.no_auto:
+            self.make_mask()
 
     def rebase(self, key, start=None, decimals=5):
         """Rebase a channel (key) on start.
@@ -470,7 +540,8 @@ class ChannelPack:
         # Test and set value:
         float(rate)
         self.conconf.set_condition('samplerate', rate)
-        self._make_mask()
+        if not self.no_auto:
+            self.make_mask()
 
     def add_conditions(self, conkey, con):
         """Add condition(s) con to the conditions conkey.
@@ -507,8 +578,6 @@ class ChannelPack:
             newcon = con
 
         self.conconf.set_condition(conkey, newcon)
-
-        self._make_mask()       # On every update so errors are detected.
 
     def add_condition(self, conkey, cond):
         """Add a condition, one of the addable ones.
@@ -554,10 +623,18 @@ class ChannelPack:
         conkey = self.conconf.next_conkey(conkey)
         self.conconf.set_condition(conkey, cond)
 
+        if not self.no_auto:
+            self.make_mask()       # On every update so errors are detected.
+
     def _prep_condition(self, constr):
         """Replace parts in the string constr (ONE condition) that matches
         a channel name, with 'd[i]', and set i to the correct integer
         key string. Make error if no mapping to channel name.
+
+        .. deprecated:: 0.3.0
+           No need no more. It's the parse_cond that is used
+           now. :meth:`~channelpack.ChannelPack.add_condition`
+
 
         """
         conres = constr
@@ -600,15 +677,21 @@ class ChannelPack:
         for ident in res:
             rx = CHANNEL_FMT_RX.format(ident)
             i = self._key(ident) # integer key
-            repl = 'self(' + str(i) + ')'
-            cond = re.sub(rx, repl, cond) # %(<identifier>) replaced with self(i). I
-                                    # hope - What about the capturing group?
+
+            # repl = 'self(' + str(i) + ')'
+            # Cannot be. Calls (__call__) can be replaced by nan. So must call
+            # the array in the dict directly:
+
+            repl = 'self.D[' + str(i) + ']'
+            cond = re.sub(rx, repl, cond) # %(<identifier>) replaced with
+                                          # self.D[i], I hope - What about the
+                                          # capturing group?
         return cond
 
     def _mask_array(self, cond):
-        """Dummy func to try the new condition structure.
-
-        Maybe not dummy. Let the boolean array mask production be here.
+        """
+        Let the boolean array mask production be here. Call this for
+        each condition. The _parse_cond method is called here.
         """
         cond = self._parse_cond(cond)
         return eval(cond)
@@ -642,7 +725,8 @@ class ChannelPack:
 
         self.conconf.set_condition(conkey, con)
 
-        self._make_mask()
+        if not self.no_auto:
+            self.make_mask()
 
     def set_condition(self, conkey, cond):
         """Docstring.
@@ -734,21 +818,38 @@ class ChannelPack:
         else:
             cfgfn = os.path.join(chroot, CONFIG_FILE)
 
+        # Back-up:
+        names_bup = self.chnames
+        cond_bup = self.conconf.conditions # But then I must do a copy, not
+        # refer to the same objects. And that is not nice. Dont want to do
+        # copy. I want more elegant solution.
+
         with open(cfgfn, 'r') as fo:
             self.conconf.eat_config(fo)
 
         # Update mask:
-        self._make_mask()
+        if not self.no_auto:
+            self.make_mask()
+        else:
+            self.make_mask(dry=True) # Produce possible error.
 
     def pprint_conditions(self):
-        """Pretty print conditions."""
+        """Pretty print conditions.
+
+        This is the easiest (only exposed) way to view
+        all conditions.
+
+        .. seealso::
+           :meth:`~channelpack.ChannelPack.spit_config`
+        """
 
         self.conconf.pprint_conditions()
 
     def set_stopextend(self, n):
         """n is an integer >= 0."""
         self.conconf.set_condition('stopextend', n)
-        self._make_mask()
+        if not self.no_auto:
+            self.make_mask()
 
     def set_duration(self, dur, durtype='min'):
         """Set the duration condition to dur.
@@ -772,7 +873,8 @@ class ChannelPack:
 
         self.conconf.set_condition('dur', dur)
         self.conconf.set_condition('durtype', durtype)
-        self._make_mask()
+        if not self.no_auto:
+            self.make_mask()
 
     def clear_conditions(self, *conkeys, **noclear):
         """Clear conditions. Clear only the conditions conkeys if
@@ -784,17 +886,24 @@ class ChannelPack:
         if offenders:
             raise KeyError(', '.join([off for off in offenders]))
 
+        offenders = set(noclear) - set({'noclear'}) # Valid keywords subtracted
+        if offenders:
+            raise KeyError(', '.join([off for off in offenders]))
+
         noclear = noclear.get('noclear', False)
 
         for ck in self.conconf.conditions:
             if not conkeys:
-                self.conconf.set_condition(ck, None)
+                # self.conconf.set_condition(ck, None)
+                self.conconf.reset()
+                break
             elif not noclear and ck in conkeys:
                 self.conconf.set_condition(ck, None)
             elif noclear and not ck in conkeys:
                 self.conconf.set_condition(ck, None)
 
-        self._make_mask()
+        if not self.no_auto:
+            self.make_mask()
 
     def set_mask_on(self, b=True):
         """If mask is on, any calls for a channel will be
@@ -850,9 +959,19 @@ class ChannelPack:
         durtype = cc.get_duration_type()
         self.mask = datautils.duration_bool(self.mask, dur, durtype)
 
-    def _make_mask(self):
+    def make_mask(self, dry=False):
         """Set the attribute self.mask to a mask based on
-        self.conditions"""
+        the conditions.
+
+        dry: bool
+            If True, only try to make a mask, but don't touch self.mask
+
+        This method is called automatically unless ``no_auto`` is set to
+        True, whenever conditions are updated somehow.
+
+        .. seealso::
+           :meth:`~channelpack.ChannelPack.pprint_conditions`
+        """
 
         cc = self.conconf
         # andmask = datautils.array_and(self.D, cc.conditions_list('and'))
@@ -860,7 +979,12 @@ class ChannelPack:
 
         mask = np.ones(self.rec_cnt) == True # All True initially.
         for cond in cc.conditions_list('cond'):
-            mask = mask & self._mask_array(cond)
+            try:
+                mask = mask & self._mask_array(cond)
+            except Exception as e:
+                print cond
+                print 'produced an error:'
+                raise           # re-raise
 
         # ssmask = datautils.startstop_bool(self)
         mask = mask & datautils.startstop_bool(self)
@@ -874,7 +998,8 @@ class ChannelPack:
         mask = datautils.duration_bool(mask, cc.get_condition('dur'),
                                        cc.get_condition('samplerate'))
         # self.mask = datautils.duration_bool(self.mask, dur, durtype)
-        self.mask = mask
+        if not dry:
+            self.mask = mask
 
     def set_channel_names(self, names):
         """
@@ -927,10 +1052,15 @@ class ChannelPack:
         if part is not None:
             sl = datautils.slicelist(self.mask)
             return self.D[i][sl[part]]
-        elif self._mask_on:
+        # elif self._mask_on:
+        elif self.nof == 'mask':
             return datautils.masked(self.D[i], self.mask)
-        elif self._filter_on:
+        # elif self._filter_on:
+        elif self.nof == 'filter':
             return self.D[i][self.mask]
+        elif self.nof is not None:
+            raise ValueError('The nof value is invalid: ' + str(self.nof) +
+                             '\nmust be "mask" or "filter"')
         else:
             return self.D[i]
 
@@ -1059,13 +1189,16 @@ class _ConditionConfigure:
     def __init__(self, pack):
 
         self.pack = pack
+        self.numrx = r'[\w]+?(\d+)' # To extract the trailing number.
+        self.reset()
+
+    def reset(self):
         conpairs = [('cond1', None), ('startcond1', None),
                     ('stopcond1', None), ('stopextend', None),
                     ('dur', None), ('samplerate', None)]
         # Ordered dict is of no use any more. cond<n> will be inserted later
         # on, and that is to be printed together with the cond conditions.
         self.conditions = OrderedDict(conpairs)
-        self.numrx = r'[\w]+?(\d+)' # To extract the trailing number.
 
     def set_condition(self, conkey, val):
         """Set condition conkey to value val. Convert val to str if not
@@ -1126,17 +1259,22 @@ class _ConditionConfigure:
         # Update conditions:
         sec = 'conditions'
 
-        conkeys = set(self.conditions.keys())
-        conops = set(cfg.options(sec))
+        # conkeys = set(self.conditions.keys())
+        # conops = set(cfg.options(sec))
 
-        for conkey in conkeys:
-            if not any([conkey.startswith(c) for c in _COND_PREFIXES]):
-                raise KeyError(conkey)
+        # This check should be superfluous:
+        # --------------------------------------------------
+        # for conkey in conkeys:
+        #     if not any([conkey.startswith(c) for c in _COND_PREFIXES]):
+        #         raise KeyError(conkey)
+        # --------------------------------------------------
 
-        for con in conkeys - conops: # Removed conditions.
-            self.set_condition(con, None)
+        # for con in conkeys - conops: # Removed conditions.
+            # self.set_condition(con, None)
+        conops = cfg.options(sec)
+        self.reset()            # Scary
         for con in conops:
-            self.set_condition(con, cfg.get(sec, con))
+            self.set_condition(con, cfg.get(sec, con, raw=True))
 
         # That's it
 
