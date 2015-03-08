@@ -23,12 +23,15 @@ mainly mean to deliver, and live in the module `pack`. So, most of the
 time it should be enough to import the namespace of channelpack:
 
     >>> import channelpack as cp
-    >>> cp.txtpack
-    <function txtpack at 0x8a44c34>
-    >>> cp.dbfpack
-    <function dbfpack at 0x8a44e9c>
-    >>> cp.ChannelPack
-    <class channelpack.pack.ChannelPack at 0x896171c>
+
+    >>> type(cp.txtpack)
+    <type 'function'>
+    >>> type(cp.dbfpack)
+    <type 'function'>
+    >>> type(cp.sheetpack)
+    <type 'function'>
+    >>> type(cp.ChannelPack)
+    <type 'classobj'>
 
 The intention is to make channelpack self-documenting. Try introspecting the
 objects.

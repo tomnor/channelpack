@@ -11,6 +11,41 @@ the data file. Keys are integers corresponding to the "columns" used,
 0-based. The loadfunc is called from an instance of ChannelPack by
 calling 'load'.
 
+There are functions in this module for easy pack creation: :func:`~txtpack`,
+:func:`~dbfpack`, :func:`~sheetpack`.
+
+Example::
+
+    >>> import channelpack as cp
+    >>> tp = cp.txtpack('testdata/sampledat2.txt')
+    >>> for k in sorted(tp.chnames):
+    ...     print tp.name(k)
+    ...
+    RPT
+    B_CACT
+    P_CACT
+    VG_STOP
+    AR_BST
+    PLRT_1
+    TOQ_BUM
+
+    # Arrays are callable by name or column number
+    >>> tp('RPT').size
+    5920
+    >>> tp(0).size
+    5920
+
+The ChannelPack is basically holding a dict with numpy arrays and provide ways
+to get at them by familiar names or column numbers. The pack also holds
+a boolean array, initially all true::
+
+    >>> import numpy as np
+    >>> np.all(tp.mask)
+    True
+
+Now talk about modifications of the mask and the len of the slicelist.
+
+
 evolve branch
 =============
 
@@ -390,8 +425,8 @@ class ChannelPack:
 
         >>> pack = cp.ChannelPack(lf)
         >>> pack.load(tf.name)
-        >>> pack.filename
-        # maybe '/tmp/tmp9M4PqD'
+        >>> pack.filename is not None
+        True
         >>> pack.chnames_0
         {2: 'ch2', 5: 'ch5'}
 
@@ -1677,7 +1712,7 @@ for _asp in _aspirants:
                 _cfg.readfp(fp)
                 exts = _cfg.get('channelpack', 'originextensions')
                 ORIGINEXTENSIONS += [ext.strip() for ext in exts.split(',')]
-                print 'ORIGINEXTENSIONS:', ORIGINEXTENSIONS
+                # print 'ORIGINEXTENSIONS:', ORIGINEXTENSIONS
                 break           # First read satisfy.
             except (ConfigParser.NoSectionError,
                     ConfigParser.NoOptionError,
