@@ -170,6 +170,24 @@ Now perform the following tasks:
        - I have a confusion. I am still calling it 'mask'. But I
          decided to call it 'nan'. Fix it.
 
+#. The above confusion is not solved, channelpack still require 'mask'.
+   make it accept numpy.nan, 'nan' and 'filter' and None. The logic is
+   three options: nan, filter or None.
+
+#. More: The note far above about how the mask should work in
+   combination with a user changing it directly - like this: for each
+   automatic update, the mask is to be taken as one of the conditions.
+   In this way the user can modify mask directly and then add some
+   conditions without loosing the prior work. To make a mask cleanly
+   based only on the conditions held by the pack, an argument is to be
+   made to the make_mask method, like 'clean'.
+
+#. Conditions. The ChannelPack class can have a variable called
+   conditions, set to self.conconf.conditions. This way it is easier to
+   introspect the conditions. Try that, and check if there is much
+   problems with adding a condition directly to that dict. Cool by the
+   way, if to do this, the use of an ordered dict is again meaningful.
+
 #. Implement the no_auto variable. Also expose the ``_make_mask``
    function, meaning rename it to ``make_mask`` and update it's
    docstring.
