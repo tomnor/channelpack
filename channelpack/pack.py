@@ -991,15 +991,15 @@ class ChannelPack:
         if self._filter_on:
             self._mask_on = False
 
-    def mask_or_filter(self):
-        """Return 'mask' or 'filter' or None depending on which one is
-        turned on."""
+    # def mask_or_filter(self):
+    #     """Return 'mask' or 'filter' or None depending on which one is
+    #     turned on."""
 
-        if self._mask_on:
-            return 'mask'
-        elif self._filter_on:
-            return 'filter'
-        return None
+    #     if self._mask_on:
+    #         return 'mask'
+    #     elif self._filter_on:
+    #         return 'filter'
+    #     return None
 
     def _make_maskBAK(self):
         """Set the attribute self.mask to a mask based on
