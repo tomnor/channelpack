@@ -35,15 +35,17 @@ Example::
     >>> tp(0).size
     5920
 
-The ChannelPack is basically holding a dict with numpy arrays and provide ways
-to get at them by familiar names or column numbers. The pack also holds
-a boolean array, initially all true::
+The ChannelPack is holding a dict with numpy arrays and provide ways to
+get at them by familiar names or column numbers. The pack also holds a
+boolean array, initially all true::
 
     >>> import numpy as np
     >>> np.all(tp.mask)
     True
 
-Now talk about modifications of the mask and the len of the slicelist.
+.. Now talk about modifications of the mask and the len of the slicelist.
+
+
 
 
 evolve branch
