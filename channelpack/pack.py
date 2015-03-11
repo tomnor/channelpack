@@ -4,12 +4,13 @@
 """Provide ChannelPack. Provide lazy functions to get loaded instances
 of ChannelPack.
 
-ChannelPack is a class holding data read from some data file. It takes a
-function as its only argument for init. The function is responsible for
-returning a dict with numpy 1d arrays corresponding to the "channels" in
-the data file. Keys are integers corresponding to the "columns" used,
-0-based. The loadfunc is called from an instance of ChannelPack by
-calling 'load'.
+:class:`~channelpack.ChannelPack` is a class holding data read from some
+data file. It takes a function as its only argument for ``__init__``.
+The function is responsible for returning a dict with numpy 1d arrays
+corresponding to the "channels" in the data file. Keys are integers
+corresponding to the "columns" used, 0-based. The load-function is
+called with an instance of ChannelPack by calling
+:meth:`~channelpack.ChannelPack.load`.
 
 There are functions in this module for easy pack creation: :func:`~txtpack`,
 :func:`~dbfpack`, :func:`~sheetpack`.
@@ -30,17 +31,19 @@ Example::
     TOQ_BUM
 
     # Arrays are callable by name or column number
-    >>> tp('RPT').size
-    5920
-    >>> tp(0).size
-    5920
+    >>> tp('RPT') is tp(0)
+    True
 
 The ChannelPack is holding a dict with numpy arrays and provide ways to
-get at them by familiar names or column numbers. The pack also holds a
-boolean array, initially all true::
+get at them by familiar names or column numbers, as just shown. The pack
+also holds a boolean array, initially all true. channelpack calls the
+array ``mask``, and it is of the same length as the channels in the
+pack::
 
     >>> import numpy as np
     >>> np.all(tp.mask)
+    True
+    >>> tp(0).size == tp.mask.size
     True
 
 .. Now talk about modifications of the mask and the len of the slicelist.

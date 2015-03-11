@@ -78,11 +78,15 @@ def masked(a, b):
     not False. Populate with numpy.nan where b is False. When plotting,
     those elements look like missing, which can be a desired result.
 
-    NOTE: This is to updated with my home stuff!
-
     """
 
-    n = np.array([np.nan for i in range(len(a))])
+    if np.any([a.dtype.kind.startswith(c) for c in ['i', 'u', 'f', 'c']]):
+        n = np.array([np.nan for i in range(len(a))])
+        print 'numberlike'
+    else:
+        print 'not numberlike'
+        n = np.array([None for i in range(len(a))])
+        # a = a.astype(object)
     return np.where(b, a, n) # a if b is True, else n.
 
 def duration_boolBAK(b, dur, durtype):
