@@ -82,9 +82,7 @@ def masked(a, b):
 
     if np.any([a.dtype.kind.startswith(c) for c in ['i', 'u', 'f', 'c']]):
         n = np.array([np.nan for i in range(len(a))])
-        print 'numberlike'
     else:
-        print 'not numberlike'
         n = np.array([None for i in range(len(a))])
         # a = a.astype(object)
     return np.where(b, a, n) # a if b is True, else n.
