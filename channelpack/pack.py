@@ -48,7 +48,46 @@ pack::
 
 .. Now talk about modifications of the mask and the len of the slicelist.
 
+The mask is used to retreive specific parts from the channels or to
+filter the returned data::
 
+    >>> sp = cp.sheetpack('testdata/sampledat3.xls')
+    >>> for k in sorted(sp.chnames):
+    ...     print k, sp.name(k)
+    ...
+    0 txtdata
+    1 nums
+    2 floats
+
+    >>> sp('txtdata')
+    array([u'A', u'A', u'C', u'D', u'D'],
+          dtype='<U1')
+
+    >>> sp.mask = (sp('txtdata') == 'A') | (sp('txtdata') == 'D')
+    >>> sp.mask
+    array([ True,  True, False,  True,  True], dtype=bool)
+    >>> sp('txtdata', 0)
+    array([u'A', u'A'],
+          dtype='<U1')
+    >>> sp('txtdata', 1)
+    array([u'D', u'D'],
+          dtype='<U1')
+    >>> sp('txtdata', 2)
+    Traceback (most recent call last):
+        ...
+    IndexError: list index out of range
+
+The above example try to say that *parts* are chunks of the channel
+elements that has corresponding True elements in the mask. And they are
+retreived by adding an enumeration of the part in the call for the
+channel, see :meth:`~channelpack.ChannelPack.__call__`.
+
+For filtering, an attribute ``nof`` is set to the string 'filter'::
+
+    >>> sp.nof = 'filter'
+    >>> sp('txtdata')
+    array([u'A', u'A', u'D', u'D'],
+          dtype='<U1')
 
 
 evolve branch
