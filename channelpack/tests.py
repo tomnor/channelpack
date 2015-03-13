@@ -5,17 +5,13 @@ of = doctest.NORMALIZE_WHITESPACE
 if __name__ == '__main__':
 
     print '### testing __init__.py'
-    failcnt, testcnt = doctest.testfile('__init__.py',
-                                        package='channelpack',
-                                        report=True,
-                                        optionflags=of)
-    if failcnt == 0:
-        print '--> fail count:', failcnt, 'from', testcnt, 'tests'
+    f, t = doctest.testfile('__init__.py', package='channelpack', report=True,
+                            optionflags=of)
+    if f == 0:
+        print '--> fail count:', f, 'from', t, 'tests'
 
     print '### testing pack.py'
-    failcnt, testcnt = doctest.testfile('pack.py',
-                                        package='channelpack',
-                                        report=True,
-                                        optionflags=of)
-    if failcnt == 0:
-        print '--> fail count:', failcnt, 'from', testcnt, 'tests'
+    f, t = doctest.testfile('pack.py', package='channelpack', report=True,
+                            optionflags=of)
+    if f == 0:
+        print '--> fail count:', f, 'from', t, 'tests'

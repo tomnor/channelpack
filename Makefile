@@ -3,6 +3,6 @@
 test:
 	python -m channelpack/tests
 
-.PHONY: docs
-docs:
+.PHONY: doc
+doc:
 	cd docs && make html

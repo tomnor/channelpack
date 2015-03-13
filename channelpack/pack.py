@@ -13,9 +13,7 @@ called with an instance of ChannelPack by calling
 :meth:`~channelpack.ChannelPack.load`.
 
 There are functions in this module for easy pack creation: :func:`~txtpack`,
-:func:`~dbfpack`, :func:`~sheetpack`.
-
-Example::
+:func:`~dbfpack`, :func:`~sheetpack`. Example::
 
     >>> import channelpack as cp
     >>> tp = cp.txtpack('testdata/sampledat2.txt')
@@ -48,7 +46,7 @@ pack::
 
 .. Now talk about modifications of the mask and the len of the slicelist.
 
-The mask is used to retreive specific parts from the channels or to
+The mask is used to retrieve specific parts from the channels or to
 filter the returned data::
 
     >>> sp = cp.sheetpack('testdata/sampledat3.xls')
@@ -79,7 +77,7 @@ filter the returned data::
 
 The above example try to say that *parts* are chunks of the channel
 elements that has corresponding True elements in the mask. And they are
-retreived by adding an enumeration of the part in the call for the
+retrieved by adding an enumeration of the part in the call for the
 channel, see :meth:`~channelpack.ChannelPack.__call__`.
 
 For filtering, an attribute ``nof`` is set to the string 'filter'::
@@ -89,6 +87,38 @@ For filtering, an attribute ``nof`` is set to the string 'filter'::
     array([u'A', u'A', u'D', u'D'],
           dtype='<U1')
 
+The attribute ``nof`` can have the values 'filter' ``None`` or 'nan'.
+``None`` mean that the attribute has no effect. The effect of 'nan' is
+that elements that is not corresponding to a True element in ``mask`` is
+replaced with ``numpy.nan`` or ``None`` in calls::
+
+    >>> sp.nof = 'nan'
+    >>> sp('txtdata')
+    array([A, A, None, D, D], dtype=object)
+    >>> sp('nums')
+    array([   0.,   30.,   nan,   90.,  120.])
+
+Calls for a specific part are not affected by the attribute ``nof``::
+
+    >>> sp('txtdata', 1)
+    array([u'D', u'D'],
+          dtype='<U1')
+
+If the pack is to be loaded with a new data set that is to be subjected
+to the same conditions, do like this::
+
+    >>> sp.add_condition('cond', "(%('txtdata') == 'A') | (%('txtdata') == 'D')")
+
+Note that the string for the condition is the same as above with the
+identifier for the pack replced with ``%``. Now a new file with same
+channel names can be loded and receive the same state::
+
+    >>> sp.load('testdata/sampledat4.xls')
+    >>> sp('txtdata')
+    array([A, None, None, None, D], dtype=object)
+    >>> sp.nof = None
+    >>> sp('txtdata')
+    array([A, C, C, C, D], dtype=object)
 
 evolve branch
 =============
@@ -1012,7 +1042,12 @@ class ChannelPack:
         masked. Meaning, the parts of the array not meeting the
         conditions are replaced with numpy.nan.
 
-        Setting mask on, turns the filter off."""
+        Setting mask on, turns the filter off.
+
+        .. DANGER::
+           This method will be killed before next release.
+
+        """
 
         self._mask_on = b == True
         if self._mask_on:
@@ -1027,7 +1062,8 @@ class ChannelPack:
 
         Setting filter on, turns the mask off.
 
-        """
+        .. DANGER::
+           This method will be killed before next release."""
 
         self._filter_on = b == True
         if self._filter_on:
@@ -1155,14 +1191,14 @@ class ChannelPack:
             sl = datautils.slicelist(self.mask)
             return self.D[i][sl[part]]
         # elif self._mask_on:
-        elif self.nof == 'mask':
+        elif self.nof == 'nan':
             return datautils.masked(self.D[i], self.mask)
         # elif self._filter_on:
         elif self.nof == 'filter':
             return self.D[i][self.mask]
-        elif self.nof is not None:
+        elif self.nof:
             raise ValueError('The nof value is invalid: ' + str(self.nof) +
-                             '\nmust be "mask" or "filter"')
+                             '\nmust be "nan", "filter" or falsish')
         else:
             return self.D[i]
 
