@@ -215,17 +215,13 @@ def sheetheader(sheet, startstops, usecols=None):
 
     for col in headcols:
         fieldname = sheet.cell(headstart.row, col).value
-        header.append(fieldname)
+        header.append(unicode(fieldname))
 
     return header
 
-def sheet_asdict(fn, sheet, startstops, usecols=None):
+def _sheet_asdict(sheet, startstops, usecols=None):
     """Read data from a spread sheet. Return the data in a dict with
     column numbers as keys.
-
-    fn: str
-        Dummy argument to be compatible with ChannelPacks loadfunc
-        interface
 
     sheet: xlrd.sheet.Sheet instance
         Ready for use.
@@ -282,6 +278,68 @@ def sheet_asdict(fn, sheet, startstops, usecols=None):
             D[c] = np.array(vals)
 
     return D
+
+def sheet_asdict(fn, sheet=0, header=True, startcell=None, stopcell=None,
+                 usecols=None, chnames_out=None):
+    """Read data from a spread sheet. Return the data in a dict with
+    column numbers as keys.
+
+    fn: str
+        The file to read from.
+
+    sheet: int or str
+        If int, it is the index for the sheet 0-based. Else the sheet
+        name.
+
+    header: bool or str
+        True if the defined data range includes a header with field
+        names. Else False - the whole range is data. If a string, it is
+        a spread sheet style notation of the startcell for the header
+        ("F9"). The "width" of this record is the same as for the data.
+
+
+    startcell: str or None
+        If given, a spread sheet style notation of the cell where reading
+        start, ("F9").
+
+    stopcell: str or None
+        A spread sheet style notation of the cell where data end,
+        ("F9").
+
+    usecols: str or seqence of ints
+        The columns to use, 0-based. 0 is the spread sheet column
+        "A". Can be given as a string also - 'C:E, H' for columns C, D,
+        E and H.
+
+    usecols: str or seqence of ints or None
+        The columns to use, 0-based. 0 is the spread sheet column
+        "A". Can be given as a string also - 'C:E, H' for columns C, D,
+        E and H.
+
+    chnames_out: list or None
+        If a list it will be populated with the channel names. The size
+        of the list will equal to the number of channel names extracted.
+        Whatever is in the list supplied will first be removed.
+
+    Values in the returned dict are numpy arrays. Types are set based on
+    the types in the spread sheet.
+    """
+    book = xlrd.open_workbook(fn)
+    try:
+        sh = book.sheet_by_index(sheet)
+    except TypeError:
+        sh = book.sheet_by_name(sheet)
+
+    ss = prepread(sh, header=header, startcell=startcell, stopcell=stopcell)
+
+    chnames = sheetheader(sh, ss, usecols=usecols)
+
+    if chnames_out is not None and chnames is not None:
+        vals = list(chnames_out)
+        [chnames_out.remove(v) for v in vals]
+        chnames_out.extend(chnames)
+
+    return _sheet_asdict(sh, ss, usecols=usecols)
 
 def sheet_asdictBAK(sheet, header=True, startcell=None, stopcell=None,
                  usecols=None):

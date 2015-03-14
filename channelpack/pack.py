@@ -12,8 +12,12 @@ corresponding to the "columns" used, 0-based. The load-function is
 called with an instance of ChannelPack by calling
 :meth:`~channelpack.ChannelPack.load`.
 
-There are functions in this module for easy pack creation: :func:`~txtpack`,
-:func:`~dbfpack`, :func:`~sheetpack`. Example::
+Making a pack
+=============
+
+There are functions in this module for easy pack creation:
+:func:`~txtpack`, :func:`~dbfpack`, :func:`~sheetpack`. Using one of
+those, a call to load is not necessary::
 
     >>> import channelpack as cp
     >>> tp = cp.txtpack('testdata/sampledat2.txt')
@@ -32,6 +36,9 @@ There are functions in this module for easy pack creation: :func:`~txtpack`,
     >>> tp('RPT') is tp(0)
     True
 
+Setting the mask
+================
+
 The ChannelPack is holding a dict with numpy arrays and provide ways to
 get at them by familiar names or column numbers, as just shown. The pack
 also holds a boolean array, initially all true. channelpack calls the
@@ -43,8 +50,6 @@ pack::
     True
     >>> tp(0).size == tp.mask.size
     True
-
-.. Now talk about modifications of the mask and the len of the slicelist.
 
 The mask is used to retrieve specific parts from the channels or to
 filter the returned data::
@@ -87,7 +92,7 @@ For filtering, an attribute ``nof`` is set to the string 'filter'::
     array([u'A', u'A', u'D', u'D'],
           dtype='<U1')
 
-The attribute ``nof`` can have the values 'filter' ``None`` or 'nan'.
+The attribute ``nof`` can have the values 'filter', ``None`` or 'nan'.
 ``None`` mean that the attribute has no effect. The effect of 'nan' is
 that elements that is not corresponding to a True element in ``mask`` is
 replaced with ``numpy.nan`` or ``None`` in calls::
@@ -104,14 +109,19 @@ Calls for a specific part are not affected by the attribute ``nof``::
     array([u'D', u'D'],
           dtype='<U1')
 
+Calling load on a running instance
+==================================
+
 If the pack is to be loaded with a new data set that is to be subjected
 to the same conditions, do like this::
 
     >>> sp.add_condition('cond', "(%('txtdata') == 'A') | (%('txtdata') == 'D')")
 
-Note that the string for the condition is the same as above with the
-identifier for the pack replced with ``%``. Now a new file with same
-channel names can be loded and receive the same state::
+Note that the string for the condition is the same as in the above
+assignment (``sp.mask = (sp('txtdata') == 'A') | (sp('txtdata') ==
+'D')``) with the identifier for the pack replaced with ``%``. Now a new
+file with the same data lay-out can be loded and receive the same
+state::
 
     >>> sp.load('testdata/sampledat4.xls')
     >>> sp('txtdata')
@@ -517,9 +527,27 @@ class ChannelPack:
         self._set_filename(args[0])
         self.set_basefilemtime()
 
+        self.args = args
+        self.kwargs = kwargs
+
         if not self.no_auto:
             self.make_mask()       # Called here if a reload is done on
                                     # the current instance I guess.
+
+    def reload(self, fn):
+        """Reload the pack with dataset in filename fn.
+
+        At creation of the pack (using load) the args and kwargs are
+        stored away for a possible call to this function. Use this
+        function when a new file with same structure is to be loaded.
+        Same args and kwargs are used as was used for the current pack.
+
+        The use-case of the function is when the state of the pack is to
+        be re-used for a new data set.
+        """
+        args = list(self.args)
+        args[0] = fn
+        self.load(*args, **self.kwargs)
 
     def append_load(self, *args, **kwargs):
         """Append data using loadfunc.
@@ -1207,13 +1235,11 @@ class ChannelPack:
         value found in chnames and chnames_0, that matches ch. Or if
         ch is an int, ch is returned if it is a key in self.D"""
 
-        try:
-            # int(ch)
-            ch = int(ch)        # I must have meant this.
-            if ch in self.D:
-                return ch
-        except ValueError:
-            pass                # Not intable.
+        if ch in self.D:
+            return ch
+
+        if isinstance(ch, int):
+            raise KeyError(ch)
 
         if self.chnames:
             for item in self.chnames.items():
@@ -1245,10 +1271,7 @@ class ChannelPack:
         """
 
         names = self.chnames or self.chnames_0
-        try:
-            i = int(ch)
-        except ValueError:
-            i = self._key(ch)
+        i = self._key(ch)
 
         if not firstwordonly:
             return names[i]
@@ -1763,18 +1786,21 @@ def sheetpack(fn, sheet=0, header=True, startcell=None, stopcell=None,
     regards to the data range.
     """
 
-    book = xlrd.open_workbook(fn)
-    try:
-        sh = book.sheet_by_index(sheet)
-    except TypeError:
-        sh = book.sheet_by_name(sheet)
+    # book = xlrd.open_workbook(fn)
+    # try:
+    #     sh = book.sheet_by_index(sheet)
+    # except TypeError:
+    #     sh = book.sheet_by_name(sheet)
 
-    ss = pullxl.prepread(sh, header=header, startcell=startcell,
-                         stopcell=stopcell)
+    # ss = pullxl.prepread(sh, header=header, startcell=startcell,
+    #                      stopcell=stopcell)
 
     cp = ChannelPack(pullxl.sheet_asdict)
-    cp.load(fn, sh, ss, usecols=usecols)
-    cp.set_channel_names(pullxl.sheetheader(sh, ss, usecols=usecols))
+    chnames = []
+    cp.load(fn, sheet=sheet, header=header, startcell=startcell,
+            stopcell=stopcell, usecols=usecols, chnames_out=chnames)
+
+    cp.set_channel_names(chnames or None)
     return cp
 
 # Look for rc file:

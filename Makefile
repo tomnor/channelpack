@@ -6,3 +6,8 @@ test:
 .PHONY: doc
 doc:
 	cd docs && make html
+
+.PHONY: clean
+clean:
+	rm -f channelpack/*.pyc
+	rm -f *.pyc
