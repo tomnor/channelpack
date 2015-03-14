@@ -515,8 +515,13 @@ class ChannelPack:
         {2: 'ch2', 5: 'ch5'}
 
         """
-        # D = self.loadfunc(*args, **kwargs)
-        self.D = self.loadfunc(*args, **kwargs)
+        D = self.loadfunc(*args, **kwargs)
+
+        if self.chnames is not None:
+            if set(D) - set(self.chnames):
+                raise ValueError('New data set have different keys')
+
+        self.D = D
         self.keys = sorted(self.D.keys())
         self.rec_cnt = len(self.D[self.keys[0]]) # If not all the same, there
                                            # should have been an error
@@ -533,21 +538,6 @@ class ChannelPack:
         if not self.no_auto:
             self.make_mask()       # Called here if a reload is done on
                                     # the current instance I guess.
-
-    def reload(self, fn):
-        """Reload the pack with dataset in filename fn.
-
-        At creation of the pack (using load) the args and kwargs are
-        stored away for a possible call to this function. Use this
-        function when a new file with same structure is to be loaded.
-        Same args and kwargs are used as was used for the current pack.
-
-        The use-case of the function is when the state of the pack is to
-        be re-used for a new data set.
-        """
-        args = list(self.args)
-        args[0] = fn
-        self.load(*args, **self.kwargs)
 
     def append_load(self, *args, **kwargs):
         """Append data using loadfunc.
