@@ -1,6 +1,6 @@
 import doctest
 
-of = doctest.NORMALIZE_WHITESPACE
+of = doctest.NORMALIZE_WHITESPACE | doctest.ELLIPSIS
 
 if __name__ == '__main__':
 

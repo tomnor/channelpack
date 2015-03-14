@@ -162,8 +162,8 @@ class PatternPull:
         lnr = max(self.rows2skip(','), self.rows2skip('.')) + 1
         # If EQUAL_CNT_REQ was not met, raise error. Implement!
         if self.cnt > EQUAL_CNT_REQ:
-            raise PatternError('Did not find ' + str(EQUAL_CNT_REQ) + 
-                          ' data rows with equal data pattern in file: ' + 
+            raise PatternError('Did not find ' + str(EQUAL_CNT_REQ) +
+                          ' data rows with equal data pattern in file: ' +
                           self.fn)
         elif self.cnt < EQUAL_CNT_REQ: # Too few rows
             raise PatternError('Less than', str(EQUAL_CNT_REQ) + 'data rows in',
@@ -182,8 +182,8 @@ class PatternPull:
 
         nodigs = r'(\D+)'
 
-        line = self.rows[self.rts + 1] # Study first line of data only. (This
-                                       # becomes second line of data?)
+        line = self.rows[self.rts + 1] # Study second line of data only.
+
         digs = re.findall(self.datrx, line)
         pat = nodigs.join(digs)
         m = re.search(pat, line)
@@ -208,6 +208,14 @@ class PatternPull:
             # If specifically a tab as delimiter, use that.
             self.datdel = groups[0]
         # For other white space delimiters, let datdel remain None.
+
+        # work-around for the event that numbers clutters the channel names and
+        # rts is one number low:
+        res = [dat.strip() for dat in self.rows[self.rts].split(self.datdel)
+               if dat.strip()]
+        if not all([re.match(self.datrx, dat) for dat in res]):
+            self.rts += 1
+            print 'DEBUG: rts was adjusted with 1'
 
         # Keep the groups for debug:
         self.datdelgroups = groups
@@ -256,7 +264,7 @@ class PatternPull:
         # on row rts + 1, accept it as the channel names.
 
         if self.decdel == '.':
-            datcnt = self.matches_p[self.rts] 
+            datcnt = self.matches_p[self.rts]
         elif self.decdel == ',':
             datcnt = self.matches_c[self.rts]
 
@@ -299,13 +307,13 @@ def loadtxt(fn, **kwargs):
     arguments based on the study.
 
     Return data returned from numpy `loadtxt <http://docs.scipy.org/doc/numpy/reference/generated/numpy.loadtxt.html#numpy-loadtxt>`_.
-    
+
     kwargs: keyword arguments accepted by numpys loadtxt. Any keyword
     arguments provided will take prescedence over the ones resulting
     from the study.
 
     Set the module attribute PP to the instance of PatternPull used.
-    
+
     """
     global PP
     PP = PatternPull(fn)
@@ -333,4 +341,4 @@ def loadtxt_asdict(fn, **kwargs):
         raise Exception('Unknown dimension of loaded data.')
 
     return D
-        
+

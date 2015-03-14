@@ -116,6 +116,9 @@ If the pack is to be loaded with a new data set that is to be subjected
 to the same conditions, do like this::
 
     >>> sp.add_condition('cond', "(%('txtdata') == 'A') | (%('txtdata') == 'D')")
+    >>> sp.pprint_conditions()
+    cond1: (%('txtdata') == 'A') | (%('txtdata') == 'D')
+    ...
 
 Note that the string for the condition is the same as in the above
 assignment (``sp.mask = (sp('txtdata') == 'A') | (sp('txtdata') ==
@@ -123,11 +126,14 @@ assignment (``sp.mask = (sp('txtdata') == 'A') | (sp('txtdata') ==
 file with the same data lay-out can be loded and receive the same
 state::
 
-    >>> sp.load('testdata/sampledat4.xls')
+    >>> sp.load('testdata/sampledat4.xls', stopcell='c6')
     >>> sp('txtdata')
     array([A, None, None, None, D], dtype=object)
     >>> sp.nof = None
     >>> sp('txtdata')
+    array([u'A', u'C', u'C', u'C', u'D'],
+          dtype='<U1')
+
     array([A, C, C, C, D], dtype=object)
 
 evolve branch
@@ -292,6 +298,8 @@ Now perform the following tasks:
 #. The above confusion is not solved, channelpack still require 'mask'.
    make it accept numpy.nan, 'nan' and 'filter' and None. The logic is
    three options: nan, filter or None.
+
+       - Done
 
 #. More: The note far above about how the mask should work in
    combination with a user changing it directly - like this: for each
@@ -814,7 +822,7 @@ class ChannelPack:
         return conres
 
     def _parse_cond(self, cond):
-        """Replace the format strings in cond with ``self(i)`` so it can
+        """Replace the format strings in cond with ``self.D[i]`` so it can
         be used in eval calls. Use ``CHANNEL_RX`` as pattern. Return the
         parsed string.
 
@@ -1123,7 +1131,7 @@ class ChannelPack:
             If True, only try to make a mask, but don't touch self.mask
 
         This method is called automatically unless ``no_auto`` is set to
-        True, whenever conditions are updated somehow.
+        True, whenever conditions are updated.
 
         .. seealso::
            :meth:`~channelpack.ChannelPack.pprint_conditions`
@@ -1543,154 +1551,6 @@ class _ConditionConfigure:
 
         for k in self.sorted_conkeys():
             print k + ':', self.conditions[k]
-
-# class _ConditionConfigureBAK:
-#     """Provide handling of conditions and the config file as support to
-#     the ChannelPack class. Provide smooth methods to get one condition
-#     at a time or a list of conditions. Keep the logic of handling the
-#     config file here.
-
-#     Keep a dictionary of conditions. Let's stick to values as either
-#     strings or None.
-#     """
-
-# # TODO: Establish an opportunity to have multiple sections of
-# # conditions. Distinguished by an appended digit. Like conditions5.
-
-#     def __init__(self, pack):
-
-#         self.pack = pack
-#         conpairs = [('and', None), ('or', None),
-#                     ('start_and', None), ('start_or', None),
-#                     ('stop_and', None), ('stop_or', None),
-#                     ('stop_extend', None),
-#                     ('dur', None), ('durtype', None),
-#                     ('samplerate', None)]
-#         self.conditions = OrderedDict(conpairs)
-
-#     def set_condition(self, conkey, val):
-#         """Set condition conkey to value val. Convert val to str if not
-#         None.
-
-#         conkey: str
-#             A condition that exist in the conditions dict (as a key).
-
-#         val: str, int, float, None
-#             Can always be None. Can be number or string depending on conkey.
-#         """
-
-#         if conkey not in self.conditions:
-#             raise KeyError(conkey)
-
-#         if val in NONES:
-#             self.conditions[conkey] = None
-#         else:
-#             self.conditions[conkey] = str(val)
-
-#     def spit_config(self, conf_file, firstwordonly=False):
-#         """conf_file a file opened for writing."""
-
-#         cfg = ConfigParser.ConfigParser()
-#         for sec in _CONFIG_SECS:
-#             cfg.add_section(sec)
-
-#         sec = 'channels'
-#         for i in sorted(self.pack.D):
-#             cfg.set(sec, str(i), self.pack.name(i, firstwordonly=firstwordonly))
-
-#         sec = 'conditions'
-#         for k, v in self.conditions.items():
-#             cfg.set(sec, k, v)
-
-#         cfg.write(conf_file)
-
-#     def eat_config(self, conf_file):
-#         """conf_file a file opened for reading.
-
-#         Update the packs channel names and the conditions, accordingly.
-
-#         """
-
-#         # Read the file:
-#         cfg = ConfigParser.ConfigParser()
-#         cfg.readfp(conf_file)
-
-#         # Update channel names:
-#         sec = 'channels'
-#         mess = 'missmatch of channel keys'
-#         assert(set(self.pack.D.keys()) == set([int(i) for i in cfg.options(sec)])), mess
-#         if not self.pack.chnames:
-#             self.pack.chnames = dict(self.pack.chnames_0)
-#         for i in cfg.options(sec): # i is a string.
-#             self.pack.chnames[self.pack._key(int(i))] = cfg.get(sec, i)
-
-#         # Update conditions:
-#         sec = 'conditions'
-
-#         conkeys = set(self.conditions.keys())
-#         conops = set(cfg.options(sec))
-
-#         if conops - conkeys:
-#             offenders = ["'" + off + "'" for off in conops - conkeys]
-#             mess = ', '.join(offenders)
-#             raise KeyError('Not valid condition option(s): ' + mess)
-#         for con in conkeys - conops: # Removed conditions.
-#             self.set_condition(con, None)
-#         for con in conops:
-#             self.set_condition(con, cfg.get(sec, con))
-
-#         # That's it
-
-#     def conditions_list(self, conkey):
-#         """Return conditions conkey as a list prepared for eval. Return an
-#         empty list if there is no condition. conkey should be one of the
-#         conditions that can be a list of comma seperated conditions.
-
-#         conkey: str
-#             One of the conditions that can be a comma seperated list of
-#             conditions.
-#         """
-
-#         if self.conditions[conkey] is None:
-#             return []
-#         L = self.conditions[conkey].split(',')
-#         L = [c.strip() for c in L if c] # if c in case of trailing comma.
-#         L = [self.pack._prep_condition(c) for c in L]
-#         return L
-
-#     def get_condition(self, conkey):
-#         """As it is."""
-#         return self.conditions[conkey]
-
-#     def get_stop_extend(self):
-#         """As an integer. Return 0 if None."""
-
-#         try:
-#             return int(self.conditions['stop_extend'])
-#         except TypeError:
-#             return 0
-
-#     def get_duration(self):
-#         """Get duration as an integer."""
-
-#         if self.conditions['samplerate']:
-#             samplerate = float(self.conditions['samplerate'])
-#         else:
-#             samplerate = 1.0
-
-#         dur = self.conditions['dur'] or 0 # zero default
-
-#         dur = int(float(dur) * samplerate)
-
-#         return dur
-
-#     def get_duration_type(self):
-#         """Defaults to 'min' if None"""
-#         return self.conditions['durtype'] or 'min'
-
-#     def pprint_conditions(self):
-#         for key, val in self.conditions.items():
-#             print key + ':', val
 
 def txtpack(fn, **kwargs):
     """Return a ChannelPack instance loaded with text data file fn.
