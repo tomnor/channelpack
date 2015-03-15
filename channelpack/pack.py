@@ -309,11 +309,15 @@ Now perform the following tasks:
    based only on the conditions held by the pack, an argument is to be
    made to the make_mask method, like 'clean'.
 
+       - Done.
+
 #. Conditions. The ChannelPack class can have a variable called
    conditions, set to self.conconf.conditions. This way it is easier to
    introspect the conditions. Try that, and check if there is much
    problems with adding a condition directly to that dict. Cool by the
    way, if to do this, the use of an ordered dict is again meaningful.
+
+       - Rejected for now. It's not a pretty introspection anyway.
 
 #. Implement the no_auto variable. Also expose the ``_make_mask``
    function, meaning rename it to ``make_mask`` and update it's
@@ -321,11 +325,10 @@ Now perform the following tasks:
 
        - Done. Hopefully no nasty side-effect suprises.
 
-#. Fix a no_auto variable set to False by default. If True, the mask
-   will not be automatically updated on every change of conditions. This
-   must mean also that the _make_mask function is to be exposed.
+#. The dur condition setting is totally not updated. Also, document it
+   like documented above in the more evolve bullets.
 
-       - Done. Same as above.
+       - Done. Some tests are written on it. More needed.
 
 #. Update the spitting and eating of files. Need some extra
    attention. Specifically, all calls to ConfigParser reading values
@@ -371,7 +374,7 @@ Now perform the following tasks:
          feel good.
 
 #. Go through each and every function in ChannelPack and adjust the
-   behaviour. this will defenetly also mean making changes in the datautils
+   behavior. this will definitely also mean making changes in the datautils
    helper module.
 
 #. Document the set_stopextend method. I forgot myself whether the
@@ -398,12 +401,16 @@ it once in the make_mask function. Also, it seems I want to dry run the
 make_mask sometimes even if no_auto is True, so always do that, and then
 set the mask only if no_auto is False.
 
+The above wording is confused. I need to check no_auto before the
+make_mask is called. Else it would not be possible to do make_mask if
+the no_auto is True.
+
 """
 import re
 import glob, fnmatch
 import os, time
 import ConfigParser
-from collections import OrderedDict
+from collections import OrderedDict, Counter
 
 import numpy as np
 import xlrd
@@ -489,7 +496,6 @@ class ChannelPack:
         self.conconf = _ConditionConfigure(self)
         self.no_auto = False    # Implement
 
-
     def load(self, *args, **kwargs):
         """Load data using loadfunc.
 
@@ -499,6 +505,9 @@ class ChannelPack:
             argument.
 
         Set the filename attribute.
+
+        .. note::
+           Updates the mask if not no_auto.
 
         ChannelPack is assuming a need for loading data from disc. If
         there is a desire to load some made-up data, a filename pointing
@@ -565,6 +574,10 @@ class ChannelPack:
 
         Create new attribute - a dict with metadata on all files loaded,
         'metamulti.'
+
+        .. note::
+           Updates the mask if not no_auto.
+
         """
         if not self.D:
             self.load(*args, **kwargs)
@@ -636,6 +649,10 @@ class ChannelPack:
         this method has no effect.
 
         NOTE: The instance channel is modified on success.
+
+        .. note::
+           This method is experimental so far and might contain a bug.
+
         """
         diffs = []
 
@@ -691,9 +708,12 @@ class ChannelPack:
         rate: int or float
 
         rate is given as samples / timeunit. If sample rate is set, it
-        will have an impact on the duration value in conditions. If
-        duration is set to 2.5 and samplerate is 100, a duration of 250
-        records is required for the logical conditions to be true."""
+        will have an impact on the duration rule conditions. If duration
+        is set to 2.5 and samplerate is 100, a duration of 250 records
+        is required for the logical conditions to be true.
+
+        .. note::
+           Updates the mask if not no_auto."""
 
         # Test and set value:
         float(rate)
@@ -753,6 +773,9 @@ class ChannelPack:
         cond: str
             The condition string. See ...
 
+        .. note::
+           Updates the mask if not no_auto.
+
         .. seealso::
            :meth:`~channelpack.ChannelPack.set_stopextend`
            :meth:`~channelpack.ChannelPack.set_duration`
@@ -765,7 +788,7 @@ class ChannelPack:
 
         .. note::
            Lot's of checkig here, but I hope it will not have to be
-           repeated somewhere. Then I will re-factor. Cool.
+           repeated somewhere. Then I will re-factor. Cool. DEBUG NOTE
         """
 
         # Audit:
@@ -854,37 +877,37 @@ class ChannelPack:
         cond = self._parse_cond(cond)
         return eval(cond)
 
-    def set_conditions(self, conkey, con):
-        """Remove existing conditions in conkey and replace with con.
+    # def set_conditions(self, conkey, con):
+    #     """Remove existing conditions in conkey and replace with con.
 
-        conkey: str
-            One of the conditions that can be a comma seperated list of
-            conditions.
+    #     conkey: str
+    #         One of the conditions that can be a comma seperated list of
+    #         conditions.
 
-        con: str or None
-            Condition like 'ch1 > 5' or comma delimited conditions like
-            'ch5 == ch14, ch0 <= (ch1 + 2)'. 'ch5', for example, can be
-            a custom channel name if available.
+    #     con: str or None
+    #         Condition like 'ch1 > 5' or comma delimited conditions like
+    #         'ch5 == ch14, ch0 <= (ch1 + 2)'. 'ch5', for example, can be
+    #         a custom channel name if available.
 
-        NOTE: If custom names are used, they must consist of one word
-        only, not delimited with spaces.
+    #     NOTE: If custom names are used, they must consist of one word
+    #     only, not delimited with spaces.
 
-        .. deprecated:: 0.3.0 Use
-           :meth:`~channelpack.ChannelPack.set_condition` instead. This
-           will fail. There is a new way of parsing conditions now.
-        """
-        # TODO: This function should maybe not be limited to certain
-        # conditions. Not intuitive.
+    #     .. deprecated:: 0.3.0 Use
+    #        :meth:`~channelpack.ChannelPack.set_condition` instead. This
+    #        will fail. There is a new way of parsing conditions now.
+    #     """
+    #     # TODO: This function should maybe not be limited to certain
+    #     # conditions. Not intuitive.
 
-        # Audit:
-        if not con in NONES:
-            for c in con.split(','):
-                self._prep_condition(c)
+    #     # Audit:
+    #     if not con in NONES:
+    #         for c in con.split(','):
+    #             self._prep_condition(c)
 
-        self.conconf.set_condition(conkey, con)
+    #     self.conconf.set_condition(conkey, con)
 
-        if not self.no_auto:
-            self.make_mask()
+    #     if not self.no_auto:
+    #         self.make_mask()
 
     def set_condition(self, conkey, cond):
         """Docstring.
@@ -954,15 +977,20 @@ class ChannelPack:
 
         See spit_config for documentation on the file layout.
 
-        Note: If the config_file exist because of an earlier spit, and
-        custom channel names was not available, channels are listed as the
-        fallback names in the file. Then after this eat, self.chnames
-        will be set to the list in the conf_file section 'channels'. The
-        result can be that self.chnames and self.chnames_0 will be
-        equal.
+        .. note::
+           Updates the mask if not no_auto.
+
+        .. note::
+           If the config_file exist because of an earlier spit, and
+           custom channel names was not available, channels are listed as the
+           fallback names in the file. Then after this eat, self.chnames
+           will be set to the list in the conf_file section 'channels'. The
+           result can be that self.chnames and self.chnames_0 will be
+           equal.
 
         The message then is that, if channel names are updated, you
         should spit before you eat.
+
         """
 
         chroot = os.path.dirname(self.filename) # "channels root dir"
@@ -1004,40 +1032,95 @@ class ChannelPack:
         self.conconf.pprint_conditions()
 
     def set_stopextend(self, n):
-        """n is an integer >= 0."""
+        """Extend the True elements by n when setting the conditions
+        based on a 'stopcond' condition.
+
+        n is an integer >= 0.
+
+        .. note::
+           Updates the mask if not no_auto.
+        """
         self.conconf.set_condition('stopextend', n)
         if not self.no_auto:
             self.make_mask()
 
-    def set_duration(self, dur, durtype='min'):
-        """Set the duration condition to dur.
+    # def set_duration(self, dur, durtype='min'):
+    #     """Set the duration condition to dur.
 
-        dur: int or float
-            The count of duration. If self.samplerate is not set, dur is
-            the number of records to count. If samplerate is set, number
-            of records to count is int(self.samplerate * dur).
+    #     dur: int or float
+    #         The count of duration. If self.samplerate is not set, dur is
+    #         the number of records to count. If samplerate is set, number
+    #         of records to count is int(self.samplerate * dur).
 
-        durtype: str
-            Accepted is one of 'strict', 'min' or 'max'. Default is
-            'min'.
+    #     durtype: str
+    #         Accepted is one of 'strict', 'min' or 'max'. Default is
+    #         'min'.
 
-        Setting dur = 0 and durtype = 'min' is a safe way to make the
-        duration condition have no effect. (Besides clearing the
-        conditions).
+    #     Setting dur = 0 and durtype = 'min' is a safe way to make the
+    #     duration condition have no effect. (Besides clearing the
+    #     conditions).
+
+    #     .. note::
+    #        Updates the mask if not no_auto.
+
+    #     .. warning::
+    #        This function is not updated to the new workings. There is
+    #        now only a 'dur' condition using dur as a variable. Hmmm,
+    #        think this through.
+    #     """
+    #     # Test:
+    #     assert durtype in DURTYPES, durtype
+    #     float(dur)
+
+    #     self.conconf.set_condition('dur', dur)
+    #     self.conconf.set_condition('durtype', durtype)
+    #     if not self.no_auto:
+    #         self.make_mask()
+
+    def set_duration(self, rule):
+        """Set the duration according to rule.
+
+        rule: str
+            The rule operating on the variable ``dur``.
+
+        rule is an expression like::
+
+            >>> rule = 'dur == 150 or dur > 822'
+
+        setting a duration rule assuming a pack sp::
+
+            >>> sp.set_duration(rule)
+
+        The identifier ``dur`` must be present or the rule will fail.
+
+        .. note::
+           The logical ``or`` and ``and`` operators must be used. ``dur`` is a
+           primitive, not an array.
+
+        .. note::
+           Updates the mask if not no_auto.
+
+        .. seealso::
+           :meth:`~channelpack.ChannelPack.add_condition`
+           :meth:`~channelpack.ChannelPack.pprint_conditions`
+
+        .. warning::
+           UNDER CONSTRUCTION
         """
-        # Test:
-        assert durtype in DURTYPES, durtype
-        float(dur)
 
-        self.conconf.set_condition('dur', dur)
-        self.conconf.set_condition('durtype', durtype)
+        self.conconf.set_condition('dur', rule)
         if not self.no_auto:
             self.make_mask()
 
     def clear_conditions(self, *conkeys, **noclear):
-        """Clear conditions. Clear only the conditions conkeys if
-        specified. Clear only the conditions not specified by conkeys if
-        noclear is True (False default).
+        """Clear conditions.
+
+        Clear only the conditions conkeys if specified. Clear only the
+        conditions not specified by conkeys if noclear is True (False
+        default).
+
+        .. note::
+           Updates the mask if not no_auto.
         """
 
         offenders = set(conkeys) - set(self.conconf.conditions.keys())
@@ -1123,9 +1206,14 @@ class ChannelPack:
         durtype = cc.get_duration_type()
         self.mask = datautils.duration_bool(self.mask, dur, durtype)
 
-    def make_mask(self, dry=False):
+    def make_mask(self, clean=True, dry=False):
         """Set the attribute self.mask to a mask based on
         the conditions.
+
+        clean: bool
+            If not True, let the current mask be a condition as well. If
+            True, the mask is set solely on the pack's current
+            conditions
 
         dry: bool
             If True, only try to make a mask, but don't touch self.mask
@@ -1138,9 +1226,6 @@ class ChannelPack:
         """
 
         cc = self.conconf
-        # andmask = datautils.array_and(self.D, cc.conditions_list('and'))
-        # ormask = datautils.array_or(self.D, cc.conditions_list('or'))
-
         mask = np.ones(self.rec_cnt) == True # All True initially.
         for cond in cc.conditions_list('cond'):
             try:
@@ -1150,19 +1235,20 @@ class ChannelPack:
                 print 'produced an error:'
                 raise           # re-raise
 
-        # ssmask = datautils.startstop_bool(self)
+
         mask = mask & datautils.startstop_bool(self)
 
-        # self.mask = np.logical_and(andmask, ormask)
-        # self.mask = np.logical_and(self.mask, ssmask)
-
-        # Duration conditions:
-        # dur = cc.get_duration()
-        # durtype = cc.get_duration_type()
+        samplerate = cc.get_condition('samplerate')
+        if samplerate is not None:
+            samplerate = float(samplerate)
         mask = datautils.duration_bool(mask, cc.get_condition('dur'),
-                                       cc.get_condition('samplerate'))
-        # self.mask = datautils.duration_bool(self.mask, dur, durtype)
-        if not dry:
+                                       samplerate)
+
+        if  dry:
+            return
+        if not clean and self.mask is not None:
+            self.mask = self.mask & mask
+        else:
             self.mask = mask
 
     def set_channel_names(self, names):
@@ -1189,14 +1275,50 @@ class ChannelPack:
     def slicelist(self):
         """Return a slicelist based on self.mask.
 
-        This is a list of python slice objects corresponding to the True
+        This is used internally and might not be very useful from
+        outside. It's exposed anyway in case of interest to quickly see
+        where the parts are along the arrays.
+
+        It is a list of python slice objects corresponding to the True
         sections in self.mask. If no conditions are set, there shall be
         one slice in the list with start == 0 and stop == self.rec_cnt,
         (the mask is all True). The len of this list corresponds to the
         number of True sections in self.mask. (So a hint on the result
-        from the conditions)."""
+        from the conditions).
+
+        .. seealso:: :meth:`~channelpack.ChannelPack.parts`
+
+        """
 
         return datautils.slicelist(self.mask)
+
+    def parts(self):
+        """Return the enumeration of the True parts.
+
+        The list is always consecutive or empty.
+
+        .. seealso:: :meth:`~channelpack.ChannelPack.slicelist`
+        """
+
+        return range(len(self.slicelist()))
+
+    def counter(self, ch, part=None):
+        """Return a counter on the channel ch.
+        
+        ch: string or integer.
+            The channel index number or channel name.
+
+        part: int or None
+            The 0-based enumeration of a True part to return. This
+            has an effect whether or not the mask or filter is turned
+            on. Raise IndexError if the part does not exist.
+
+        See `Counter
+        <https://docs.python.org/2.7/library/collections.html#counter-objects>`_
+        for the counter object returned.
+
+        """
+        return Counter(self(self._key(ch), part=part))
 
     def __call__(self, key, part=None):
         """Make possible to retreive channels by key.
@@ -1237,7 +1359,7 @@ class ChannelPack:
             return ch
 
         if isinstance(ch, int):
-            raise KeyError(ch)
+            raise KeyError(ch)  # dont accept integers as custom names
 
         if self.chnames:
             for item in self.chnames.items():
@@ -1246,6 +1368,15 @@ class ChannelPack:
         for item in self.chnames_0.items():
             if item[1] == ch:
                 return item[0]
+
+        # If we got here, ch can be an int represented by a string if it comes
+        # from a condition string:
+        try:
+            chint = int(ch)
+            if chint in self.D:
+                return chint
+        except ValueError:
+            pass
 
         raise KeyError(ch)
 

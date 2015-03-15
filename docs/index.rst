@@ -18,6 +18,7 @@ Site contents:
    installation.rst
    overview_examples.rst
    api_reference.rst
+   test_examples.rst
    changelog.rst
 
 Indices and tables

@@ -12,6 +12,14 @@ if __name__ == '__main__':
 
     print '### testing pack.py'
     f, t = doctest.testfile('pack.py', package='channelpack', report=True,
+                            # verbose=True,
+                            optionflags=of)
+    if f == 0:
+        print '--> fail count:', f, 'from', t, 'tests'
+
+    print '### testing test_examples.rst'
+    f, t = doctest.testfile('../docs/test_examples.rst', report=True,
+                            # verbose=True,
                             optionflags=of)
     if f == 0:
         print '--> fail count:', f, 'from', t, 'tests'
