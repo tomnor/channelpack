@@ -23,3 +23,10 @@ if __name__ == '__main__':
                             optionflags=of)
     if f == 0:
         print '--> fail count:', f, 'from', t, 'tests'
+
+    print '### testing pullxl.rst'
+    f, t = doctest.testfile('pullxl.py', package='channelpack', report=True,
+                            # verbose=True,
+                            optionflags=of)
+    if f == 0:
+        print '--> fail count:', f, 'from', t, 'tests'

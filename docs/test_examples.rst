@@ -245,5 +245,47 @@ on the conditions::
 Load a new one::
 
     >>> dp = cp.dbfpack('testdata/mesdat3.dbf')
-    
 
+Set some conditions, study the start and stop feature::
+
+    >>> dp.add_condition('start', '%(BDIST) > 19')
+    >>> dp.add_condition('stop', '%(BDIST) < 2')
+    >>> dp.pprint_conditions()
+    cond1: None
+    startcond1: %(BDIST) > 19
+    stopcond1: %(BDIST) < 2
+    stopextend: None
+    dur: None
+    samplerate: None
+
+But that was wrong, it should have been 'BTIME'. Either clear the conditions
+:meth:`~channelpack.ChannelPack.clear_conditions`, or add with a specific
+condition::
+
+    >>> dp.add_condition('startcond1', '%(BTIME) > 19')
+    >>> dp.add_condition('stopcond1', '%(BTIME) < 2')
+    >>> dp.pprint_conditions()
+    cond1: None
+    startcond1: %(BTIME) > 19
+    stopcond1: %(BTIME) < 2
+    stopextend: None
+    dur: None
+    samplerate: None
+
+Plot without any effect or the conditions::
+
+    >>> plot(dp('BTIME'))
+    [<matplotlib.lines.Line2D ...
+    >>> show()
+
+.. image:: pics/plotit05.png
+
+It is not always obvious how to set conditions so that only the downgoing slopes
+are extracted, but the start and stop conditions should yeild just that::
+
+    >>> dp.nof = 'nan'
+    >>> plot(dp('BTIME'), marker='o')
+    [<matplotlib.lines.Line2D ...
+    >>> show()
+
+.. image:: pics/plotit06.png

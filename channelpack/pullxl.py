@@ -433,6 +433,8 @@ def letter2num(letters, zbase=False):
     Answers:
     A = 1, Z = 26, AA = 27, AZ = 52, ZZ = 702, AMJ = 1024
 
+    >>> from channelpack.pullxl import letter2num
+
     >>> letter2num('A') == 1
     True
     >>> letter2num('Z') == 26
