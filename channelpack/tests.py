@@ -4,6 +4,13 @@ of = doctest.NORMALIZE_WHITESPACE | doctest.ELLIPSIS
 
 if __name__ == '__main__':
 
+    print '### README.rst'
+    f, t = doctest.testfile('../README.rst', report=True,
+                            # verbose=True,
+                            optionflags=of)
+    if f == 0:
+        print '--> fail count:', f, 'from', t, 'tests'
+
     print '### testing __init__.py'
     f, t = doctest.testfile('__init__.py', package='channelpack', report=True,
                             optionflags=of)
@@ -24,9 +31,11 @@ if __name__ == '__main__':
     if f == 0:
         print '--> fail count:', f, 'from', t, 'tests'
 
-    print '### testing pullxl.rst'
+    print '### testing pullxl.py'
     f, t = doctest.testfile('pullxl.py', package='channelpack', report=True,
                             # verbose=True,
                             optionflags=of)
     if f == 0:
         print '--> fail count:', f, 'from', t, 'tests'
+
+

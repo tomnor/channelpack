@@ -31,6 +31,58 @@ Data files:
 * Any file read by your own tools, provide a function returning a dict
   with channels to the ChannelPack class.
 
+Example
+=======
+
+channelpack has some convenience functions for getting a pack::
+
+    >>> import channelpack as cp
+    >>> sp = cp.sheetpack('testdata/sampledat3.xls')
+    >>> sp.chnames
+    {0: u'txtdata', 1: u'nums', 2: u'floats'}
+
+Packs are made callable, by name or column index::
+
+    >>> sp(0)
+    array([u'A', u'A', u'C', u'D', u'D'],
+          dtype='<U1')
+    >>> sp(0) is sp('txtdata')
+    True
+
+A boolean mask array is kept to keep track of "True parts"::
+
+    >>> sp.parts()
+    [0]
+    >>> sp.add_condition('cond', '(%(0) == "A") | (%(0) == "D")')
+    >>> sp.parts()
+    [0, 1]
+    >>> sp('txtdata', 0)
+    array([u'A', u'A'],
+          dtype='<U1')
+    >>> sp('txtdata', 1)
+    array([u'D', u'D'],
+          dtype='<U1')
+
+Now persist the conditions and load a new data set that need the same
+conditions::
+
+    >>> sp.spit_config()
+    >>> sp = cp.sheetpack('testdata/sampledat4.xls', stopcell='c6')
+    >>> sp.parts()
+    [0]
+    >>> sp.eat_config()
+    >>> sp.parts()
+    [0, 1]
+    >>> sp('txtdata', 0)
+    array([u'A'],
+          dtype='<U1')
+    >>> sp('txtdata', 1)
+    array([u'D'],
+          dtype='<U1')
+    >>> sp('txtdata')
+    array([u'A', u'C', u'C', u'C', u'D'],
+          dtype='<U1')
+
 Depends
 =======
 
@@ -47,3 +99,7 @@ Documentation and changes
 `Documentation <http://channelpack.readthedocs.org/en/latest/>`_
 
 `Changes <http://channelpack.readthedocs.org/en/latest/changelog.html>`_
+
+As of version 0.3.0, channelpack is not backwards compatible. The way of storing
+and making substitutions of conditions is new, plus a bunch of other changes
+that breaks earlier versions. But it's much better now.
