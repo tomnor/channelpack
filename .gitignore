@@ -7,7 +7,7 @@ testdata/?*
 !testdata/sample*.xls
 !testdata/dat_0000.txt
 !testdata/conf_file*
-!testdata/mesdat2.dbf
+!testdata/mesdat?.dbf
 docs/_build/
 in_work.txt
 *.egg*
