@@ -99,7 +99,7 @@ replaced with ``numpy.nan`` or ``None`` in calls::
 
     >>> sp.nof = 'nan'
     >>> sp('txtdata')
-    array([A, A, None, D, D], dtype=object)
+    array([u'A', u'A', None, u'D', u'D'], dtype=object)
     >>> sp('nums')
     array([   0.,   30.,   nan,   90.,  120.])
 
@@ -128,7 +128,7 @@ state::
 
     >>> sp.load('testdata/sampledat4.xls', stopcell='c6')
     >>> sp('txtdata')
-    array([A, None, None, None, D], dtype=object)
+    array([u'A', None, None, None, u'D'], dtype=object)
     >>> sp.nof = None
     >>> sp('txtdata')
     array([u'A', u'C', u'C', u'C', u'D'],
