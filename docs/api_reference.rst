@@ -9,21 +9,23 @@ pack module
 
 .. automodule:: channelpack.pack
 
-Class(es)
----------
-
-.. autoclass:: channelpack.ChannelPack
-   :members:
-   :special-members: __init__, __call__
-
-Functions
----------
+Functions to get a pack
+-----------------------
 
 .. autofunction:: channelpack.pack.dbfpack
 
 .. autofunction:: channelpack.pack.txtpack
 
 .. autofunction:: channelpack.pack.sheetpack
+
+
+ChannelPack object
+------------------
+
+.. autoclass:: channelpack.ChannelPack
+   :special-members: __init__, __call__
+   :members:
+
 
 Data
 ----
@@ -36,8 +38,8 @@ pulltxt module - automated study of text data files
 
 .. automodule:: channelpack.pulltxt
 
-Class(es)
----------
+PatternPull object
+------------------
 
 .. autoclass:: channelpack.pulltxt.PatternPull
    :members:
