@@ -434,7 +434,7 @@ and then place it there.
 
 CONFIG_FILE = "conf_file.cfg"
 _CONFIG_SECS = ['channels',  'conditions']
-DURTYPES = ['strict', 'min', 'max'] # TO DO: Check validity with this.
+
 _COND_PREFIXES = ['cond', 'startcond', 'stopcond', 'stopextend',  'dur',
                  'samplerate']
 _ADDABLES = ['cond', 'startcond', 'stopcond']
@@ -442,13 +442,8 @@ _ADDABLES = ['cond', 'startcond', 'stopcond']
 FALLBACK_PREFIX = 'ch'              # TO DO: Use this global constant so it is
                                     # possible to work-around a possible
                                     # conflict. DONE (in _fallback func).
-NONES = [None, 'None', 'none', "''", '""', '']
 
-_CHANNEL_RX = r'%\(([\w ]+)\)'
-"""Pattern used to find format strings for the channel identifiers. The
-pattern can be monkey patched for specific needs. It is used as is, not
-compiled or held by some instance of something apart from this module in
-the python session."""
+NONES = [None, 'None', 'none', "''", '""', '']
 
 CHANNEL_IDENTIFIER_RX = r'[\w ]+'
 """Pattern used to find format strings for the channel identifiers. The
@@ -456,18 +451,15 @@ pattern can be monkey patched for specific needs. It is used as is, not
 compiled or held by some instance of something apart from this module in
 the python session."""
 
-CHANNEL_FMT_RX = r'%\(({})\)'
 CHANNEL_FMT_RX = r"""%\(["']?({})["']?\)""" # Allowing quotes to remain
 """Pattern used for the format string. The enclosing part around the
 channel identifier. It includes the re group, which must remain, (the
 inner-most ``()``). The ``{}`` part is replaced with
 CHANNEL_IDENTIFIER_RX."""
 
-CHANNEL_RX = CHANNEL_FMT_RX.format(CHANNEL_IDENTIFIER_RX) # Debug
-
 class ChannelPack:
     """Pack of data. Hold a dict with channel index numbers as keys
-    (column number).  This object is callable by channel name or index.
+    (column number). This object is callable by channel name or index.
     """
 
     def __init__(self, loadfunc=None):
@@ -486,15 +478,14 @@ class ChannelPack:
         self.chnames = None       # Channel names maybe. dict
         self.chnames_0 = None     # Fall back names, always available. ch0,
                                   # ch1... dict
+
         self.keys = None          # Sorted list of keys for the data dict
         self.rec_cnt = 0          # Number of records
-
-        self._mask_on = False    # Deprication
         self.nof = None          # 'nan', 'filter' or None (nan or filter)
-        self._filter_on = False  # Deprication
+
         self.mask = None
         self.conconf = _ConditionConfigure(self)
-        self.no_auto = False    # Implement
+        self.no_auto = False
 
     def load(self, *args, **kwargs):
         """Load data using loadfunc.
@@ -721,42 +712,6 @@ class ChannelPack:
         if not self.no_auto:
             self.make_mask()
 
-    def add_conditions(self, conkey, con):
-        """Add condition(s) con to the conditions conkey.
-
-        conkey: str
-            One of the conditions that can be a comma seperated list of
-            conditions.
-
-        con: str
-            Condition like 'ch1 > 5' or comma delimited conditions like
-            'ch5 == ch14, ch0 <= (ch1 + 2)'. 'ch5', for example, can be
-            a custom channel name if available.
-
-        NOTE: If custom names are used, they must consist of one word
-        only, not delimited with spaces.
-
-        .. deprecated:: 0.3.0 Use
-           :meth:`~channelpack.ChannelPack.add_condition` instead. This
-           will fail. There is a new way of parsing conditions now.
-
-        .. warning::
-           Really. Don't use it.
-
-        """
-
-        # Audit:
-        for c in con.split(','):
-            self._prep_condition(c)
-
-        current = self.conconf.get_condition(conkey)
-        if current:
-            newcon = ','.join([current, con]).strip(',')
-        else:
-            newcon = con
-
-        self.conconf.set_condition(conkey, newcon)
-
     def add_condition(self, conkey, cond):
         """Add a condition, one of the addable ones.
 
@@ -807,43 +762,6 @@ class ChannelPack:
         if not self.no_auto:
             self.make_mask()       # On every update so errors are detected.
 
-    def _prep_condition(self, constr):
-        """Replace parts in the string constr (ONE condition) that matches
-        a channel name, with 'd[i]', and set i to the correct integer
-        key string. Make error if no mapping to channel name.
-
-        .. deprecated:: 0.3.0
-           No need no more. It's the parse_cond that is used
-           now. :meth:`~channelpack.ChannelPack.add_condition`
-
-
-        """
-        conres = constr
-
-        matches = re.findall(r'ch\d+', conres)
-        for ch in matches:
-            i = self._key(ch)
-            conres = conres.replace(ch, 'd[' + str(i) + ']')
-
-        if not self.chnames:
-            if conres == constr: # No mapping.
-                raise ValueError('This condition did not resolve to a valid' +
-                                 ' channel: ' + constr)
-            else:
-                return conres
-
-        for ch in self.chnames.values():
-            for m in re.findall(r'\w+', conres):
-                if ch == m:
-                    i = self._key(ch)
-                    conres = conres.replace(ch, 'd[' + str(i) + ']')
-
-        if conres == constr: # No mapping.
-            raise ValueError('This condition did not resolve to a any valid' +
-                             ' channel: ' + constr)
-
-        return conres
-
     def _parse_cond(self, cond):
         """Replace the format strings in cond with ``self.D[i]`` so it can
         be used in eval calls. Use ``CHANNEL_RX`` as pattern. Return the
@@ -876,47 +794,6 @@ class ChannelPack:
         """
         cond = self._parse_cond(cond)
         return eval(cond)
-
-    # def set_conditions(self, conkey, con):
-    #     """Remove existing conditions in conkey and replace with con.
-
-    #     conkey: str
-    #         One of the conditions that can be a comma seperated list of
-    #         conditions.
-
-    #     con: str or None
-    #         Condition like 'ch1 > 5' or comma delimited conditions like
-    #         'ch5 == ch14, ch0 <= (ch1 + 2)'. 'ch5', for example, can be
-    #         a custom channel name if available.
-
-    #     NOTE: If custom names are used, they must consist of one word
-    #     only, not delimited with spaces.
-
-    #     .. deprecated:: 0.3.0 Use
-    #        :meth:`~channelpack.ChannelPack.set_condition` instead. This
-    #        will fail. There is a new way of parsing conditions now.
-    #     """
-    #     # TODO: This function should maybe not be limited to certain
-    #     # conditions. Not intuitive.
-
-    #     # Audit:
-    #     if not con in NONES:
-    #         for c in con.split(','):
-    #             self._prep_condition(c)
-
-    #     self.conconf.set_condition(conkey, con)
-
-    #     if not self.no_auto:
-    #         self.make_mask()
-
-    def set_condition(self, conkey, cond):
-        """Docstring.
-
-        .. note::
-           This might really not be necessary since the same thing can
-           be done using the add_condition method."""
-
-        raise NotImplementedError
 
     def spit_config(self, conf_file=None, firstwordonly=False):
         """Write a config_file based on this instance.
@@ -1004,12 +881,6 @@ class ChannelPack:
         else:
             cfgfn = os.path.join(chroot, CONFIG_FILE)
 
-        # Back-up:
-        names_bup = self.chnames
-        cond_bup = self.conconf.conditions # But then I must do a copy, not
-        # refer to the same objects. And that is not nice. Dont want to do
-        # copy. I want more elegant solution.
-
         with open(cfgfn, 'r') as fo:
             self.conconf.eat_config(fo)
 
@@ -1043,39 +914,6 @@ class ChannelPack:
         self.conconf.set_condition('stopextend', n)
         if not self.no_auto:
             self.make_mask()
-
-    # def set_duration(self, dur, durtype='min'):
-    #     """Set the duration condition to dur.
-
-    #     dur: int or float
-    #         The count of duration. If self.samplerate is not set, dur is
-    #         the number of records to count. If samplerate is set, number
-    #         of records to count is int(self.samplerate * dur).
-
-    #     durtype: str
-    #         Accepted is one of 'strict', 'min' or 'max'. Default is
-    #         'min'.
-
-    #     Setting dur = 0 and durtype = 'min' is a safe way to make the
-    #     duration condition have no effect. (Besides clearing the
-    #     conditions).
-
-    #     .. note::
-    #        Updates the mask if not no_auto.
-
-    #     .. warning::
-    #        This function is not updated to the new workings. There is
-    #        now only a 'dur' condition using dur as a variable. Hmmm,
-    #        think this through.
-    #     """
-    #     # Test:
-    #     assert durtype in DURTYPES, durtype
-    #     float(dur)
-
-    #     self.conconf.set_condition('dur', dur)
-    #     self.conconf.set_condition('durtype', durtype)
-    #     if not self.no_auto:
-    #         self.make_mask()
 
     def set_duration(self, rule):
         """Set the duration according to rule.
@@ -1145,66 +983,6 @@ class ChannelPack:
 
         if not self.no_auto:
             self.make_mask()
-
-    def set_mask_on(self, b=True):
-        """If mask is on, any calls for a channel will be
-        masked. Meaning, the parts of the array not meeting the
-        conditions are replaced with numpy.nan.
-
-        Setting mask on, turns the filter off.
-
-        .. DANGER::
-           This method will be killed before next release.
-
-        """
-
-        self._mask_on = b == True
-        if self._mask_on:
-            self._filter_on = False
-
-    def set_filter_on(self, b=True):
-        """If filter is on, any calls for a channel will be
-        reduced. Meaning, the parts of the array not meeting the
-        conditions are removed. It means that self.rec_cnt is probably
-        greater than the len of the array returned from a call. However,
-        any array called for, will have the same len as the other.
-
-        Setting filter on, turns the mask off.
-
-        .. DANGER::
-           This method will be killed before next release."""
-
-        self._filter_on = b == True
-        if self._filter_on:
-            self._mask_on = False
-
-    # def mask_or_filter(self):
-    #     """Return 'mask' or 'filter' or None depending on which one is
-    #     turned on."""
-
-    #     if self._mask_on:
-    #         return 'mask'
-    #     elif self._filter_on:
-    #         return 'filter'
-    #     return None
-
-    def _make_maskBAK(self):
-        """Set the attribute self.mask to a mask based on
-        self.conditions"""
-
-        cc = self.conconf
-        andmask = datautils.array_and(self.D, cc.conditions_list('and'))
-        ormask = datautils.array_or(self.D, cc.conditions_list('or'))
-
-        ssmask = datautils.startstop_bool(self)
-
-        self.mask = np.logical_and(andmask, ormask)
-        self.mask = np.logical_and(self.mask, ssmask)
-
-        # Duration conditions:
-        dur = cc.get_duration()
-        durtype = cc.get_duration_type()
-        self.mask = datautils.duration_bool(self.mask, dur, durtype)
 
     def make_mask(self, clean=True, dry=False):
         """Set the attribute self.mask to a mask based on
@@ -1304,7 +1082,7 @@ class ChannelPack:
 
     def counter(self, ch, part=None):
         """Return a counter on the channel ch.
-        
+
         ch: string or integer.
             The channel index number or channel name.
 
@@ -1338,10 +1116,8 @@ class ChannelPack:
         if part is not None:
             sl = datautils.slicelist(self.mask)
             return self.D[i][sl[part]]
-        # elif self._mask_on:
         elif self.nof == 'nan':
             return datautils.masked(self.D[i], self.mask)
-        # elif self._filter_on:
         elif self.nof == 'filter':
             return self.D[i][self.mask]
         elif self.nof:
@@ -1610,7 +1386,6 @@ class _ConditionConfigure:
         passing the number 10. The name of this function could be
         improved since it might return a string."""
 
-        # rx = r'[\w]+?(\d+)'
         m = re.match(self.numrx, conkey)
         if not m:
             return conkey
@@ -1766,15 +1541,6 @@ def sheetpack(fn, sheet=0, header=True, startcell=None, stopcell=None,
     range and the header row. However, usecols is always specified with
     regards to the data range.
     """
-
-    # book = xlrd.open_workbook(fn)
-    # try:
-    #     sh = book.sheet_by_index(sheet)
-    # except TypeError:
-    #     sh = book.sheet_by_name(sheet)
-
-    # ss = pullxl.prepread(sh, header=header, startcell=startcell,
-    #                      stopcell=stopcell)
 
     cp = ChannelPack(pullxl.sheet_asdict)
     chnames = []
