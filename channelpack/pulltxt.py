@@ -309,7 +309,7 @@ def loadtxt(fn, **kwargs):
     Return data returned from numpy `loadtxt <http://docs.scipy.org/doc/numpy/reference/generated/numpy.loadtxt.html#numpy-loadtxt>`_.
 
     kwargs: keyword arguments accepted by numpys loadtxt. Any keyword
-    arguments provided will take prescedence over the ones resulting
+    arguments provided will take precedence over the ones resulting
     from the study.
 
     Set the module attribute PP to the instance of PatternPull used.

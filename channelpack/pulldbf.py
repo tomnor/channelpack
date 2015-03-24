@@ -183,7 +183,7 @@ def _dbf_asdictBAK(fn, usecols=None, keystyle='ints'):
     return d
 
 def channel_names(fn, usecols=None):
-    """Return the fieldnames (channel names) from dbf file fn. With
+    """Return the field names (channel names) from dbf file fn. With
     usecols, return only names corresponding to the integers in
     usecols."""
 

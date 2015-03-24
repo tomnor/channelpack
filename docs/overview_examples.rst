@@ -1,8 +1,8 @@
 Overview and examples
 *********************
 
-The idea behind `channelpack` is to provide a quick and convinient way of
-loading and anlyzing (test) data.
+The idea behind `channelpack` is to provide a quick and convenient way of
+loading and analyzing (test) data.
 
 channelpack requires `numpy <https://pypi.python.org/pypi/numpy>`_, but does not
 attempt to install that for you during installation of channelpack. It's not a
@@ -10,7 +10,6 @@ huge deal to install numpy, but maybe not trivial either, and there might be
 reasons you prefer to do that yourself.
 
 .. automodule:: channelpack
-
 
 The function :func:`~pack.txtpack` try to determine delimiters and possible
 "channel" names and start of data automatically, but this works only if data is
@@ -20,7 +19,7 @@ for the data it holds - the arrays are numpy 1d arrays.
 Loading and exploring data files
 ================================
 
-If your data is numeric and in a textfile, the function `txtpack` try to be
+If your data is numeric and in a text file, the function `txtpack` try to be
 smart and figure out data delimiter, decimal separator, start-row of data and
 the channel names::
 
@@ -88,7 +87,7 @@ file sits in.
 Slicing out relevant parts of data
 ==================================
 
-Assume a script like this, using your favourite plotting library, (`matplotlib
+Assume a script like this, using your favorite plotting library, (`matplotlib
 <http://matplotlib.org/>`_):
 
 .. literalinclude:: ../testdata/plotit1.py
@@ -133,10 +132,10 @@ Related methods:
 START and STOP conditions
 -------------------------
 
-Often referred to as `start trigger` and `stop trigger` with data acqusition
+Often referred to as `start trigger` and `stop trigger` with data acquisition
 tools.
 
-Sometimes it is easier to slize out relevant parts by specifiying a start and a
+Sometimes it is easier to slice out relevant parts by specifying a start and a
 stop. This can be done using the same method as above,
 :func:`~channelpack.ChannelPack.add_conditions`, (or
 :func:`~channelpack.ChannelPack.set_conditions`) setting the `conkey` argument to one
@@ -161,7 +160,7 @@ relevant part is defined by a stop condition fulfilled:
 
 .. image:: pics/fig3.png
 
-Note that the start condition is fulfilled in parallell with the stop condition,
+Note that the start condition is fulfilled in parallel with the stop condition,
 but the stop condition dominate. As soon as the stop condition is not True
 anymore, a new start is defined (condition fulfilled). The new start is not
 meeting any fulfilled stop condition, and so is valid the rest of data.
@@ -191,7 +190,7 @@ to set a duration rule.
 
 An un-mentioned feature sneaked in, see the
 :func:`~channelpack.ChannelPack.__call__` signature for docs. Anyway, two relevant
-parts was defined by the start-stop conditions, and they can be retreived
+parts was defined by the start-stop conditions, and they can be retrieved
 respectively by enumeration this way. Now I know the length of each part, and
 add a duration rule to the script to exclude the second part:
 
@@ -253,7 +252,7 @@ time, but I promise, I have tried it.
 --------------
 
 The ``conf_file.cfg`` can be used to customize the channel names and / or
-experimenting with the conditions. The workflow could look like this:
+experimenting with the conditions. The work flow could look like this:
 
     >>> tp = cp.txtpack('sampledat.txt')
     >>> tp.chnames

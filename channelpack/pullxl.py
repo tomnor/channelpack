@@ -195,7 +195,7 @@ def sheetheader(sheet, startstops, usecols=None):
         Four StartStop objects defining the data to read. See
         :func:`~channelpack.pullxl.prepread`, returning such a list.
 
-    usecols: str or seqence of ints or None
+    usecols: str or sequence of ints or None
         The columns to use, 0-based. 0 is the spread sheet column
         "A". Can be given as a string also - 'C:E, H' for columns C, D,
         E and H.
@@ -311,7 +311,7 @@ def sheet_asdict(fn, sheet=0, header=True, startcell=None, stopcell=None,
         "A". Can be given as a string also - 'C:E, H' for columns C, D,
         E and H.
 
-    usecols: str or seqence of ints or None
+    usecols: str or sequence of ints or None
         The columns to use, 0-based. 0 is the spread sheet column
         "A". Can be given as a string also - 'C:E, H' for columns C, D,
         E and H.
@@ -363,7 +363,7 @@ def sheet_asdictBAK(sheet, header=True, startcell=None, stopcell=None,
         A spread sheet style notation of the cell where data end,
         ("F9"). startcell and stopcell can be used in any combination.
 
-    usecols: str or seqence of ints
+    usecols: str or sequence of ints
         The columns to use, 0-based. 0 is the spread sheet column
         "A". Can be given as a string also - 'C:E, H' for columns C, D,
         E and H.
