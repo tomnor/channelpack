@@ -1,7 +1,11 @@
 *.pyc
 *.html
 *.tmp
-testdata/?*
+testdata/*
+!testdata/subdir1
+testdata/subdir1/*
+!testdata/subdir1/MesA1.blob
+!testdata/subdir1/MesA1.csv
 !testdata/plot*.py
 !testdata/sample*.txt
 !testdata/sample*.xls
@@ -9,6 +13,7 @@ testdata/?*
 !testdata/conf_file*
 !testdata/mesdat?.dbf
 docs/_build/
+docs/BAK*
 in_work.txt
 *.egg*
 dist/
