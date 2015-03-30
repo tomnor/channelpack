@@ -1,4 +1,4 @@
-.. I made a back-up of this file temporarly as BAKoverview_examples.rst and I
+.. I made a back-up of this file temporarily as BAKoverview_examples.rst and I
 .. will bring in here section by section from that file and make a test for each
 .. thing. So then I can write and test and write some more and test again.
 
@@ -86,22 +86,64 @@ file sits in.
 Slicing out relevant parts of data
 ==================================
 
-Assume a script like this, using your favorite plotting library, (`matplotlib
-<http://matplotlib.org/>`_):
+The channelpack object is basically holding a dict with data and a Boolean mask
+(an array of the same length as the channels) to keep track of the condition
+state of the object. The mask can be manipulated directly, but for possible
+re-use of the condition settings, conditions are given as strings to the
+channelpack.
 
-.. literalinclude:: ../testdata/plotit1.py
+General conditions
+------------------
+
+Assume some listing for a plot like this, using your favorite plotting library,
+(`matplotlib <http://matplotlib.org/>`_) (assignment to underscores are just to
+be able to test those examples with doctest)::
+
+    >>> # plotit1
+    >>> import matplotlib.pyplot as pp
+
+    >>> import channelpack as cp
+
+    >>> tp = cp.txtpack('testdata/sampledat1.txt')
+    >>> _ = pp.figure(figsize=(12.5, 6.5))
+    >>> ax1 = pp.subplot(111)
+
+    >>> for n in (0, 3, 4):
+    ...     _ = ax1.plot(tp(n), label=tp.name(n))
+
+    >>> prop = {'size': 12}
+    >>> _ = ax1.legend(loc='upper left', prop=prop)
+
+    >>> pp.show()
 
 producing an overview plot:
 
 .. image:: pics/fig1.png
 
-AND and OR conditions
----------------------
+An update of the plotit1 listing follows to show conditions to sort out some
+relevant parts of data::
 
-An update of the script follows to show conditions to sort out some relevant
-parts of data:
+   >>> # plotit2
+   >>> _ = pp.figure(figsize=(12.5, 6.5))
+   >>> ax1 = pp.subplot(111)
 
-.. literalinclude:: ../testdata/plotit2.py
+   >>> for n in (0, 3, 4):
+   ...     _ = ax1.plot(tp(n), label=tp.name(n))
+
+   >>> # Add conditions to the channelpack:
+   >>> tp.add_condition('cond', '%(RPT) > %(AR_BST)')
+   >>> tp.add_condition('cond', '(%(VG_STOP) == 70) |  (%(VG_STOP) == 90)')
+
+   >>> # Make not true sections be replaced by nan's on calls:
+   >>> tp.nof = 'nan'
+
+   >>> _ = ax1.plot(tp(4), label=tp.name(4) + ' relevant', marker='x')
+
+   >>> prop = {'size': 12}
+   >>> _ = ax1.legend(loc='upper left', prop=prop)
+
+   >>> pp.show()
+
 
 Setting the `nof` attribute to 'nan' sets the samples not fulfilling the
 criteria to numpy.nan, on calls. This is useful when plotting since nans are
@@ -110,19 +152,35 @@ nicely handled by matplotlib. In this case, `RPT` need to be bigger than
 
 .. image:: pics/fig2.png
 
-::
+The ``nof`` attribute can have the values 'nan', 'filter' or ``None``. If
+'filter', the effect is that only the samples with a corresponding True element
+in the mask are returned on calls.
 
-   # A hint on what was available in the VG_STOP channel:
-   >>> tp.nof = None
-   >>> sorted(set(tp('VG_STOP')))
-   [50.0, 60.0, 70.0, 90.0, 110.0]
+To see the current conditions, say::
 
-Any channel called will have nan's the same way.
+    >>> tp.pprint_conditions()
+    cond1: %(RPT) > %(AR_BST)
+    cond2: (%(VG_STOP) == 70) |  (%(VG_STOP) == 90)
+    startcond1: None
+    stopcond1: None
+    stopextend: None
+    dur: None
+    samplerate: None
+
+The syntax of the conditions is python using numpy arrays. Any expression that
+produces a Boolean array. Since the pack is callable, one can say
+``tp('VG_STOP') == 70`` to produce such an array. When given as a string, the
+identifier for the pack is replaced with ``%``. In the string the quotes around
+the channel identifier is optional. To give ``tp('VG_STOP') == 70`` as a
+condition string, ``tp.add_condition("cond", "%('VG_STOP') == 70")`` will work.
+
+The different conditions are and:ed together.
 
 Related methods:
 
-* :func:`~channelpack.ChannelPack.add_conditions`
+* :func:`~channelpack.ChannelPack.add_condition`
 * :func:`~channelpack.ChannelPack.clear_conditions`
-* :func:`~channelpack.ChannelPack.mask_or_filter`
-* :func:`~channelpack.ChannelPack.set_mask_on`
 * :func:`~channelpack.ChannelPack.pprint_conditions`
+
+START and STOP conditions
+-------------------------

@@ -48,7 +48,7 @@ if __name__ == '__main__':
             print '--> fail count:', f, 'from', t, 'tests'
 
     if '5' in suit:
-        print '### overview_examples.rst (5)'
+        print '### testing overview_examples.rst (5)'
         f, t = doctest.testfile('../docs/overview_examples.rst', report=True,
                                 # verbose=True,
                                 optionflags=of)
