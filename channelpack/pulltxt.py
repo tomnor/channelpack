@@ -183,8 +183,12 @@ class PatternPull:
         nodigs = r'(\D+)'
 
         line = self.rows[self.rts + 1] # Study second line of data only.
-
         digs = re.findall(self.datrx, line)
+
+        # if any of the numbers contain a '+' in it, it need to be escaped
+        # before used in the pattern:
+        digs = [dig.replace('+', r'\+') for dig in digs]
+
         pat = nodigs.join(digs)
         m = re.search(pat, line)
         groups = m.groups()
