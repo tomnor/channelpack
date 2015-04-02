@@ -9,6 +9,7 @@ testdata/?*
 !testdata/conf_file*
 !testdata/mesdat?.dbf
 docs/_build/
+docs/BAK*
 in_work.txt
 *.egg*
 dist/
