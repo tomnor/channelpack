@@ -10,10 +10,11 @@ testdata/subdir1/*
 !testdata/sample*.txt
 !testdata/sample*.xls
 !testdata/dat_0000.txt
-!testdata/conf_file*
+!testdata/*conf_file*
 !testdata/mesdat?.dbf
 docs/_build/
 docs/BAK*
+docs/.#*
 in_work.txt
 *.egg*
 dist/

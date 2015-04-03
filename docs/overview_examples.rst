@@ -70,7 +70,7 @@ only functionality from this currently is that two attributes are set::
     >>> tp.mtimefs
     '.../testdata/subdir1/MesA1.blob'
     >>> tp.mtimestamp
-    'Tue Sep  9 23:00:04 2014'
+    'Thu Apr  2 23:26:36 2015'
 
 given that there was some file with the same base name as the loaded file, but
 with an extension as listed in `originextensions` value. The loaded file was::
@@ -99,7 +99,7 @@ Assume some listing for a plot like this, using your favorite plotting library,
 (`matplotlib <http://matplotlib.org/>`_) (assignment to underscores are just to
 be able to test those examples with doctest)::
 
-    >>> # plotit1
+    >>> # listing1
     >>> import matplotlib.pyplot as pp
 
     >>> import channelpack as cp
@@ -120,10 +120,10 @@ producing an overview plot:
 
 .. image:: pics/fig1.png
 
-An update of the plotit1 listing follows to show conditions to sort out some
+An update of the listing1 listing follows to show conditions to sort out some
 relevant parts of data::
 
-   >>> # plotit2
+   >>> # listing2
    >>> _ = pp.figure(figsize=(12.5, 6.5))
    >>> ax1 = pp.subplot(111)
 
@@ -184,3 +184,258 @@ Related methods:
 
 START and STOP conditions
 -------------------------
+
+Often referred to as `start trigger` and `stop trigger` with data acquisition
+tools.
+
+Sometimes it is easier to slice out relevant parts by specifying a start and a
+stop. This can be done using the same method as above,
+:func:`~channelpack.ChannelPack.add_condition`, setting the `conkey` argument to
+one of
+
+* 'startcond'
+* 'stopcond'
+
+From the record where the start condition(s) are True, the part will remain True
+until the condition(s) for stop is True, even though the start conditions might
+cease to be True in between.
+
+A similar listing again::
+
+    >>> # listing3
+    >>> tp = cp.txtpack('testdata/sampledat1.txt')
+    >>> _ = pp.figure(figsize=(12.5, 6.5))
+    >>> ax1 = pp.subplot(111)
+
+    >>> for n in (0, 3, 4):
+    ...     _ = ax1.plot(tp(n), label=tp.name(n))
+
+    >>> # Add conditions to the channelpack, using start and stop:
+    >>> tp.add_condition('startcond', '%(AR_BST) >= 200')
+    >>> tp.add_condition('stopcond', '(%(VG_STOP) == 90) & (%(RPT) > %(VG_STOP))')
+
+    >>> # Make not true sections be replaced by nan's on calls:
+    >>> tp.nof = 'nan'
+
+    >>> _ = ax1.plot(tp(3), label=tp.name(3) + ' relevant', marker='o')
+    >>> prop = {'size': 12}
+    >>> _ = ax1.legend(loc='upper left', prop=prop)
+    >>> pp.show()
+
+Early in the data, `AR_BST` has a quick peak exceeding 200, a fulfilled start
+condition. When `VG_STP` is 90 and `RPT` is bigger than `VG_STOP`, the first
+relevant part is defined by a stop condition fulfilled:
+
+.. image:: pics/fig3.png
+
+Note that the start condition is fulfilled in parallel with the stop condition,
+but the stop condition dominate. As soon as the stop condition is not True
+anymore, a new start is defined (condition fulfilled). The new start is not
+meeting any fulfilled stop condition, and so is valid the rest of data.
+
+A related method is :func:`~channelpack.ChannelPack.set_stopextend`. For cases
+when some extra elements should be added to the end of the start-stop part.
+
+Duration conditions
+-------------------
+
+Consider the listing3 listing above and the plot. A new start happened after the
+first part had been defined. This was maybe not desired and could obviously be
+avoided by playing further with conditions. But at times it might be easier to
+set a duration rule.
+
+    >>> tp('VG_STOP', 0).size
+    2133
+    >>> tp('VG_STOP', 1).size
+    2766
+    >>> tp('VG_STOP', 2).size
+    Traceback (most recent call last):
+    ...
+    IndexError: list index out of range
+
+An un-mentioned feature sneaked in, see the
+:func:`~channelpack.ChannelPack.__call__` signature for docs. Anyway, two
+relevant parts was defined by the start-stop conditions, and they can be
+retrieved respectively by enumeration this way. Now I know the length of each
+part, and add a duration rule to the pack to exclude the second part::
+
+    >>> # listing4
+    >>> _ = pp.figure(figsize=(12.5, 6.5))
+    >>> ax1 = pp.subplot(111)
+
+    >>> tp.nof = None   # discard the current conditions on first plot
+    >>> for n in (0, 3, 4):
+    ...     _ = ax1.plot(tp(n), label=tp.name(n))
+
+    >>> # Add a duration rule:
+    >>> tp.set_duration('dur < 2766')
+
+    >>> # Make not true sections be replaced by nan's on calls:
+    >>> tp.nof = 'nan'
+
+    >>> _ = ax1.plot(tp(3), label=tp.name(3) + ' relevant', marker='o')
+    >>> prop = {'size': 12}
+    >>> _ = ax1.legend(loc='upper left', prop=prop)
+    >>> pp.show()
+
+    >>> tp.pprint_conditions()
+    cond1: None
+    startcond1: %(AR_BST) >= 200
+    stopcond1: (%(VG_STOP) == 90) & (%(RPT) > %(VG_STOP))
+    stopextend: None
+    dur: dur < 2766
+    samplerate: None
+
+And a new plot to show off the difference:
+
+.. image:: pics/fig4.png
+
+Related methods:
+
+* :func:`~channelpack.ChannelPack.set_duration`
+* :func:`~channelpack.ChannelPack.set_sample_rate`
+* :func:`~channelpack.ChannelPack.__call__`
+
+Spitting and eating persistant state of conditions
+==================================================
+
+As seen above, details on the condition setting can be reviewed interactively
+by:
+
+    >>> tp.pprint_conditions()
+    cond1: None
+    startcond1: %(AR_BST) >= 200
+    stopcond1: (%(VG_STOP) == 90) & (%(RPT) > %(VG_STOP))
+    stopextend: None
+    dur: dur < 2766
+    samplerate: None
+
+Oftentimes, conditions are played with interactively until a setting satisfying
+the needs is found. It can also be so that the setting will work equally well
+with some other data file, because the structure of the data is the same, as
+well as the channel names. In this case it might be convenient to store away the
+settings found out:
+
+    >>> tp.spit_config()
+
+The command spits a file to the directory where the loaded data file sits by
+default. It look like this:
+
+.. literalinclude:: ../testdata/conf_file.cfg
+
+And is given by default the name ``conf_file.cfg``.
+
+When this is done, setting the same conditions on a similar data file again is
+easy, if :func:`~channelpack.ChannelPack.eat_config` is used. If to eat_config a
+file with a name other than ``conf_file.cfg``, the name is given as an argument.
+But now just eat the default file::
+
+   >>> # listing5
+   >>> tp = cp.txtpack('testdata/sampledat2.txt')
+   >>> tp.pprint_conditions()
+   cond1: None
+   startcond1: None
+   stopcond1: None
+   stopextend: None
+   dur: None
+   samplerate: None
+
+   >>> # Eat a conf_file sitting in the same directory as the data file:
+   >>> tp.eat_config()
+   >>> tp.pprint_conditions()
+   cond1: None
+   startcond1: %(AR_BST) >= 200
+   stopcond1: (%(VG_STOP) == 90) & (%(RPT) > %(VG_STOP))
+   stopextend: None
+   dur: dur < 2766
+   samplerate: None
+
+And so the condition settings don't have to be figured out again.
+
+The ``conf_file.cfg`` can be used to customize the channel names and / or
+experimenting with the conditions. The work flow could look like this:
+
+    >>> tp = cp.txtpack('testdata/sampledat1.txt')
+    >>> tp.chnames
+    {0: 'RPT', 1: 'B_CACT', 2: 'P_CACT', 3: 'VG_STOP', 4: 'AR_BST', 5: 'PLRT_1', 6: 'TOQ_BUM'}
+    >>> tp.pprint_conditions()
+    cond1: None
+    startcond1: None
+    stopcond1: None
+    stopextend: None
+    dur: None
+    samplerate: None
+    >>> tp.spit_config('testdata/conf_file_mod.cfg')
+
+Open the spitted file, make some work and save it (the following is dummy code
+to modify the spitted file during doctests of these examples, don't let it
+disturb)::
+
+    >>> import os
+    >>> ret = os.system('make modconf')
+
+And the modified file is this:
+
+.. literalinclude:: ../testdata/conf_file_mod.cfg
+
+Then eat the file and changes are applied:
+
+   >>> tp.eat_config() # associated with the modified file thanks to the spit
+   >>> tp.chnames
+   {0: 'RPT_mod',
+    1: 'B_CACT_mod',
+    2: 'ABC_mod',
+    3: 'DEF_mod',
+    4: 'AR_BST_mod',
+    5: 'PLRT_1_mod',
+    6: 'TOQ_BUM_mod'}
+
+   >>> tp.pprint_conditions()
+   cond1: (%(RPT_mod) > 250)
+   startcond1: None
+   stopcond1: None
+   stopextend: None
+   dur: None
+   samplerate: None
+
+Related methods:
+
+* :func:`~channelpack.ChannelPack.spit_config`
+* :func:`~channelpack.ChannelPack.eat_config`
+
+Stripping "channel" names
+-------------------------
+
+The :func:`~channelpack.ChannelPack.name` method is maybe worth a mention. It has
+some tricks to fiddle with the name returned. Consider this example:
+
+    >>> tp = cp.txtpack('testdata/dat_0000.txt')
+    >>> tp.name(0)
+    'Time [s]'
+    >>> tp.name(1)
+    'Quantity1 - 12345678;  [qunit]'
+    >>> tp.name(2)
+    'Distance - 12345678;  [mm]'
+    >>> tp.name(3)
+    'Stresslevel& - 12345678;  [kLevel]'
+
+Sometimes names look like that. Fiddle with the name:
+
+    >>> tp.name(0, firstwordonly=True)
+    'Time'
+    >>> tp.name(1, firstwordonly=True)
+    'Quantity1'
+    >>> tp.name(1, firstwordonly=r'[A-Za-z]+')
+    'Quantity'
+    >>> tp.name(3, firstwordonly=r'\w+')
+    'Stresslevel'
+
+The same keyword (`firstwordonly`) exist also for the `spit_config` method, so
+names can be stripped also to the spitted file. But names in the pack are not
+modified until an eat_config is done.
+
+Related methods:
+
+* :func:`~channelpack.ChannelPack.name`
+* :func:`~channelpack.ChannelPack.spit_config`
+* :func:`~channelpack.ChannelPack.eat_config`

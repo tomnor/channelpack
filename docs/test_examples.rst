@@ -272,7 +272,7 @@ condition::
     dur: None
     samplerate: None
 
-Plot without any effect or the conditions::
+Plot without any effect of the conditions::
 
     >>> plot(dp('BTIME'))
     [<matplotlib.lines.Line2D ...
