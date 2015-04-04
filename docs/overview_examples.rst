@@ -69,8 +69,9 @@ only functionality from this currently is that two attributes are set::
 
     >>> tp.mtimefs
     '.../testdata/subdir1/MesA1.blob'
-    >>> tp.mtimestamp
-    'Thu Apr  2 23:26:36 2015'
+    >>> import os, time
+    >>> tp.mtimestamp == time.ctime(os.path.getmtime('testdata/subdir1/MesA1.blob'))
+    True
 
 given that there was some file with the same base name as the loaded file, with
 an extension as listed in the `originextensions` value. The loaded file was::
