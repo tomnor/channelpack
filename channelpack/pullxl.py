@@ -9,14 +9,11 @@ Spread sheet reading principles:
    in xlrd:s Sheet objects). Top row defaults to be a header row with
    field names, (header=True).
 
-3. pullxl module operate on a xlrd.sheet instance. So an already loaded
-   sheet is assumed.
-
-4. A startcell and stopcell can be given. It is then given in spread
+3. A startcell and stopcell can be given. It is then given in spread
    sheet notation ("B15"). header option can be True or False or a cell
    specification of where the header start ("B15").
 
-5. The interpretation of startcell and stopcell in combination with
+4. The interpretation of startcell and stopcell in combination with
    header is as follows:
 
    - If nothing specified, see 2.
@@ -30,7 +27,7 @@ Spread sheet reading principles:
    - If startcell is given (say 'C3') and header is False, data start at
      row 3.
 
-6. Type detection is done by checking the Cell object's ctype attribute
+5. Type detection is done by checking the Cell object's ctype attribute
    for each field's data range. If the ctype is all the same, the type
    is given. If there are two types, and one of them is 'XL_CELL_EMPTY',
    the type is assumed to be the other. Then the empty cell's values
@@ -340,61 +337,6 @@ def sheet_asdict(fn, sheet=0, header=True, startcell=None, stopcell=None,
         chnames_out.extend(chnames)
 
     return _sheet_asdict(sh, ss, usecols=usecols)
-
-def sheet_asdictBAK(sheet, header=True, startcell=None, stopcell=None,
-                 usecols=None):
-    """Read data from a spread sheet. Return the data in a dict with
-    column numbers as keys.
-
-    sheet: xlrd.sheet.Sheet instance
-        Ready for use.
-
-    header: bool or str
-        True if the defined data range includes a header with field
-        names. Else False - the whole range is data. If a string, it is
-        spread sheet style notation of the startcell for the header
-        ("F9"). The "width" of this record is the same as for the data.
-
-    startcell: str or None
-        If given, a spread sheet style notation of the cell where reading
-        start, ("F9").
-
-    stopcell: str or None
-        A spread sheet style notation of the cell where data end,
-        ("F9"). startcell and stopcell can be used in any combination.
-
-    usecols: str or sequence of ints
-        The columns to use, 0-based. 0 is the spread sheet column
-        "A". Can be given as a string also - 'C:E, H' for columns C, D,
-        E and H.
-
-    Values in the returned dict are numpy arrays. Types are set based on
-    the types in the spread sheet.
-    """
-
-    # The indexes to be used as keys shall correspond with the spread sheet
-    # columns.
-
-    # Make a usecols always, whether it is specified as an argument or
-    # not. (Even if None). Sanitize usecols to integers always.
-
-    raise DeprecationWarning('Not gonna use it.')
-
-    start, stop = _get_startstop(sheet, startcell=startcell, stopcell=stopcell)
-    usecols = _sanitize_usecols(usecols)
-    if usecols is not None:
-        mess =  'Column in usecols outside defined range.'
-        assert start[1] <= min(usecols) and stop[1] > max(usecols), mess
-    else:                       # usecols is None.
-        usecols = tuple(range(start.col, stop.col))
-
-    # Sort out if the header is on top of defined data range:
-    tickit = False
-    if header is True:
-        tickit = True
-    elif header:                # Then it is a string if not False.
-        m = re.match(XLNOT_RX, header)
-        headrow = int(m.group(2)) - 1
 
 def _sanitize_usecols(usecols):
     """Make a tuple of sorted integers and return it. Return None if

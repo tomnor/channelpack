@@ -1,13 +1,19 @@
-**0.3.0 (2014-??-??)**
+**0.3.0 (2015-??-??)**
 
 * Some xldate conversion functions in pullxl.
 
-* Informative __repr__ implemented.
+* Informative __repr__ implemented.???
 
 * Improved parsing of conditions for the eval enabling more advanced
   conditions. Can fail currently if the channel name is not surrounded by space.
 
 * Add a module lazyutils. Helpers to get file names, remembering locations.???
+
+* Removed method ``ch`` from the ChannelPack, superfluous.
+
+* Added ``counter`` method to the ChannelPack.
+
+* Added ``parts`` method to the ChannelPack.
 
 **0.2.2 (2014-11-04)**
 

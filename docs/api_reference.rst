@@ -59,10 +59,9 @@ Functions
 ---------
 
 dbfreader is a recipe Created by Raymond Hettinger on Tue, 11 Jan 2005 (PSF)
-http://code.activestate.com/recipes/362715/ with a minor edit.
+http://code.activestate.com/recipes/362715/ with minor edits.
 
 .. autofunction:: channelpack.pulldbf.dbfreader
-.. autofunction:: channelpack.pulldbf.numpytypes
 .. autofunction:: channelpack.pulldbf.dbf_asdict
 .. autofunction:: channelpack.pulldbf.channel_names
 

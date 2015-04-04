@@ -31,17 +31,10 @@ def dbfreader(f):
     yield [field[0] for field in fields]
     yield [tuple(field[1:]) for field in fields]
 
-    # TO DO: Problem with replacing missing values with np.NaN. Suggesting
-    # trade-off to make integers as floats. It must be done by altering the
-    # fieldspec that is passed to the numpytypes function. And then below
-    # uncomment # value = np.NaN # 0 is a value.
-    # See
+    # replacing missing values with np.NaN. trade-off to make integers as
+    # floats. See
     # http://stackoverflow.com/questions/11548005/numpy-or-pandas-keeping-array-type-as-integer-while-having-a-nan-value
     # The limitation is not solved it seems. (Numpy).
-    # Consider doing this in the numpytypes function. Just dont make ints from
-    # the N type. I see now that it was already a potential problem because N
-    # could be a float. But after this - there will never be any integers.
-
 
     terminator = f.read(1)
     assert terminator == '\r'
@@ -77,35 +70,6 @@ def dbfreader(f):
             result.append(value)
         yield result
 
-
-def numpytypes(field_specs):
-    """Return a comma-separated string to provide to numpy as value to
-    numpys dtype function.
-
-    field_specs is the second record from Hettingers dbf iterator,
-    "dbfreader".
-
-    .. warning::
-       This function will be removed from here in a coming release,
-       because it's not used by this module anymore. There seem to be no
-       reason to force a type on numpy. Let nympy select the type.
-
-    """
-
-    typestr = ''
-    for spec in field_specs:
-        typ, size, deci = spec
-        if typ == 'N' and deci or typ == 'F':
-            typestr += 'f4,'
-        elif typ == 'N':
-            typestr += 'i4,'
-        elif typ == 'D':
-            typestr += 'object,' # datetime
-        else:                    # Assume a string then?
-            typestr += 'a{},'.format(size)
-
-    return typestr[:-1]
-
 def dbf_asdict(fn, usecols=None, keystyle='ints'):
     """Return data from dbf file fn as a dict.
 
@@ -137,49 +101,11 @@ def dbf_asdict(fn, usecols=None, keystyle='ints'):
         else:
             return names[i]
 
-    # R = np.array(R, dtype=numpytypes(specs))
     R = zip(*R)
     d = dict()
     for i in usecols or range(len(names)):
         # d[getkey(i)] = R['f' + str(i)]  # Default numpy fieldname
         d[getkey(i)] = np.array(R[i])
-    return d
-
-def _dbf_asdictBAK(fn, usecols=None, keystyle='ints'):
-    """Return data from dbf file fn as a dict.
-
-    fn: str
-        The filename string.
-
-    usecols: seqence
-        The columns to use, 0-based.
-
-    keystyle: str
-        'ints' or 'names' accepted. Should be 'ints' (default) when this
-        function is given to a ChannelPack as loadfunc. If 'names' is
-        used, keys will be the field names from the dbf file.
-
-    """
-
-    if not keystyle in ['ints', 'names']:
-        raise ValueError('Unknown keyword: ' + str(keystyle))
-
-    with open(fn, 'rb') as fo:
-        rit = dbfreader(fo)
-        names = rit.next()
-        specs = rit.next()
-        R = [tuple(r) for r in rit]
-
-    def getkey(i):
-        if keystyle == 'ints':
-            return i
-        else:
-            return names[i]
-
-    R = np.array(R, dtype=numpytypes(specs))
-    d = dict()
-    for i in usecols or range(len(names)):
-        d[getkey(i)] = R['f' + str(i)]  # Default numpy fieldname
     return d
 
 def channel_names(fn, usecols=None):

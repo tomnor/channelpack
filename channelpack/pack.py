@@ -135,276 +135,6 @@ state::
           dtype='<U1')
 
     array([A, C, C, C, D], dtype=object)
-
-evolve branch
-=============
-
-.. Note::
-
-   This evolve branch text will be removed when evolve branch is merged
-   into master.
-
-I will rewrite channelpack. There will be a new way of handling the
-conditions. More mature and pythonic to my opinion. I will use string
-formatting kind of solution. (Or string interpolation if you want.)
-
-Brainstorming
--------------
-
-TO DO: Use this ``rx = r'%\(([\w ]+)\)'`` and rewrite the whole parsing
-and condition set-up. Conditions to be written like::
-
-    %(channel name 1) > 120 & %(channel2) < %(channel 3)
-
-Also the conditions will be called cond1 and if more is added there will
-be cond2 and so on. The clear condition also to be rewritten.
-
-I want to decide how I want it to be. I have realized I want the
-addcondition function give an opportunity to name the condition. Then it
-should be possible to toggle individual conditions on and off. If not
-explicitly named, it's given enumerated names like "cond1".
-
-What about the mask_on and filter_on thing? This doesn't feel so cool.
-But it should be ok. The call on parts is cool.
-
-More evolve
------------
-
-* The above is valid. About the string formatting and the regular
-  expression at least.
-
-* This text about evolve branch will be removed when the code works as
-  described here.
-
-* A call on a channel. The call signature could be like this:
-  ``__call__(self, key, *part, **kwargs)``. Independent on the mask, a call
-  is by default returning the complete array. ``*part`` is the part
-  enumeration, and can be one integer up to the number of available
-  parts integers. A kwarg could be ``nof="mask"`` or ``nof="filter"``,
-  nof stands for "nan or filter". If parts is given and more than one, a
-  list of the requested parts (arrays) is returned. So they can be
-  nicely unpacked.
-
-* Shit, but the nof keyword is not meaningful together with ``*parts``. One
-  then has to decide that if any ``*parts`` is given - nof is ignored.
-
-* Shall it then not be possible to turn mask or filter on and off? I
-  thought my main point was to keep the calls really easy and
-  convenient. Hmmm. Yes, it will be possible. There will be a variable
-  called ``nof`` that will have the value 'nan', 'filter' or None.
-
-* The conf_file structure will be the channels as before. But the
-  [conditions] section will contain the options::
-
-      cond<n>
-      startcond<n>
-      stopcond<n>
-      stopextend
-      dur
-      samplerate
-
-  The <n> is an incremented number, incremented by each added condition.
-  I was thinking about some way to let the user call the condition
-  whatever desired, and the above being the default, but then some
-  complexity is added since the start and stop conditions are treated
-  specially.
-
-  The durtype option is removed. Instead, dur is an expression like::
-
-      dur = 'dur == 150 or dur > 822'
-
-  or::
-
-      dur = 'dur == 20 or dur == 22'
-
-  The dur is for each true part set to the len of the true part or, if
-  samplerate is set, len(part) * samplerate. For the parts where the dur
-  rule is not fulfilled, the part will be false.
-
-  .. note::
-
-     The logical ``or`` and ``and`` operators must be used. ``dur`` is a
-     primitive, not an array.
-
-* The clear_conditions function should make use of a pattern kind of
-  matching for selecting the conditions to clear. Signature: (pat,
-  noclear=False)
-
-* I have to consider keeping attributes of the conditions for easy
-  retrieval. Might be that one want to merge two conditions for example.
-  But I don't like it maybe. Seems complex. I think there will be an...
-  Or actually, there is already a dict holding the conditions, could be
-  cool if that one again could be held by the pack class and then there
-  will be no problem getting the strings as desired.
-
-* The ChannelPack class has a mask attribute as before, and there must
-  be no complication with the user making his own mask. Only, if any
-  action is performed such as adding conditions, it will be
-  over-written. Yes, how is this supposed to work.
-
-* It is weird that the pack can be instantiated with no load func. Or
-  what is the idea with this? Well, possibly for some experimental play
-  trying out different functions on the same instance but seems pretty
-  weird still.
-
-* The condition of the addable type with the highest number having a
-  value of None, will be used for next addition. If the number is
-  explicitly given in the end of conkey, that one will be
-  overwritten. If the number is not given and the highest number
-  condition is not None, the number will be incremented.
-
-This is all good because one can experiment with the pack on conditions
-and then when satisfied, do basically the same in string form and the
-pack variable name replaced by '%', like ``%(2) == ...`` instead of
-``tp(2) == ...`` with a pack variable called 'tp', for persistent
-storage of conditions that is.
-
-.. note::
-   But, I just realized that since the string is now "pre-parsed" one
-   need to remove the string quotes if interactively the channel names
-   was used. Like ``tp('RPT')``. One need to change that to ``%(RPT)``,
-   else a match will not be done. This should be a desired workings if
-   conditions are written in a file, but might be a little annoying in
-   case of translating to a string interactively. Things will probably
-   be very messy if to try and do something about it.
-
-   Wow, it seems maybe it was not messy to fix. See the regex for the
-   surrounder, allowing one or zero quotes around the channel name
-   now. Need some testing too see it does not create problems.
-
-List of tasks
--------------
-
-Now perform the following tasks:
-
-#. Start with the parts handling the conf_file and condition strings.
-
-       - add_condition done. Much is done also in cc.
-       - The clear_conditions seem to work now. The idea with
-         fn-matching not implemented.
-       - Need to fix the start and stop and dur and so on. Seem to work
-         - under testing.
-
-#. Add the nof variable and remember to use it.
-
-       - Implemented in the ``__call__`` method. Doing this it was
-         realized that the parsing of conditon format strings had to be
-         changed from ``self(i)`` to ``self.D[i]`` since in the
-         ``__call__`` method arrays are manipulated.
-
-       - I have a confusion. I am still calling it 'mask'. But I
-         decided to call it 'nan'. Fix it.
-
-#. The above confusion is not solved, channelpack still require 'mask'.
-   make it accept numpy.nan, 'nan' and 'filter' and None. The logic is
-   three options: nan, filter or None.
-
-       - Done
-
-#. More: The note far above about how the mask should work in
-   combination with a user changing it directly - like this: for each
-   automatic update, the mask is to be taken as one of the conditions.
-   In this way the user can modify mask directly and then add some
-   conditions without loosing the prior work. To make a mask cleanly
-   based only on the conditions held by the pack, an argument is to be
-   made to the make_mask method, like 'clean'.
-
-       - Done.
-
-#. Conditions. The ChannelPack class can have a variable called
-   conditions, set to self.conconf.conditions. This way it is easier to
-   introspect the conditions. Try that, and check if there is much
-   problems with adding a condition directly to that dict. Cool by the
-   way, if to do this, the use of an ordered dict is again meaningful.
-
-       - Rejected for now. It's not a pretty introspection anyway.
-
-#. Implement the no_auto variable. Also expose the ``_make_mask``
-   function, meaning rename it to ``make_mask`` and update it's
-   docstring.
-
-       - Done. Hopefully no nasty side-effect surprises.
-
-#. The dur condition setting is totally not updated. Also, document it
-   like documented above in the more evolve bullets.
-
-       - Done. Some tests are written on it. More needed.
-
-#. Update the spitting and eating of files. Need some extra
-   attention. Specifically, all calls to ConfigParser reading values
-   need to be given this ``raw`` argument so it doesn't produce error on
-   my format strings.
-
-       - Working on the eat_config and realized problem. I want to make
-         a check that the conditions and names pass before actually
-         updating the state of the instance. I am at line 1237 in cc. I
-         made an option to dry-run the make_mask. But then I have not
-         decided how to make the pre-check. Or should I just let be. Let
-         it become a non-working state if user made something wrong?
-         Preferably not, check should be. But it must be nice. Shit, why
-         did this suddenly happen.
-
-       - Possibly, the back-up functionality could be built into the cc
-         class. That is maybe a bit more nice. At least it gets less
-         circular. Add a back_up=True argument to eat_config method. And
-         a method that do the back-up revert. But that should only be
-         the condition dict, because that is the responsibility of
-         cc. The channel names is handled in pack, although updated
-         through cc when eat. So a back-up of the names must be in the
-         pack's eat function.
-
-       - I am hopefully totally wrong above. The error resulting from
-         something that doesn't work should provide safety against a
-         non-working state of the instance - it's built into the
-         language.
-
-       - I was not wrong. I have learned that I am not really so certain
-         on how the exceptions work, a room for studies. However, I will
-         not wonder myself into any un-necessary back-up structure,
-         totally pointless. Just try to make easy to understand where
-         the error is produced.
-
-       - Done. Kind of. Next point remain.
-
-#. Play forth and back with the eat and spit functionality. Adjust code
-   as necessary. Play also with names and location of the file.
-
-       - Need to use the method valid_conkey. Now it is possible to have
-         a conkey like cond3whatever. Even condwhatever. That doesn't
-         feel good.
-
-#. Go through each and every function in ChannelPack and adjust the
-   behavior. this will definitely also mean making changes in the datautils
-   helper module.
-
-#. Document the set_stopextend method. I forgot myself whether the
-   variable is affected by the samplerate or not. Right now I think not,
-   and so that is to be documented. It just ticks up the number of
-   elements to include to the result of start and stop condition.
-
-#. Clean up stuff not necessary. Especially dead variables and
-   such. Make a commit first, messaged 'before clean-up'.
-
-#. Update documentation. Minimum where it conflicts with the new way of
-   doing things.
-
-#. Remove this evolve text.
-
-Current state
--------------
-
-Play forth and back with the eat and...
-
-There is something to improve with the no_auto variable. It is now
-checked before each call to make_mask. This is not good, instead, check
-it once in the make_mask function. Also, it seems I want to dry run the
-make_mask sometimes even if no_auto is True, so always do that, and then
-set the mask only if no_auto is False.
-
-The above wording is confused. I need to check no_auto before the
-make_mask is called. Else it would not be possible to do make_mask if
-the no_auto is True.
-
 """
 import re
 import glob, fnmatch
@@ -439,9 +169,7 @@ _COND_PREFIXES = ['cond', 'startcond', 'stopcond', 'stopextend',  'dur',
                  'samplerate']
 _ADDABLES = ['cond', 'startcond', 'stopcond']
 
-FALLBACK_PREFIX = 'ch'              # TO DO: Use this global constant so it is
-                                    # possible to work-around a possible
-                                    # conflict. DONE (in _fallback func).
+FALLBACK_PREFIX = 'ch'
 
 NONES = [None, 'None', 'none', "''", '""', '']
 
@@ -532,8 +260,8 @@ class ChannelPack:
         self.D = D
         self.keys = sorted(self.D.keys())
         self.rec_cnt = len(self.D[self.keys[0]]) # If not all the same, there
-                                           # should have been an error
-                                           # already
+                                                 # should have been an error
+                                                 # already
 
         fallnames  = _fallback_names(self.keys)
         self.chnames_0 = dict(zip(self.keys, fallnames))
@@ -544,8 +272,8 @@ class ChannelPack:
         self.kwargs = kwargs
 
         if not self.no_auto:
-            self.make_mask()       # Called here if a reload is done on
-                                    # the current instance I guess.
+            self.make_mask()       # Called here if a reload is done on the
+                                   # current instance I guess.
 
     def append_load(self, *args, **kwargs):
         """Append data using loadfunc.
@@ -639,9 +367,10 @@ class ChannelPack:
         If start is None, and the instance is loaded from one file only,
         this method has no effect.
 
-        NOTE: The instance channel is modified on success.
-
         .. note::
+           The instance channel is modified on success.
+
+        .. warning::
            This method is experimental so far and might contain a bug.
 
         """
@@ -736,14 +465,6 @@ class ChannelPack:
            :meth:`~channelpack.ChannelPack.set_duration`
            :meth:`~channelpack.ChannelPack.set_samplerate`
 
-        .. warning::
-           Under construction. There is work to do. This function in
-           combination with the cc.next_conkey. But now it's time for
-           bed.
-
-        .. note::
-           Lot's of checking here, but I hope it will not have to be
-           repeated somewhere. Then I will re-factor. Cool. DEBUG NOTE
         """
 
         # Audit:
@@ -942,8 +663,6 @@ class ChannelPack:
            :meth:`~channelpack.ChannelPack.add_condition`
            :meth:`~channelpack.ChannelPack.pprint_conditions`
 
-        .. warning::
-           UNDER CONSTRUCTION
         """
 
         self.conconf.set_condition('dur', rule)
@@ -1194,20 +913,6 @@ class ChannelPack:
             if fnmatch.fnmatchcase(item[1], pat):
                 print item
 
-
-    def ch(self, key, part=None):
-        """Return the channel data vector.
-
-        key: string or integer.
-            The channel index number or channel name.
-
-        part: int or None
-            The 0-based enumeration of a True part to return. This
-            has an effect whether or not the mask or filter is turned
-            on. Raise IndexError if the part does not exist.
-        """
-        return self.__call__(chname, part)
-
     def set_basefilemtime(self):
         """Set attributes mtimestamp and mtimefs. If the global list
         ORIGINEXTENSIONS include any items, try and look for files (in
@@ -1225,6 +930,11 @@ class ChannelPack:
         This is supposed to be a convenience in cases the data file
         loaded is some sort of "exported" file format, and the original
         file creation time is of interest.
+
+        .. note::
+           If the provided functions in this module is used to get a
+           pack, this method does not have to be called. It is called by
+           those functions.
         """
 
         dirpath = os.path.split(self.filename)[0]
