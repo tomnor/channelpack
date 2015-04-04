@@ -145,7 +145,7 @@ Make a rule for the duration of the condition, invalidating the early part::
 That didn't work out because the sample rate defaults to 1 if not set. One
 cannot guess::
 
-    >>> tp.set_sample_rate(40)
+    >>> tp.set_samplerate(40)
     >>> tp.pprint_conditions()
     cond1: (%(time) > 26) | (%(0) < 5)
     cond2: None

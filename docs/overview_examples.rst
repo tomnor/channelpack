@@ -295,7 +295,7 @@ And a new plot to show off the difference:
 Related methods:
 
 * :func:`~channelpack.ChannelPack.set_duration`
-* :func:`~channelpack.ChannelPack.set_sample_rate`
+* :func:`~channelpack.ChannelPack.set_samplerate`
 * :func:`~channelpack.ChannelPack.__call__`
 
 Spitting and eating persistant state of conditions
@@ -412,6 +412,7 @@ The :func:`~channelpack.ChannelPack.name` method is maybe worth a mention. It ha
 some tricks to fiddle with the name returned. Consider this example:
 
     >>> tp = cp.txtpack('testdata/dat_0000.txt')
+    DEBUG: rts was adjusted with 1
     >>> tp.name(0)
     'Time [s]'
     >>> tp.name(1)

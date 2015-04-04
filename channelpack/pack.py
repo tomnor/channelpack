@@ -422,7 +422,7 @@ class ChannelPack:
         fn = os.path.abspath(fn)
         self.filename = self.fs = self.fn = fn
 
-    def set_sample_rate(self, rate):
+    def set_samplerate(self, rate):
         """Set sample rate to rate.
 
         rate: int or float
