@@ -41,7 +41,7 @@ Setting the mask
 
 The ChannelPack is holding a dict with numpy arrays and provide ways to
 get at them by familiar names or column numbers, as just shown. The pack
-also holds a boolean array, initially all true. channelpack calls the
+also holds a Boolean array, initially all true. channelpack calls the
 array ``mask``, and it is of the same length as the channels in the
 pack::
 
@@ -123,7 +123,7 @@ to the same conditions, do like this::
 Note that the string for the condition is the same as in the above
 assignment (``sp.mask = (sp('txtdata') == 'A') | (sp('txtdata') ==
 'D')``) with the identifier for the pack replaced with ``%``. Now a new
-file with the same data lay-out can be loded and receive the same
+file with the same data lay-out can be loaded and receive the same
 state::
 
     >>> sp.load('testdata/sampledat4.xls', stopcell='c6')
@@ -160,7 +160,7 @@ Also the conditions will be called cond1 and if more is added there will
 be cond2 and so on. The clear condition also to be rewritten.
 
 I want to decide how I want it to be. I have realized I want the
-addcondition function give an opurtunity to name the condition. Then it
+addcondition function give an opportunity to name the condition. Then it
 should be possible to toggle individual conditions on and off. If not
 explicitly named, it's given enumerated names like "cond1".
 
@@ -190,7 +190,7 @@ More evolve
 
 * Shall it then not be possible to turn mask or filter on and off? I
   thought my main point was to keep the calls really easy and
-  convinient. Hmmm. Yes, it will be possible. There will be a variable
+  convenient. Hmmm. Yes, it will be possible. There will be a variable
   called ``nof`` that will have the value 'nan', 'filter' or None.
 
 * The conf_file structure will be the channels as before. But the
@@ -230,9 +230,9 @@ More evolve
   matching for selecting the conditions to clear. Signature: (pat,
   noclear=False)
 
-* I have to concider keeping attributes of the conditions for easy
+* I have to consider keeping attributes of the conditions for easy
   retrieval. Might be that one want to merge two conditions for example.
-  But I dont like it maybe. Seems complex. I think there will be an...
+  But I don't like it maybe. Seems complex. I think there will be an...
   Or actually, there is already a dict holding the conditions, could be
   cool if that one again could be held by the pack class and then there
   will be no problem getting the strings as desired.
@@ -242,10 +242,10 @@ More evolve
   action is performed such as adding conditions, it will be
   over-written. Yes, how is this supposed to work.
 
-* It is wierd that the pack can be instantiated with no load func. Or
+* It is weird that the pack can be instantiated with no load func. Or
   what is the idea with this? Well, possibly for some experimental play
   trying out different functions on the same instance but seems pretty
-  wierd still.
+  weird still.
 
 * The condition of the addable type with the highest number having a
   value of None, will be used for next addition. If the number is
@@ -256,7 +256,7 @@ More evolve
 This is all good because one can experiment with the pack on conditions
 and then when satisfied, do basically the same in string form and the
 pack variable name replaced by '%', like ``%(2) == ...`` instead of
-``tp(2) == ...`` with a pack variable called 'tp', for persistant
+``tp(2) == ...`` with a pack variable called 'tp', for persistent
 storage of conditions that is.
 
 .. note::
@@ -323,7 +323,7 @@ Now perform the following tasks:
    function, meaning rename it to ``make_mask`` and update it's
    docstring.
 
-       - Done. Hopefully no nasty side-effect suprises.
+       - Done. Hopefully no nasty side-effect surprises.
 
 #. The dur condition setting is totally not updated. Also, document it
    like documented above in the more evolve bullets.
@@ -338,7 +338,7 @@ Now perform the following tasks:
        - Working on the eat_config and realized problem. I want to make
          a check that the conditions and names pass before actually
          updating the state of the instance. I am at line 1237 in cc. I
-         made an option to dry-run tha make_mask. But then I have not
+         made an option to dry-run the make_mask. But then I have not
          decided how to make the pre-check. Or should I just let be. Let
          it become a non-working state if user made something wrong?
          Preferably not, check should be. But it must be nice. Shit, why
@@ -383,7 +383,7 @@ Now perform the following tasks:
    elements to include to the result of start and stop condition.
 
 #. Clean up stuff not necessary. Especially dead variables and
-   such. Make a commit first, messsaged 'before clean-up'.
+   such. Make a commit first, messaged 'before clean-up'.
 
 #. Update documentation. Minimum where it conflicts with the new way of
    doing things.
@@ -557,13 +557,13 @@ class ChannelPack:
 
         If self is not already a loaded instance, call load and return.
 
-        Make error if there is a missmatch of channels indexes or
+        Make error if there is a mismatch of channels indexes or
         channels count.
 
         Append the data to selfs existing data. Set filename to the new
         file.
 
-        Create new attribute - a dict with metadata on all files loaded,
+        Create new attribute - a dict with meta-data on all files loaded,
         'metamulti.'
 
         .. note::
@@ -633,7 +633,7 @@ class ChannelPack:
             be all equal.
 
         Typically this would be used to make a time channel
-        continous. Like, not start over from 0, when data is appended
+        continuous. Like, not start over from 0, when data is appended
         from multiple files. Or simply to rebase a channel on 'start'.
 
         If start is None, and the instance is loaded from one file only,
@@ -742,7 +742,7 @@ class ChannelPack:
            bed.
 
         .. note::
-           Lot's of checkig here, but I hope it will not have to be
+           Lot's of checking here, but I hope it will not have to be
            repeated somewhere. Then I will re-factor. Cool. DEBUG NOTE
         """
 
@@ -789,7 +789,7 @@ class ChannelPack:
 
     def _mask_array(self, cond):
         """
-        Let the boolean array mask production be here. Call this for
+        Let the Boolean array mask production be here. Call this for
         each condition. The _parse_cond method is called here.
         """
         cond = self._parse_cond(cond)
@@ -1099,7 +1099,7 @@ class ChannelPack:
         return Counter(self(self._key(ch), part=part))
 
     def __call__(self, key, part=None):
-        """Make possible to retreive channels by key.
+        """Make possible to retrieve channels by key.
 
         key: string or integer.
             The channel index number or channel name.
@@ -1222,7 +1222,7 @@ class ChannelPack:
         attributes discussed will be based on the file that was loaded,
         (unless ORIGINEXTENSIONS is populated before this call).
 
-        This is supposed to be a convinience in cases the data file
+        This is supposed to be a convenience in cases the data file
         loaded is some sort of "exported" file format, and the original
         file creation time is of interest.
         """
@@ -1536,7 +1536,7 @@ def sheetpack(fn, sheet=0, header=True, startcell=None, stopcell=None,
         "A". Can be given as a string also - 'C:E, H' for columns C, D,
         E and H.
 
-    Might not be a favourite, but the header row can be offset from the
+    Might not be a favorite, but the header row can be offset from the
     data range. The meaning of usecols is then applied on both the data
     range and the header row. However, usecols is always specified with
     regards to the data range.

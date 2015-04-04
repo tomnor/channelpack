@@ -2,7 +2,7 @@
 Testable examples
 *****************
 
-Those examples are made up mainly for testing, (doctest). Hopully there is
+Those examples are made up mainly for testing, (doctest). Hopefully there is
 enough prose so it can also be some help to understand the channelpack.
 
 Load and plot
@@ -89,7 +89,7 @@ later for repeats::
     dur: None
     samplerate: None
 
-Note that in the conditon string it is optional to surround the channel name
+Note that in the condition string it is optional to surround the channel name
 with quotes. See :meth:`~channelpack.ChannelPack.add_condition`. The condition
 above could also have been stated as::
 
@@ -103,7 +103,7 @@ above could also have been stated as::
     dur: None
     samplerate: None
 
-The added cond2 is the same as cond1. Conditions are anded together so cond2 has
+The added cond2 is the same as cond1. Conditions are and-ed together so cond2 has
 no effect. Remove it::
 
     >>> tp.clear_conditions('cond2')
@@ -116,7 +116,7 @@ no effect. Remove it::
     dur: None
     samplerate: None
 
-Anything that can be done for producing boolean results with numpy arrays can be
+Anything that can be done for producing Boolean results with numpy arrays can be
 done here where the identifier for the pack is replaced with ``%``.
 
 Now replace all corresponding false elements with numpy.nan and plot it::
@@ -272,7 +272,7 @@ condition::
     dur: None
     samplerate: None
 
-Plot without any effect or the conditions::
+Plot without any effect of the conditions::
 
     >>> plot(dp('BTIME'))
     [<matplotlib.lines.Line2D ...
@@ -280,8 +280,8 @@ Plot without any effect or the conditions::
 
 .. image:: pics/plotit05.png
 
-It is not always obvious how to set conditions so that only the downgoing slopes
-are extracted, but the start and stop conditions should yeild just that::
+It is not always obvious how to set conditions so that only the down-going slopes
+are extracted, but the start and stop conditions should yield just that::
 
     >>> dp.nof = 'nan'
     >>> plot(dp('BTIME'), marker='o')

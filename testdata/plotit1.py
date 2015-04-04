@@ -4,10 +4,8 @@ import matplotlib.pyplot as pp
 
 import channelpack as cp
 
-tp = cp.txtpack('sampledat.txt')
-
+tp = cp.txtpack('testdata/sampledat1.txt')
 pp.figure(figsize=(12.5, 6.5))
-
 ax1 = pp.subplot(111)
 
 for n in (0, 3, 4):
