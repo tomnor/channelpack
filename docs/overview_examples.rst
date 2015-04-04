@@ -72,8 +72,8 @@ only functionality from this currently is that two attributes are set::
     >>> tp.mtimestamp
     'Thu Apr  2 23:26:36 2015'
 
-given that there was some file with the same base name as the loaded file, but
-with an extension as listed in `originextensions` value. The loaded file was::
+given that there was some file with the same base name as the loaded file, with
+an extension as listed in the `originextensions` value. The loaded file was::
 
     >>> tp.filename
     '.../testdata/subdir1/MesA1.csv'
@@ -96,7 +96,7 @@ General conditions
 ------------------
 
 Assume some listing for a plot like this, using your favorite plotting library,
-(`matplotlib <http://matplotlib.org/>`_) (assignment to underscores are just to
+(`matplotlib <http://matplotlib.org/>`_), (assignment to underscores are just to
 be able to test those examples with doctest)::
 
     >>> # listing1
@@ -169,10 +169,11 @@ To see the current conditions, say::
 
 The syntax of the conditions is python using numpy arrays. Any expression that
 produces a Boolean array. Since the pack is callable, one can say
-``tp('VG_STOP') == 70`` to produce such an array. When given as a string, the
-identifier for the pack is replaced with ``%``. In the string the quotes around
-the channel identifier is optional. To give ``tp('VG_STOP') == 70`` as a
-condition string, ``tp.add_condition("cond", "%('VG_STOP') == 70")`` will work.
+``tp('VG_STOP') == 70`` interactively to produce such an array. When given as a
+string, the identifier for the pack is replaced with ``%``. In the string the
+quotes around the channel identifier is optional. To give ``tp('VG_STOP') ==
+70`` as a condition string, ``tp.add_condition("cond", "%('VG_STOP') == 70")``
+will work.
 
 The different conditions are and:ed together.
 
@@ -318,7 +319,7 @@ settings found out:
 
     >>> tp.spit_config()
 
-The command spits a file to the directory where the loaded data file sits by
+The call spits a file to the directory where the loaded data file sits by
 default. It look like this:
 
 .. literalinclude:: ../testdata/conf_file.cfg
@@ -367,9 +368,9 @@ experimenting with the conditions. The work flow could look like this:
     samplerate: None
     >>> tp.spit_config('testdata/conf_file_mod.cfg')
 
-Open the spitted file, make some work and save it (the following is dummy code
+Open the spitted file, make some work and save it. The following is dummy code
 to modify the spitted file during doctests of these examples, don't let it
-disturb)::
+disturb::
 
     >>> import os
     >>> ret = os.system('make modconf')
@@ -378,7 +379,7 @@ And the modified file is this:
 
 .. literalinclude:: ../testdata/conf_file_mod.cfg
 
-Then eat the file and changes are applied:
+Then eat the file and changes are applied::
 
    >>> tp.eat_config() # associated with the modified file thanks to the spit
    >>> tp.chnames
