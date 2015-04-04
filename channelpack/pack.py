@@ -397,22 +397,10 @@ class ChannelPack:
                              str(S))
 
         # Now modify:
-        # start = start or self(key)[0]
         if start is None:
             start = self(key)[0]
-        self.D[self._key(key)] = np.arange(start, d * self.rec_cnt + start, d)
-# From the arange docstring:
-# For floating point arguments, the length of the result is
-#     ``ceil((stop - start)/step)``.  Because of floating point overflow,
-#     this rule may result in the last element of `out` being greater
-#     than `stop`.
-
-# This is now a bug that has to be fixed promptly. Numpy people mean by
-# 'element' the index for last element. That's confusing since 'stop' is the
-# last excluded value. Use selfmade arithmetics or probably better: linspace.
-
-# Also consider stackoverflow or an issue to tell about this finding. Maybe this
-# is something everybody is very aware of, maybe not. I don't know.
+        self.D[self._key(key)] = np.linspace(start, d * self.rec_cnt + start,
+                                             num=self.rec_cnt, endpoint=False)
 
         assert len(self(key)) == self.rec_cnt, 'Semantic error'
 
