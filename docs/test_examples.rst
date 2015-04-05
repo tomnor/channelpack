@@ -289,3 +289,32 @@ are extracted, but the start and stop conditions should yield just that::
     >>> show()
 
 .. image:: pics/plotit06.png
+
+Support functions in pullxl for dates
+=====================================
+
+The pullxl module has helper functions to convert dates from python datetimes to
+xlstyle of dates, and back::
+
+    >>> sp = cp.sheetpack('testdata/sampledat4.xls', stopcell='d6')
+    >>> sp.query_names('*es')
+    (3, u'dates')
+
+    >>> sp(3)
+    array([datetime.datetime(2010, 10, 1, 0, 0),
+           datetime.datetime(2015, 4, 5, 0, 0),
+           datetime.datetime(2015, 4, 5, 0, 0),
+           datetime.datetime(2015, 4, 5, 0, 0),
+           datetime.datetime(2008, 1, 16, 0, 0)], dtype=object)
+
+    >>> xldates = [cp.pullxl.toxldate(dt) for dt in sp(3)]
+
+    >>> xldates # days since 1904
+    [38990.0, 40637.0, 40637.0, 40637.0, 38001.0]
+
+    >>> [cp.pullxl.fromxldate(days) for days in xldates]
+    [datetime.datetime(2010, 10, 1, 0, 0),
+     datetime.datetime(2015, 4, 5, 0, 0),
+     datetime.datetime(2015, 4, 5, 0, 0),
+     datetime.datetime(2015, 4, 5, 0, 0),
+     datetime.datetime(2008, 1, 16, 0, 0)]

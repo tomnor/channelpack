@@ -1,7 +1,7 @@
 **0.3.0 (2015-??-??)**
 
-* The persistent condition strings are now written whith python syntax operating
-  on numpy arrays. Identifiers use replacement syntax like ``%(<id>)``.
+* The persistent condition strings are written whith python syntax operating on
+  numpy arrays. Identifiers use replacement syntax like ``%(<id>)``.
 
 * Removed method ``ch`` from the ChannelPack, superfluous.
 

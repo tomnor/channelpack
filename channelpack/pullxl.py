@@ -404,3 +404,28 @@ def letter2num(letters, zbase=False):
     if not zbase:
         return res
     return res - 1
+
+def toxldate(datetime, datemode=1):
+    """Return a xl-date number from the datetime object datetime.
+
+    datetime: datetime.datetime
+        The python datetime object
+
+    datemode: int
+        0: 1900-based, 1: 1904-based. See xlrd documentation.
+    """
+    return xlrd.xldate.xldate_from_datetime_tuple(datetime.timetuple()[:6],
+                                           datemode)
+
+def fromxldate(xldate, datemode=1):
+    """Return a python datetime object
+
+    xldate: float
+        The xl number.
+
+    datemode: int
+        0: 1900-based, 1: 1904-based. See xlrd documentation.
+    """
+
+    t = xlrd.xldate_as_tuple(xldate, datemode)
+    return datetime.datetime(*t)
