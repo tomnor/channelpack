@@ -10,7 +10,7 @@ if __name__ == '__main__':
 
     if '0' in suit:
         print '### README.rst (0)'
-        f, t = doctest.testfile('../README.rst', report=True,
+        f, t = doctest.testfile('README.rst', report=True,
                                 # verbose=True,
                                 optionflags=of)
         if f == 0:
@@ -33,7 +33,7 @@ if __name__ == '__main__':
 
     if '3' in suit:
         print '### testing test_examples.rst (3)'
-        f, t = doctest.testfile('../docs/test_examples.rst', report=True,
+        f, t = doctest.testfile('docs/test_examples.rst', report=True,
                                 # verbose=True,
                                 optionflags=of)
         if f == 0:
@@ -49,7 +49,7 @@ if __name__ == '__main__':
 
     if '5' in suit:
         print '### testing overview_examples.rst (5)'
-        f, t = doctest.testfile('../docs/overview_examples.rst', report=True,
+        f, t = doctest.testfile('docs/overview_examples.rst', report=True,
                                 # verbose=True,
                                 optionflags=of)
         if f == 0:
