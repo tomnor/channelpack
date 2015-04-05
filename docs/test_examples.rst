@@ -86,7 +86,7 @@ later for repeats::
     startcond1: None
     stopcond1: None
     stopextend: None
-    dur: None
+    duration: None
     samplerate: None
 
 Note that in the condition string it is optional to surround the channel name
@@ -100,7 +100,7 @@ above could also have been stated as::
     startcond1: None
     stopcond1: None
     stopextend: None
-    dur: None
+    duration: None
     samplerate: None
 
 The added cond2 is the same as cond1. Conditions are and-ed together so cond2 has
@@ -113,7 +113,7 @@ no effect. Remove it::
     startcond1: None
     stopcond1: None
     stopextend: None
-    dur: None
+    duration: None
     samplerate: None
 
 Anything that can be done for producing Boolean results with numpy arrays can be
@@ -135,7 +135,7 @@ Make a rule for the duration of the condition, invalidating the early part::
     startcond1: None
     stopcond1: None
     stopextend: None
-    dur: dur > 5
+    duration: dur > 5
     samplerate: None
 
     >>> plotit(marker='x')
@@ -152,7 +152,7 @@ cannot guess::
     startcond1: None
     stopcond1: None
     stopextend: None
-    dur: dur > 5
+    duration: dur > 5
     samplerate: 40
 
     >>> plotit(marker='^')
@@ -177,7 +177,7 @@ Now get a new pack::
     startcond1: None
     stopcond1: None
     stopextend: None
-    dur: None
+    duration: None
     samplerate: None
 
     >>> tp.eat_config() # Eats by default from directory where the data file is.
@@ -187,7 +187,7 @@ Now get a new pack::
     startcond1: None
     stopcond1: None
     stopextend: None
-    dur: dur > 5
+    duration: dur > 5
     samplerate: 40
 
 More on the mask, parts and conditions
@@ -227,7 +227,7 @@ on the conditions::
     startcond1: None
     stopcond1: None
     stopextend: None
-    dur: None
+    duration: None
     samplerate: None
 
     >>> dp.parts()
@@ -255,7 +255,7 @@ Set some conditions, study the start and stop feature::
     startcond1: %(BDIST) > 19
     stopcond1: %(BDIST) < 2
     stopextend: None
-    dur: None
+    duration: None
     samplerate: None
 
 But that was wrong, it should have been 'BTIME'. Either clear the conditions
@@ -269,7 +269,7 @@ condition::
     startcond1: %(BTIME) > 19
     stopcond1: %(BTIME) < 2
     stopextend: None
-    dur: None
+    duration: None
     samplerate: None
 
 Plot without any effect of the conditions::

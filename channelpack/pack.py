@@ -165,7 +165,7 @@ and then place it there.
 CONFIG_FILE = "conf_file.cfg"
 _CONFIG_SECS = ['channels',  'conditions']
 
-_COND_PREFIXES = ['cond', 'startcond', 'stopcond', 'stopextend',  'dur',
+_COND_PREFIXES = ['cond', 'startcond', 'stopcond', 'stopextend',  'duration',
                  'samplerate']
 _ADDABLES = ['cond', 'startcond', 'stopcond']
 
@@ -650,7 +650,7 @@ class ChannelPack:
 
         """
 
-        self.conconf.set_condition('dur', rule)
+        self.conconf.set_condition('duration', rule)
         if not self.no_auto:
             self.make_mask()
 
@@ -723,7 +723,7 @@ class ChannelPack:
         samplerate = cc.get_condition('samplerate')
         if samplerate is not None:
             samplerate = float(samplerate)
-        mask = datautils.duration_bool(mask, cc.get_condition('dur'),
+        mask = datautils.duration_bool(mask, cc.get_condition('duration'),
                                        samplerate)
 
         if  dry:
@@ -956,7 +956,7 @@ class _ConditionConfigure:
     def reset(self):
         conpairs = [('cond1', None), ('startcond1', None),
                     ('stopcond1', None), ('stopextend', None),
-                    ('dur', None), ('samplerate', None)]
+                    ('duration', None), ('samplerate', None)]
         # Ordered dict is of no use any more. cond<n> will be inserted later
         # on, and that is to be printed together with the cond conditions.
         self.conditions = OrderedDict(conpairs)

@@ -165,7 +165,7 @@ To see the current conditions, say::
     startcond1: None
     stopcond1: None
     stopextend: None
-    dur: None
+    duration: None
     samplerate: None
 
 The syntax of the conditions is python using numpy arrays. Any expression that
@@ -285,7 +285,7 @@ part, and add a duration rule to the pack to exclude the second part::
     startcond1: %(AR_BST) >= 200
     stopcond1: (%(VG_STOP) == 90) & (%(RPT) > %(VG_STOP))
     stopextend: None
-    dur: dur < 2766
+    duration: dur < 2766
     samplerate: None
 
 And a new plot to show off the difference:
@@ -309,7 +309,7 @@ by:
     startcond1: %(AR_BST) >= 200
     stopcond1: (%(VG_STOP) == 90) & (%(RPT) > %(VG_STOP))
     stopextend: None
-    dur: dur < 2766
+    duration: dur < 2766
     samplerate: None
 
 Oftentimes, conditions are played with interactively until a setting satisfying
@@ -339,7 +339,7 @@ But now just eat the default file::
    startcond1: None
    stopcond1: None
    stopextend: None
-   dur: None
+   duration: None
    samplerate: None
 
    >>> # Eat a conf_file sitting in the same directory as the data file:
@@ -349,7 +349,7 @@ But now just eat the default file::
    startcond1: %(AR_BST) >= 200
    stopcond1: (%(VG_STOP) == 90) & (%(RPT) > %(VG_STOP))
    stopextend: None
-   dur: dur < 2766
+   duration: dur < 2766
    samplerate: None
 
 And so the condition settings don't have to be figured out again.
@@ -365,7 +365,7 @@ experimenting with the conditions. The work flow could look like this:
     startcond1: None
     stopcond1: None
     stopextend: None
-    dur: None
+    duration: None
     samplerate: None
     >>> tp.spit_config('testdata/conf_file_mod.cfg')
 
@@ -397,7 +397,7 @@ Then eat the file and changes are applied::
    startcond1: None
    stopcond1: None
    stopextend: None
-   dur: None
+   duration: None
    samplerate: None
 
 Related methods:

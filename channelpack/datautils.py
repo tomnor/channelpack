@@ -40,8 +40,8 @@ def duration_bool(b, rule, samplerate=None):
         Has an effect on the result.
 
     For each part of b that is True, a variable ``dur`` is set to the
-    count of elements, or the result of int(len(sc) * samplerate). And
-    then eval is called on the rule.
+    count of elements, or the result of (len(part) / samplerate). And then
+    eval is called on the rule.
 
     """
     if rule is None:
