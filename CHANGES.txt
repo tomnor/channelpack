@@ -1,4 +1,4 @@
-**0.3.0 (2015-??-??)**
+**0.3.0 (2015-04-??)**
 
 * The persistent condition strings are written whith python syntax operating on
   numpy arrays. Identifiers use replacement syntax like ``%(<id>)``.
@@ -13,11 +13,7 @@
 
 * A number of bugfixes.
 
-* Some xldate conversion functions in pullxl.???
-
-* Informative __repr__ implemented.???
-
-* Add a module lazyutils. Helpers to get file names, remembering locations.???
+* Two xldate conversion functions in pullxl.
 
 **0.2.2 (2014-11-04)**
 
