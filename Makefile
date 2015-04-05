@@ -12,8 +12,25 @@ modconf:
 doc:
 	cd docs && make html
 
+.PHONY: sdist
+sdist:
+	python setup.py sdist
+
+.PHONY: release
+release:
+	python setup.py sdist upload
+
+.PHONY: install
+install:
+	python setup.py install
+
+.PHONY: uninstall
+uninstall:
+	pip uninstall channelpack
+
 .PHONY: clean
 clean:
 	rm -f channelpack/*.pyc
 	rm -f testdata/*.pyc
 	rm -f *.pyc
+	rm -rf build *.egg-info
