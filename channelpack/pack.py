@@ -370,9 +370,6 @@ class ChannelPack:
         .. note::
            The instance channel is modified on success.
 
-        .. warning::
-           This method is experimental so far and might contain a bug.
-
         """
         diffs = []
 

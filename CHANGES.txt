@@ -1,13 +1,7 @@
 **0.3.0 (2015-??-??)**
 
-* Some xldate conversion functions in pullxl.
-
-* Informative __repr__ implemented.???
-
-* Improved parsing of conditions for the eval enabling more advanced
-  conditions. Can fail currently if the channel name is not surrounded by space.
-
-* Add a module lazyutils. Helpers to get file names, remembering locations.???
+* The persistent condition strings are now written whith python syntax operating
+  on numpy arrays. Identifiers use replacement syntax like ``%(<id>)``.
 
 * Removed method ``ch`` from the ChannelPack, superfluous.
 
@@ -15,7 +9,15 @@
 
 * Added ``parts`` method to the ChannelPack.
 
-* Changed name on method set_samplerate, was set_sample_rate.
+* Change name on method set_samplerate, was set_sample_rate.
+
+* A number of bugfixes.
+
+* Some xldate conversion functions in pullxl.???
+
+* Informative __repr__ implemented.???
+
+* Add a module lazyutils. Helpers to get file names, remembering locations.???
 
 **0.2.2 (2014-11-04)**
 
