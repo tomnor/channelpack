@@ -231,24 +231,24 @@ class ChannelPack:
         ChannelPack is assuming a need for loading data from disc. If
         there is a desire to load some made-up data, a filename pointing
         to some actual file is nevertheless required. Here is a
-        suggestion:
+        suggestion::
 
-        >>> import channelpack as cp
-        >>> import tempfile
+            >>> import channelpack as cp
+            >>> import tempfile
 
-        >>> tf = tempfile.NamedTemporaryFile()
+            >>> tf = tempfile.NamedTemporaryFile()
 
-        >>> d = {2: np.arange(5), 5: np.arange(10, 15)}
-        >>> def lf(fn):
-        ...     return d
-        ...
+            >>> d = {2: np.arange(5), 5: np.arange(10, 15)}
+            >>> def lf(fn):
+            ...     return d
+            ...
 
-        >>> pack = cp.ChannelPack(lf)
-        >>> pack.load(tf.name)
-        >>> pack.filename is not None
-        True
-        >>> pack.chnames_0
-        {2: 'ch2', 5: 'ch5'}
+            >>> pack = cp.ChannelPack(lf)
+            >>> pack.load(tf.name)
+            >>> pack.filename is not None
+            True
+            >>> pack.chnames_0
+            {2: 'ch2', 5: 'ch5'}
 
         """
         D = self.loadfunc(*args, **kwargs)
@@ -446,9 +446,10 @@ class ChannelPack:
            Updates the mask if not no_auto.
 
         .. seealso::
-           :meth:`~channelpack.ChannelPack.set_stopextend`
            :meth:`~channelpack.ChannelPack.set_duration`
            :meth:`~channelpack.ChannelPack.set_samplerate`
+           :meth:`~channelpack.ChannelPack.set_stopextend`
+           :meth:`~channelpack.ChannelPack.clear_conditions`
 
         """
 
@@ -600,7 +601,7 @@ class ChannelPack:
         """Pretty print conditions.
 
         This is the easiest (only exposed) way to view
-        all conditions.
+        all conditions interactively.
 
         .. seealso::
            :meth:`~channelpack.ChannelPack.spit_config`
@@ -645,6 +646,7 @@ class ChannelPack:
            Updates the mask if not no_auto.
 
         .. seealso::
+           :meth:`~channelpack.ChannelPack.set_samplerate`
            :meth:`~channelpack.ChannelPack.add_condition`
            :meth:`~channelpack.ChannelPack.pprint_conditions`
 
