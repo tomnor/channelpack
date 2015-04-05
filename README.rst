@@ -1,7 +1,5 @@
-
-***********
 channelpack
-***********
+===========
 
 A python package for loading, analyzing and slicing out acqusition data based on
 conditions. Conditions and naming of channels can be saved as config files and
@@ -32,7 +30,7 @@ Data files:
   with channels to the ChannelPack class.
 
 Example
-=======
+-------
 
 channelpack has some convenience functions for getting a pack::
 
@@ -85,7 +83,7 @@ conditions::
 
 
 Depends
-=======
+-------
 
 There is a dependency on xlrd as of version 0.2.0. It is installed if not
 available.
@@ -95,7 +93,7 @@ numpy to be installed. Do it your way. It is likely that if you consider
 channelpack, you already have numpy installed.
 
 Documentation and changes
-=========================
+-------------------------
 
 `Documentation <http://channelpack.readthedocs.org/en/latest/>`_
 

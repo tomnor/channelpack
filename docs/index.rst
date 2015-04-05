@@ -21,6 +21,13 @@ Site contents:
    test_examples.rst
    changelog.rst
 
+Help channelpack
+================
+
+Please feel welcome to place suggestions or issues, fork and make changes at the
+`repo <https://github.com/tomnor/channelpack>`_ on github. Or send a mail to
+tomasn@kth.se.
+
 Indices and tables
 ==================
 
