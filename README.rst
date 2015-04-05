@@ -68,6 +68,9 @@ conditions::
 
     >>> sp.spit_config()
     >>> sp = cp.sheetpack('testdata/sampledat4.xls', stopcell='c6')
+    >>> sp('txtdata')
+    array([u'A', u'C', u'C', u'C', u'D'],
+          dtype='<U1')
     >>> sp.parts()
     [0]
     >>> sp.eat_config()
@@ -79,9 +82,7 @@ conditions::
     >>> sp('txtdata', 1)
     array([u'D'],
           dtype='<U1')
-    >>> sp('txtdata')
-    array([u'A', u'C', u'C', u'C', u'D'],
-          dtype='<U1')
+
 
 Depends
 =======
