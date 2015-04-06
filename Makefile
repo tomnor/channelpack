@@ -33,4 +33,5 @@ clean:
 	rm -f channelpack/*.pyc
 	rm -f testdata/*.pyc
 	rm -f *.pyc
-	rm -rf build *.egg-info
+	rm -rf build *.egg-info dist
+	rm -rf channelpack-[0-9]*

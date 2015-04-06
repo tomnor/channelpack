@@ -490,8 +490,7 @@ class ChannelPack:
 
             repl = 'self.D[' + str(i) + ']'
             cond = re.sub(rx, repl, cond) # %(<identifier>) replaced with
-                                          # self.D[i], I hope - What about the
-                                          # capturing group?
+                                          # self.D[i]
         return cond
 
     def _mask_array(self, cond):

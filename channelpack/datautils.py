@@ -164,8 +164,6 @@ def slicelist(b):
 
     Start and stop in each slice describe the True sections in b."""
 
-    # This functionality must be in numpy somewhere?
-
     slicelst = []
     started = False
     for i, e in enumerate(b):

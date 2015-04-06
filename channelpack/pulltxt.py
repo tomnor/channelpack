@@ -301,11 +301,6 @@ def _floatit(s):
     """Convert string s to a float. s use ',' as a decimal delimiter."""
     return float(s.replace(',', '.'))
 
-# TODO: Make some sort of closure function to get the instance of PatternPull,
-# so that the global PP variable can be removed. This function can have some
-# optional argument to get the last instance if any. (Not thread safe? Yea, but
-# come on. Need to worry about that?)
-
 def loadtxt(fn, **kwargs):
     """Study the text data file fn. Call numpys loadtxt with keyword
     arguments based on the study.
@@ -322,7 +317,6 @@ def loadtxt(fn, **kwargs):
     global PP
     PP = PatternPull(fn)
     txtargs = PP.loadtxtargs()
-    # kwargs.pop('unpack', None) # Let me handle this one. No. Why? User.
     txtargs.update(kwargs)      # Let kwargs dominate.
     return np.loadtxt(fn, **txtargs)
 

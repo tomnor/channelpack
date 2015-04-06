@@ -1,4 +1,4 @@
-**0.3.0 (2015-04-??)**
+**0.3.0 (2015-04-06)**
 
 * The persistent condition strings are written whith python syntax operating on
   numpy arrays. Identifiers use replacement syntax like ``%(<id>)``.
