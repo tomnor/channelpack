@@ -290,6 +290,43 @@ are extracted, but the start and stop conditions should yield just that::
 
 .. image:: pics/plotit06.png
 
+Getting records
+===============
+
+Sometimes each record have a meaning on its own::
+
+    >>> import math
+    >>> sp = cp.sheetpack('testdata/sampledat3.xls')
+    >>> sorted(sp.chnames.items())
+    [(0, u'txtdata'), (1, u'nums'), (2, u'floats')]
+    >>> sp('txtdata')
+    array([u'A', u'A', u'C', u'D', u'D'], dtype='<U1')
+    >>> for rec in sp.records():
+    ...    print rec.txtdata
+    ...    print rec.floats == math.sin(rec.nums * math.pi / 180.0)
+    ...
+    A
+    True
+    A
+    True
+    C
+    True
+    D
+    True
+    D
+    True
+    >>> con1 = '(%(txtdata) == "C")'
+    >>> con2 = '(%(txtdata) == "D")'
+    >>> con3 = '(%(nums) == 120)'
+    >>> condition = '{} | ({} & {})'.format(con1, con2, con3)
+    >>> sp.add_condition('cond', condition)
+    >>> sp.nof = 'filter'
+    >>> [rec for rec in sp.records()]
+    [Record(txtdata=u'C', nums=60.0, floats=0.8660254037844386),
+     Record(txtdata=u'D', nums=120.0, floats=0.86602540378443871)]
+
+.. versionadded:: 0.3.1
+
 Support functions in pullxl for dates
 =====================================
 

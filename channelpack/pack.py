@@ -140,7 +140,8 @@ import re
 import glob, fnmatch
 import os, time
 import ConfigParser
-from collections import OrderedDict, Counter
+from collections import OrderedDict, Counter, namedtuple
+from operator import itemgetter
 
 import numpy as np
 import xlrd
@@ -830,6 +831,43 @@ class ChannelPack:
                              '\nmust be "nan", "filter" or falsish')
         else:
             return self.D[i]
+
+    def records(self, part=None, fallback=True):
+        """Return an iterator over the records in the pack.
+
+        Each record is supplied as a namedtuple with the channel names
+        as field names. This is useful if each record make a meaningful
+        data set on its own.
+
+        part: int or None
+            Same meaning as in
+            :meth:`~channelpack.ChannelPack.__call__`.
+
+        fallback: boolean
+            The named tuple requires python-valid naming. If fallback is
+            False, there will be an error if ``self.chnames`` is not
+            valid names and not None. If True, fall back to the
+            ``self.chnames_0`` on error.
+        """
+
+        names_0 = [self.chnames_0[k] for k in sorted(self.chnames_0.keys())]
+        if self.chnames is not None:
+            names = [self.chnames[k] for k in sorted(self.chnames.keys())]
+
+        try:
+            Record = namedtuple('Record', names)
+        except NameError:       # no names
+            Record = namedtuple('Record', names_0)
+            names = names_0
+        except ValueError:      # no good names
+            if fallback:
+                Record = namedtuple('Record', names_0)
+                names = names_0
+            else:
+                raise
+
+        for tup in zip(*[self(name, part) for name in names]):
+            yield Record(*tup)
 
     def _key(self, ch):
         """Return the integer key for ch. It is the key for the first
