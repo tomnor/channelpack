@@ -30,3 +30,9 @@ If you have `pip <https://pypi.python.org/pypi/pip/>`_ or `easy_install
 or
 
     ``easy_install channelpack``
+
+Freedom
+=======
+
+.. image:: pics/gplv3-127x51.png
+   :target: http://www.gnu.org/philosophy/free-sw.html
