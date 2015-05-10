@@ -12,7 +12,6 @@ Load a data file and make some plots with presentable legends::
 
     >>> import channelpack as cp
     >>> tp = cp.txtpack('testdata/dat_0000.txt')
-    DEBUG: rts was adjusted with 1
     >>> sorted(tp.chnames.items())
     [(0, 'Time [s]'),
      (1, 'Quantity1 - 12345678;  [qunit]'),
@@ -171,7 +170,6 @@ file. channelpack call this to do a
 Now get a new pack::
 
     >>> tp = cp.txtpack('testdata/dat_0000.txt')
-    DEBUG: rts was adjusted with 1
     >>> tp.pprint_conditions()
     cond1: None
     startcond1: None
@@ -329,7 +327,6 @@ If self.chnames is not None but contain names that is not OK for a namedtuple,
 an error is to be produced if fallback is not True, (True by default)::
 
     >>> tp = cp.txtpack('testdata/dat_0000.txt')
-    DEBUG: rts was adjusted with 1
     >>> sorted(tp.chnames.items())
     [(0, 'Time [s]'),
      (1, 'Quantity1 - 12345678;  [qunit]'),

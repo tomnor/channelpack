@@ -219,7 +219,7 @@ class PatternPull:
                if dat.strip()]
         if not all([re.match(self.datrx, dat) for dat in res]):
             self.rts += 1
-            print 'DEBUG: rts was adjusted with 1'
+            # print 'DEBUG: rts was adjusted with 1'
 
         # Keep the groups for debug:
         self.datdelgroups = groups

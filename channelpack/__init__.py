@@ -41,4 +41,4 @@ objects.
 
 from .pack import ChannelPack, txtpack, dbfpack, sheetpack
 
-__version__ = '0.3.0'
+__version__ = '0.3.1'

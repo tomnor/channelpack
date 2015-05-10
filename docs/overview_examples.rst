@@ -412,7 +412,6 @@ The :func:`~channelpack.ChannelPack.name` method is maybe worth a mention. It ha
 some tricks to fiddle with the name returned. Consider this example:
 
     >>> tp = cp.txtpack('testdata/dat_0000.txt')
-    DEBUG: rts was adjusted with 1
     >>> tp.name(0)
     'Time [s]'
     >>> tp.name(1)
