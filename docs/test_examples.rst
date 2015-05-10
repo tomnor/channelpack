@@ -325,6 +325,28 @@ Sometimes each record have a meaning on its own::
     [Record(txtdata=u'C', nums=60.0, floats=0.8660254037844386),
      Record(txtdata=u'D', nums=120.0, floats=0.86602540378443871)]
 
+If self.chnames is not None but contain names that is not OK for a namedtuple,
+an error is to be produced if fallback is not True, (True by default)::
+
+    >>> tp = cp.txtpack('testdata/dat_0000.txt')
+    DEBUG: rts was adjusted with 1
+    >>> sorted(tp.chnames.items())
+    [(0, 'Time [s]'),
+     (1, 'Quantity1 - 12345678;  [qunit]'),
+     (2, 'Distance - 12345678;  [mm]'),
+     (3, 'Stresslevel& - 12345678;  [kLevel]')]
+    >>> recs = tp.records(fallback=False)
+    >>> recs.next()
+    Traceback (most recent call last):
+    ...
+    ValueError: Type names and field names can only contain alphanumeric
+    characters and underscores: 'Time [s]'
+    >>> recs = tp.records()
+    >>> recs.next()
+    Record(ch0=0.0, ch1=3.4072435999999999e-06, ch2=-0.11937809000000001, ch3=10.908116)
+
+See :meth:`~channelpack.ChannelPack.records`.
+
 .. versionadded:: 0.3.1
 
 Support functions in pullxl for dates

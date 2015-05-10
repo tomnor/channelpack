@@ -848,6 +848,12 @@ class ChannelPack:
             False, there will be an error if ``self.chnames`` is not
             valid names and not None. If True, fall back to the
             ``self.chnames_0`` on error.
+
+        .. note:: The error produced on invalid names if fallback is
+           False is not produced until iteration start. Here is a good
+           post on stack overflow on the subject `231767
+           <http://stackoverflow.com/questions/231767/what-does-the-yield-keyword-do-in-python>`_
+
         """
 
         names_0 = [self.chnames_0[k] for k in sorted(self.chnames_0.keys())]
