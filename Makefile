@@ -18,7 +18,8 @@ sdist:
 
 .PHONY: release
 release:
-	python setup.py sdist upload
+	# python setup.py sdist upload
+	twine upload dist/*
 
 .PHONY: install
 install:
