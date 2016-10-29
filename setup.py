@@ -27,7 +27,7 @@ setup(
     long_description=long_description,
     url='https://github.com/tomnor/channelpack',
     author='Tomas Nordin',
-    author_email='tomasn@kth.se',
+    author_email='tomnor@posteo.net',
     license='GPLv3+',
     classifiers=[
         'Development Status :: 3 - Alpha',
