@@ -255,7 +255,7 @@ def _sheet_asdict(sheet, startstops, usecols=None):
 
         # Replace empty values with nan if appropriate:
         if (not types - NANABLE) and xlrd.XL_CELL_NUMBER in types:
-            D[c] = np.array([np.nan if cell.value is '' else cell.value for cell
+            D[c] = np.array([np.nan if cell.value == '' else cell.value for cell
                           in cells])
         elif xlrd.XL_CELL_DATE in types:
             dm = sheet.book.datemode
