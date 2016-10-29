@@ -1,3 +1,11 @@
+**0.3.2 (2016-10-29)**
+
+* Bugfix in pullxl.py. An update in xlrd version 1.0.0 on empty cell values made
+  this bug evident. Empty cells was reported as empty bytestrings before, now it
+  is reported as empty unicode strings as documented. The channelpack bug
+  resulted in all values in a "channel" being unicode strings when some should
+  be numpy.nan and the rest numbers.
+
 **0.3.1 (2015-05-10)**
 
 * Added a records method to ChannelPack.
