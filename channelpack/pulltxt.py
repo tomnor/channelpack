@@ -74,7 +74,8 @@ class PatternPull:
         decimal delimiter and data delimiter, and hopefully some channel
         names.
         """
-        self.fn = fn
+        self.fn = fn             # file name (maybe object initially)
+        self.fo = fn             # file object
         self.rows = None        # The rows read.
         self.matches_p = None   # match count per line using point as
                                 # decimal delimiter.
@@ -99,12 +100,23 @@ class PatternPull:
     def count_matches(self):
         """Set the matches_p, matches_c and rows attributes."""
         rows = []
-        with open(self.fn) as fo:
+
+        try:
+            self.fn = self.fo.name
             for i in range(NUMROWS):
-                line = fo.readline()
+                line = self.fo.readline()
                 if not line:
                     break
                 rows += [line]
+            self.fo.seek(0)
+
+        except AttributeError:
+            with open(self.fn) as fo:
+                for i in range(NUMROWS):
+                    line = fo.readline()
+                    if not line:
+                        break
+                    rows += [line]
 
         matches_p = []
         matches_c = []
@@ -339,4 +351,3 @@ def loadtxt_asdict(fn, **kwargs):
         raise Exception('Unknown dimension of loaded data.')
 
     return D
-

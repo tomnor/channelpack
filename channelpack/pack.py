@@ -405,8 +405,10 @@ class ChannelPack:
     def _set_filename(self, fn):
         """Set the filename attributes. (They are multiple for personal
         reasons)."""
-        fn = os.path.abspath(fn)
-        self.filename = self.fs = self.fn = fn
+        try:
+            self.filename = self.fs = self.fn = os.path.abspath(fn.name)
+        except AttributeError:
+            self.filename = self.fs = self.fn = os.path.abspath(fn)
 
     def set_samplerate(self, rate):
         """Set sample rate to rate.
