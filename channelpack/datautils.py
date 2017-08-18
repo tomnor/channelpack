@@ -12,6 +12,7 @@ Helper module for processing data arrays and such.
 
 import numpy as np
 
+
 def masked(a, b):
     """Return a numpy array with values from a where elements in b are
     not False. Populate with numpy.nan where b is False. When plotting,
@@ -24,7 +25,8 @@ def masked(a, b):
     else:
         n = np.array([None for i in range(len(a))])
         # a = a.astype(object)
-    return np.where(b, a, n) # a if b is True, else n.
+    return np.where(b, a, n)    # a if b is True, else n.
+
 
 def duration_bool(b, rule, samplerate=None):
     """
@@ -54,11 +56,12 @@ def duration_bool(b, rule, samplerate=None):
         samplerate = 1.0
 
     for sc in slicelst:
-        dur = (sc.stop - sc.start) / samplerate
+        dur = (sc.stop - sc.start) / samplerate  # NOQA
         if not eval(rule):
             b2[sc] = False
 
     return b2
+
 
 def startstop_bool(pack):
     """Make a bool array based on start and stop conditions.
@@ -73,7 +76,7 @@ def startstop_bool(pack):
     slice, and the rest of the array is set to False.
 
     """
-    b_TRUE = np.ones(pack.rec_cnt) == True
+    b_TRUE = np.ones(pack.rec_cnt) == True  # NOQA
 
     start_list = pack.conconf.conditions_list('startcond')
     stop_list = pack.conconf.conditions_list('stopcond')
@@ -89,7 +92,8 @@ def startstop_bool(pack):
 
     # startb:
     if runflag == 'stoponly':
-        startb = b_TRUE == False     # All False (Dummy assignment).
+        # all False (dummy assignment)
+        startb = b_TRUE == False  # NOQA
     else:
         startb = b_TRUE
         for cond in start_list:
@@ -97,7 +101,8 @@ def startstop_bool(pack):
 
     # stopb:
     if runflag == 'startonly':
-        stopb = b_TRUE == False      # All False (Dummy assignment).
+        # all False (dummy assignment)
+        stopb = b_TRUE == False  # NOQA
     else:
         stopb = b_TRUE
         for cond in stop_list:
@@ -107,6 +112,7 @@ def startstop_bool(pack):
 
     return _startstop_bool(startb, stopb, runflag, stopextend)
 
+
 def _startstop_bool(startb, stopb, runflag, stopextend):
     """Return boolean array based on start and stop conditions.
 
@@ -114,7 +120,8 @@ def _startstop_bool(startb, stopb, runflag, stopextend):
         Boolean arrays for start and stop conditions being fullfilled or not.
 
     """
-    res = np.zeros(len(startb)) == True # All false at start
+    # All false at start
+    res = np.zeros(len(startb)) == True  # NOQA
 
     start_slices = slicelist(startb)
     stop_slices = slicelist(stopb)
@@ -124,20 +131,23 @@ def _startstop_bool(startb, stopb, runflag, stopextend):
     if runflag == 'startonly':
         try:
             start = start_slices[0]
-            res[start.start:] = True  # Make True from first start and rest of array.
+            # Make True from first start and rest of array.
+            res[start.start:] = True
             return res
         except IndexError:
-            return res          # Only start specified but no start condition
-                                # fullfilled. Return all False.
-    # elif not start_slices and stop_slices:
+            # Only start specified but no start condition
+            # fullfilled. Return all False.
+            return res
+
     elif runflag == 'stoponly':
         try:
             stop = stop_slices[0]
-            res[:stop.start + stopextend] = True # Make True up to first stop.
+            res[:stop.start + stopextend] = True  # Make True up to first stop.
             return res
         except IndexError:
-            return res == False # Only stop specified but no stop condition
-                                # fullfilled. Return all True.
+            # Only stop specified but no stop condition fullfilled
+            # Return all True
+            return res == False  # NOQA
 
     stop = slice(0, 0)           # For first check
     start = slice(0, 0)          # For a possibly empty list start_slices.
@@ -154,10 +164,12 @@ def _startstop_bool(startb, stopb, runflag, stopextend):
             # that from this given start, the rest is to be True:
             break
 
-    if start.start > stop.start: # There was no stop for the last start in loop.
+    # There was no stop for the last start in loop
+    if start.start > stop.start:
         res[start.start:] = True
 
     return res
+
 
 def slicelist(b):
     """Produce a list of slices given the boolean array b.
@@ -175,6 +187,6 @@ def slicelist(b):
             started = False
 
     if e:
-        slicelst.append(slice(start, i + 1)) # True in the end.
+        slicelst.append(slice(start, i + 1))  # True in the end.
 
     return slicelst
