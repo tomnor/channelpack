@@ -1,7 +1,9 @@
-
-import struct, datetime, decimal, itertools
+import struct
+import datetime
+import itertools
 
 import numpy as np
+
 
 # Created by Raymond Hettinger on Tue, 11 Jan 2005 (PSF)
 # http://code.activestate.com/recipes/362715/
@@ -54,7 +56,7 @@ def dbfreader(f):
                 value = value.replace('\0', '').lstrip()
                 if value == '':
                     # value = 0
-                    value = np.NaN # 0 is a value.
+                    value = np.NaN  # 0 is a value.
                 elif deci:
                     value = float(value)
                     # value = decimal.Decimal(value) Not necessary.
@@ -64,11 +66,13 @@ def dbfreader(f):
                 y, m, d = int(value[:4]), int(value[4:6]), int(value[6:8])
                 value = datetime.date(y, m, d)
             elif typ == 'L':
-                value = (value in 'YyTt' and 'T') or (value in 'NnFf' and 'F') or '?'
+                value = ((value in 'YyTt' and 'T') or
+                         (value in 'NnFf' and 'F') or '?')
             elif typ == 'F':    # Can this type not be null?
                 value = float(value)
             result.append(value)
         yield result
+
 
 def dbf_asdict(fn, usecols=None, keystyle='ints'):
     """Return data from dbf file fn as a dict.
@@ -86,13 +90,12 @@ def dbf_asdict(fn, usecols=None, keystyle='ints'):
 
     """
 
-    if not keystyle in ['ints', 'names']:
+    if keystyle not in ['ints', 'names']:
         raise ValueError('Unknown keyword: ' + str(keystyle))
 
     with open(fn, 'rb') as fo:
         rit = dbfreader(fo)
         names = rit.next()
-        specs = rit.next()
         R = [tuple(r) for r in rit]
 
     def getkey(i):
@@ -108,6 +111,7 @@ def dbf_asdict(fn, usecols=None, keystyle='ints'):
         d[getkey(i)] = np.array(R[i])
     return d
 
+
 def channel_names(fn, usecols=None):
     """Return the field names (channel names) from dbf file fn. With
     usecols, return only names corresponding to the integers in
@@ -116,5 +120,4 @@ def channel_names(fn, usecols=None):
     with open(fn, 'rb') as fo:
         names = dbfreader(fo).next()
 
-    return usecols and [names[i] for i in usecols] or names # A bit too smart.
-
+    return usecols and [names[i] for i in usecols] or names
