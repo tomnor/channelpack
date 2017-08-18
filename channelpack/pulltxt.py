@@ -29,38 +29,39 @@ point. That can be wrong.
 
 """
 
-
-
-import re, string
+import re
+import string
 
 import numpy as np
 
 # The scanf kind of regular expressions as suggested by python docs on
 # the re module: r'[-+]?(\d+(\.\d*)?|\.\d+)([eE][-+]?\d+)?'
-DATPRX = r'[-+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?' # With decimal point.
-DATCRX = r'[-+]?(?:\d+(?:,\d*)?|,\d+)(?:[eE][-+]?\d+)?' # With decimal comma.
+DATPRX = r'[-+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?'  # With decimal point
+DATCRX = r'[-+]?(?:\d+(?:,\d*)?|,\d+)(?:[eE][-+]?\d+)?'  # With decimal comma
 
 # Consider this pattern:
 # '(?<![A-Za-z])[-+]?(?:\\d+(?:,\\d*)?|,\\d+)(?:[eE][-+]?\\d+)?' (for comma)
 # This comment added in dox branch because discovered that when channel names
 # are cluttered with some numbers, those numbers can qualify as a valid data
-# row, in case just before actual data. This is maybe risky however. Or at least
-# it requires that numbers are never directly preceeded by a letter
+# row, in case just before actual data. This is maybe risky however. Or at
+# least it requires that numbers are never directly preceeded by a letter
 # A-Za-z. (negative lookbehind assertion).
 
-ALPHAS = tuple(string.lowercase + string.uppercase + '_' +  u'åäöÅÄÖ')
+ALPHAS = tuple(string.lowercase + string.uppercase + '_' + u'åäöÅÄÖ')
 
-EQUAL_CNT_REQ = 10              # Number of rows with equal number of data
-                                # pattern matches
+# Number of rows with equal number of data pattern matches
+EQUAL_CNT_REQ = 10
 
-NUMROWS = 50                    # Number of rows in total to read, (it
-                                # will be <= NUMROWS).
+# Number of rows in total to read, (it will be <= NUMROWS).
+NUMROWS = 50
 
 PP = None                       # A cache of the last pull for debug.
+
 
 class PatternError(Exception):
     """Raise at failure to evaluate the data file"""
     pass
+
 
 class PatternPull:
     """Build useful attributes for determining decimal delimiter and
@@ -74,24 +75,24 @@ class PatternPull:
         decimal delimiter and data delimiter, and hopefully some channel
         names.
         """
-        self.fn = fn             # file name (maybe object initially)
-        self.fo = fn             # file object
+        self.fn = fn            # file name (maybe object initially)
+        self.fo = fn            # file object
         self.rows = None        # The rows read.
-        self.matches_p = None   # match count per line using point as
-                                # decimal delimiter.
-        self.matches_c = None   # match count per line using comma as
-                                # decimal delimiter.
-        self.rts = None         # Rows to skip
-        self.decdel = None      # Decimal delimiter.
-        self.datdelgroups = None # re groups result on searching for data
-                                 # delimiter.
-        self.datdel = None       # Determined data delimiter. This will remain
-                                 # None if delimiter was only white space other
-                                 # than a sole tab ('\t').
+        # match count per line using point as # decimal delimiter.
+        self.matches_p = None
+        # match count per line using comma as # decimal delimiter.
+        self.matches_c = None
+        self.rts = None          # Rows to skip
+        self.decdel = None       # Decimal delimiter.
+        # re groups result on searching for data delimiter.
+        self.datdelgroups = None
+        # Determined data delimiter. This will remain None if delimiter was
+        # only white space other than a sole tab ('\t').
+        self.datdel = None
         self.datrx = None        # DATPRX or DATCRX depending on file study.
         self.warnings = []       # Keep a list of (debug) warnings.
-        self.cnt = None          # Resulting equal data pattern count. Should be
-                                 # EQUAL_CNT_REQ.
+        # Resulting equal data pattern count. Should be EQUAL_CNT_REQ.
+        self.cnt = None
 
         self.count_matches()    # File input only here.
         self.set_decdel_rts()
@@ -157,7 +158,7 @@ class PatternPull:
         for val1, val2 in zip(ms, ms[1:]):
             # val2 is one element ahead.
             row += 1
-            if val2 == val1 != 0: # 0 is no matches, so it doesn't count.
+            if val2 == val1 != 0:  # 0 is no matches, so it doesn't count.
                 cnt += 1
             else:
                 cnt = 0
@@ -180,11 +181,12 @@ class PatternPull:
         # If EQUAL_CNT_REQ was not met, raise error. Implement!
         if self.cnt > EQUAL_CNT_REQ:
             raise PatternError('Did not find ' + str(EQUAL_CNT_REQ) +
-                          ' data rows with equal data pattern in file: ' +
-                          self.fn)
-        elif self.cnt < EQUAL_CNT_REQ: # Too few rows
-            raise PatternError('Less than', str(EQUAL_CNT_REQ) + 'data rows in',
-                               self.fn + '?', '\nTry lower the EQUAL_CNT_REQ')
+                               ' data rows with equal data pattern in file: ' +
+                               self.fn)
+        elif self.cnt < EQUAL_CNT_REQ:  # Too few rows
+            raise PatternError('Less than', str(EQUAL_CNT_REQ) +
+                               'data rows in', self.fn + '?',
+                               '\nTry lower the EQUAL_CNT_REQ')
         if self.matches_p[lnr] <= self.matches_c[lnr]:
             self.decdel = '.'   # If equal, assume decimal point is used.
             self.datrx = DATPRX
@@ -199,7 +201,7 @@ class PatternPull:
 
         nodigs = r'(\D+)'
 
-        line = self.rows[self.rts + 1] # Study second line of data only.
+        line = self.rows[self.rts + 1]  # Study second line of data only.
         digs = re.findall(self.datrx, line)
 
         # if any of the numbers contain a '+' in it, it need to be escaped
@@ -222,8 +224,8 @@ class PatternPull:
             self.warnings.append('Warning, data seperator not consistent.')
 
         if groups[0].strip():
-            # If a delimiter apart from white space is included, let that be the
-            # delimiter for numpys loadtxt.
+            # If a delimiter apart from white space is included, let that be
+            # the delimiter for numpys loadtxt.
             self.datdel = groups[0].strip()
         elif groups[0] == '\t':
             # If specifically a tab as delimiter, use that.
@@ -255,7 +257,8 @@ class PatternPull:
         d.update(delimiter=self.datdel, skiprows=self.rts)
 
         if self.decdel == '.':
-            cols = range(self.matches_p[self.rts + 1]) # First valid row of data.
+            # First valid row of data.
+            cols = range(self.matches_p[self.rts + 1])
         else:
             cols = range(self.matches_c[self.rts + 1])
             # Converter needed for float, decdel is comma:
@@ -264,8 +267,6 @@ class PatternPull:
                 convd[i] = _floatit
                 d.update(converters=convd)
         d.update(usecols=cols)
-        # d.update(unpack=True)   # Un-packable by default. Yes, but this is not
-        # the task of this class to decide.
 
         return d
 
@@ -297,13 +298,14 @@ class PatternPull:
         if not self.rts:                        # Only data.
             return None
 
-        for row in self.rows[self.rts - 1::-1]: # From last row before data and up.
-            splitlist = row.split(self.datdel) # datdel might be None,
-                                               # (whitespace).
+        # From last row before data and up.
+        for row in self.rows[self.rts - 1::-1]:
+            # datdel might be None, (whitespace)
+            splitlist = row.split(self.datdel)
             for i, word in enumerate(splitlist):
                 if not word.strip().startswith(ALPHAS):
                     break
-                elif i + 1 == datcnt: # Accept
+                elif i + 1 == datcnt:  # Accept
                     names = [ch.strip() for ch in splitlist[:datcnt]]
                     break
             if names:
@@ -314,15 +316,17 @@ class PatternPull:
 
         return names
 
+
 def _floatit(s):
     """Convert string s to a float. s use ',' as a decimal delimiter."""
     return float(s.replace(',', '.'))
+
 
 def loadtxt(fn, **kwargs):
     """Study the text data file fn. Call numpys loadtxt with keyword
     arguments based on the study.
 
-    Return data returned from numpy `loadtxt <http://docs.scipy.org/doc/numpy/reference/generated/numpy.loadtxt.html#numpy-loadtxt>`_.
+    Return data returned from numpy `loadtxt <http://docs.scipy.org/doc/numpy/reference/generated/numpy.loadtxt.html#numpy-loadtxt>`.
 
     kwargs: keyword arguments accepted by numpys loadtxt. Any keyword
     arguments provided will take precedence over the ones resulting
@@ -336,6 +340,7 @@ def loadtxt(fn, **kwargs):
     txtargs = PP.loadtxtargs()
     txtargs.update(kwargs)      # Let kwargs dominate.
     return np.loadtxt(fn, **txtargs)
+
 
 def loadtxt_asdict(fn, **kwargs):
     """Return what is returned from loadtxt as a dict.
