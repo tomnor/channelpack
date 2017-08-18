@@ -137,19 +137,19 @@ state::
     array([A, C, C, C, D], dtype=object)
 """
 import re
-import glob, fnmatch
-import os, time
+import glob
+import fnmatch
+import os
+import time
 import ConfigParser
 from collections import OrderedDict, Counter, namedtuple
-from operator import itemgetter
 
 import numpy as np
-import xlrd
 
 from . import pulltxt, pulldbf, pullxl
 from . import datautils
 
-ORIGINEXTENSIONS =  []
+ORIGINEXTENSIONS = []
 """A list of file extensions excluding the dot. See
 :py:meth:`~.ChannelPack.set_basefilemtime` for a description.
 """
@@ -167,7 +167,7 @@ CONFIG_FILE = "conf_file.cfg"
 _CONFIG_SECS = ['channels',  'conditions']
 
 _COND_PREFIXES = ['cond', 'startcond', 'stopcond', 'stopextend',  'duration',
-                 'samplerate']
+                  'samplerate']
 _ADDABLES = ['cond', 'startcond', 'stopcond']
 
 FALLBACK_PREFIX = 'ch'
@@ -180,11 +180,12 @@ pattern can be monkey patched for specific needs. It is used as is, not
 compiled or held by some instance of something apart from this module in
 the python session."""
 
-CHANNEL_FMT_RX = r"""%\(["']?({})["']?\)""" # Allowing quotes to remain
+CHANNEL_FMT_RX = r"""%\(["']?({})["']?\)"""  # Allowing quotes to remain
 """Pattern used for the format string. The enclosing part around the
 channel identifier. It includes the re group, which must remain, (the
 inner-most ``()``). The ``{}`` part is replaced with
 CHANNEL_IDENTIFIER_RX."""
+
 
 class ChannelPack:
     """Pack of data. Hold a dict with channel index numbers as keys
@@ -204,13 +205,13 @@ class ChannelPack:
         self.loadfunc = loadfunc
         self.D = None           # Dict of data
         self.fn = None          # The loaded filename
-        self.chnames = None       # Channel names maybe. dict
-        self.chnames_0 = None     # Fall back names, always available. ch0,
-                                  # ch1... dict
+        self.chnames = None     # Channel names maybe. dict
+        # Fall back names, always available. ch0, ch1... dict
+        self.chnames_0 = None
 
-        self.keys = None          # Sorted list of keys for the data dict
-        self.rec_cnt = 0          # Number of records
-        self.nof = None          # 'nan', 'filter' or None (nan or filter)
+        self.keys = None     # Sorted list of keys for the data dict
+        self.rec_cnt = 0     # Number of records
+        self.nof = None      # 'nan', 'filter' or None (nan or filter)
 
         self.mask = None
         self.conconf = _ConditionConfigure(self)
@@ -260,11 +261,10 @@ class ChannelPack:
 
         self.D = D
         self.keys = sorted(self.D.keys())
-        self.rec_cnt = len(self.D[self.keys[0]]) # If not all the same, there
-                                                 # should have been an error
-                                                 # already
+        # If not all the same, there should have been an error already
+        self.rec_cnt = len(self.D[self.keys[0]])
 
-        fallnames  = _fallback_names(self.keys)
+        fallnames = _fallback_names(self.keys)
         self.chnames_0 = dict(zip(self.keys, fallnames))
         self._set_filename(args[0])
         self.set_basefilemtime()
@@ -273,8 +273,8 @@ class ChannelPack:
         self.kwargs = kwargs
 
         if not self.no_auto:
-            self.make_mask()       # Called here if a reload is done on the
-                                   # current instance I guess.
+            # Called here if a reload is done on the current instance I guess.
+            self.make_mask()
 
     def append_load(self, *args, **kwargs):
         """Append data using loadfunc.
@@ -325,7 +325,6 @@ class ChannelPack:
             self.metamulti['mtimestamps'].append(self.mtimestamp)
             self.metamulti['mtimenames'].append(self.mtimefs)
             self.metamulti['slices'].append(slice(0, self.rec_cnt))
-
 
         self.rec_cnt = len(self.D[self.keys[0]])
         self._set_filename(args[0])
@@ -485,15 +484,15 @@ class ChannelPack:
         res = re.findall(CHANNEL_RX, cond)
         for ident in res:
             rx = CHANNEL_FMT_RX.format(ident)
-            i = self._key(ident) # integer key
+            i = self._key(ident)  # integer key
 
             # repl = 'self(' + str(i) + ')'
             # Cannot be. Calls (__call__) can be replaced by nan. So must call
             # the array in the dict directly:
 
             repl = 'self.D[' + str(i) + ']'
-            cond = re.sub(rx, repl, cond) # %(<identifier>) replaced with
-                                          # self.D[i]
+            # %(<identifier>) replaced with self.D[i]
+            cond = re.sub(rx, repl, cond)
         return cond
 
     def _mask_array(self, cond):
@@ -579,7 +578,7 @@ class ChannelPack:
 
         """
 
-        chroot = os.path.dirname(self.filename) # "channels root dir"
+        chroot = os.path.dirname(self.filename)  # "channels root dir"
         chroot = os.path.abspath(chroot)
 
         # Figure out file name of conf_file:
@@ -597,7 +596,7 @@ class ChannelPack:
         if not self.no_auto:
             self.make_mask()
         else:
-            self.make_mask(dry=True) # Produce possible error.
+            self.make_mask(dry=True)  # Produce possible error.
 
     def pprint_conditions(self):
         """Pretty print conditions.
@@ -673,7 +672,8 @@ class ChannelPack:
         if offenders:
             raise KeyError(', '.join([off for off in offenders]))
 
-        offenders = set(noclear) - set({'noclear'}) # Valid keywords subtracted
+        # Valid keywords subtracted
+        offenders = set(noclear) - set({'noclear'})
         if offenders:
             raise KeyError(', '.join([off for off in offenders]))
 
@@ -686,7 +686,7 @@ class ChannelPack:
                 break
             elif not noclear and ck in conkeys:
                 self.conconf.set_condition(ck, None)
-            elif noclear and not ck in conkeys:
+            elif noclear and ck not in conkeys:
                 self.conconf.set_condition(ck, None)
 
         if not self.no_auto:
@@ -712,15 +712,15 @@ class ChannelPack:
         """
 
         cc = self.conconf
-        mask = np.ones(self.rec_cnt) == True # All True initially.
+        # All True initially.
+        mask = np.ones(self.rec_cnt) == True  # NOQA
         for cond in cc.conditions_list('cond'):
             try:
                 mask = mask & self._mask_array(cond)
-            except Exception as e:
+            except Exception:
                 print cond
                 print 'produced an error:'
                 raise           # re-raise
-
 
         mask = mask & datautils.startstop_bool(self)
 
@@ -730,7 +730,7 @@ class ChannelPack:
         mask = datautils.duration_bool(mask, cc.get_condition('duration'),
                                        samplerate)
 
-        if  dry:
+        if dry:
             return
         if not clean and self.mask is not None:
             self.mask = self.mask & mask
@@ -931,11 +931,11 @@ class ChannelPack:
 
         if not firstwordonly:
             return names[i]
-        elif firstwordonly == True or firstwordonly == 1:
+        elif firstwordonly is True or firstwordonly == 1:
             return names[i].split()[0].strip()
 
-        return re.findall(firstwordonly, names[i])[0] # According to user
-                                                      # pattern.
+        # According to user pattern
+        return re.findall(firstwordonly, names[i])[0]
 
     def query_names(self, pat):
         """pat a shell pattern. See fnmatch.fnmatchcase. Print the
@@ -971,17 +971,18 @@ class ChannelPack:
 
         dirpath = os.path.split(self.filename)[0]
         name = os.path.basename(self.fs).split('.')[0]
-        for ext in ORIGINEXTENSIONS: # This should be some user configuration.
+        for ext in ORIGINEXTENSIONS:  # This should be some user configuration.
             res = glob.glob(dirpath + '/' + name + '.' + ext)
-            if res: # Assume first match is valid.
-                self.mtimefs = os.path.normpath(res[0]) # If some shell patterns
-                                                        # will be used later.
+            if res:             # Assume first match is valid.
+                # If some shell patterns will be used later
+                self.mtimefs = os.path.normpath(res[0])
                 # Time stamp string:
                 self.mtimestamp = time.ctime(os.path.getmtime(self.mtimefs))
                 break
         else:
             self.mtimefs = self.filename
             self.mtimestamp = time.ctime(os.path.getmtime(self.mtimefs))
+
 
 def _fallback_names(nums):
     """Return a list like ['ch0', 'ch1',...], based on nums. nums is a
@@ -992,12 +993,13 @@ def _fallback_names(nums):
 
     return [FALLBACK_PREFIX + str(i) for i in nums]
 
+
 class _ConditionConfigure:
 
     def __init__(self, pack):
 
         self.pack = pack
-        self.numrx = r'[\w]+?(\d+)' # To extract the trailing number.
+        self.numrx = r'[\w]+?(\d+)'  # To extract the trailing number.
         self.reset()
 
     def reset(self):
@@ -1036,7 +1038,8 @@ class _ConditionConfigure:
 
         sec = 'channels'
         for i in sorted(self.pack.D):
-            cfg.set(sec, str(i), self.pack.name(i, firstwordonly=firstwordonly))
+            cfg.set(sec, str(i),
+                    self.pack.name(i, firstwordonly=firstwordonly))
 
         sec = 'conditions'
         for k in self.sorted_conkeys():
@@ -1058,10 +1061,10 @@ class _ConditionConfigure:
         # Update channel names:
         sec = 'channels'
         mess = 'missmatch of channel keys'
-        assert(set(self.pack.D.keys()) == set([int(i) for i in cfg.options(sec)])), mess
+        assert(set(self.pack.D.keys()) == set([int(i) for i in cfg.options(sec)])), mess  # NOQA
         if not self.pack.chnames:
             self.pack.chnames = dict(self.pack.chnames_0)
-        for i in cfg.options(sec): # i is a string.
+        for i in cfg.options(sec):  # i is a string.
             self.pack.chnames[self.pack._key(int(i))] = cfg.get(sec, i)
 
         # Update conditions:
@@ -1078,7 +1081,7 @@ class _ConditionConfigure:
         # --------------------------------------------------
 
         # for con in conkeys - conops: # Removed conditions.
-            # self.set_condition(con, None)
+        # self.set_condition(con, None)
         conops = cfg.options(sec)
         self.reset()            # Scary
         for con in conops:
@@ -1096,8 +1099,7 @@ class _ConditionConfigure:
             prefix. The list will be filled with all conditions.
         """
         L = []
-        keys = [k for k in self.conditions if k.startswith(conkey)] # Sloppy
-                                                                    # check
+        keys = [k for k in self.conditions if k.startswith(conkey)]  # sloppy
         if not keys:
             raise KeyError(conkey)
         for k in keys:
@@ -1141,7 +1143,7 @@ class _ConditionConfigure:
 
         for prefix in _COND_PREFIXES:
             trailing = conkey.lstrip(prefix)
-            if trailing == '' and conkey: # conkey is not empty
+            if trailing == '' and conkey:  # conkey is not empty
                 return True
             try:
                 int(trailing)
@@ -1169,16 +1171,16 @@ class _ConditionConfigure:
         if conkey in self.conditions:
             return conkey       # Explicit conkey
 
-        conkeys = self.sorted_conkeys(prefix=conkey) # Might be empty.
+        conkeys = self.sorted_conkeys(prefix=conkey)  # Might be empty.
         if not conkeys:
-            return conkey       # A trailing number given that does not already
-                                # exist. Accept possible gap from previous
-                                # number.
+            # A trailing number given that does not already exist.
+            # accept possible gap from previous number.
+            return conkey
         for candidate in conkeys:
             if self.conditions[candidate] is None:
                 return candidate
 
-        i = self.cond_int(candidate) # The last one.
+        i = self.cond_int(candidate)  # The last one.
         return re.sub(r'\d+', str(i + 1), candidate)
 
     def sorted_conkeys(self, prefix=None):
@@ -1199,6 +1201,7 @@ class _ConditionConfigure:
 
         for k in self.sorted_conkeys():
             print k + ':', self.conditions[k]
+
 
 def txtpack(fn, **kwargs):
     """Return a ChannelPack instance loaded with text data file fn.
@@ -1229,9 +1232,10 @@ def txtpack(fn, **kwargs):
     cp.load(fn, **kwargs)
     names = pulltxt.PP.channel_names(kwargs.get('usecols', None))
     cp.set_channel_names(names)
-    cp._patpull = pulltxt.PP              # Give a reference to the patternpull.
+    cp._patpull = pulltxt.PP    # Give a reference to the patternpull.
     # cp.set_basefilemtime()
     return cp
+
 
 def dbfpack(fn, usecols=None):
     """Return a ChannelPack instance loaded with dbf data file fn.
@@ -1246,6 +1250,7 @@ def dbfpack(fn, usecols=None):
     cp.set_channel_names(names)
     # cp.set_basefilemtime()
     return cp
+
 
 def sheetpack(fn, sheet=0, header=True, startcell=None, stopcell=None,
               usecols=None):
@@ -1292,6 +1297,7 @@ def sheetpack(fn, sheet=0, header=True, startcell=None, stopcell=None,
     cp.set_channel_names(chnames or None)
     return cp
 
+
 # Look for rc file:
 _aspirants = []
 if os.getenv('HOME'):
@@ -1314,8 +1320,9 @@ for _asp in _aspirants:
                     ConfigParser.ParsingError) as e:
                 print fp.name, 'exist, but:'
                 print e
-                break           # Not gonna look for a file that work when one
-                                # that fails exist.
+                # Not gonna look for a file that work when one that fails
+                # exist
+                break
 
     except IOError:
         pass
