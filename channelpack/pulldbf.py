@@ -96,6 +96,7 @@ def dbf_asdict(fn, usecols=None, keystyle='ints'):
     with open(fn, 'rb') as fo:
         rit = dbfreader(fo)
         names = rit.next()
+        specs = rit.next()      # NOQA
         R = [tuple(r) for r in rit]
 
     def getkey(i):
