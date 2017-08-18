@@ -97,26 +97,31 @@ class PatternPull:
         self.set_decdel_rts()
         self.study_datdel()
 
+    def file_rows(self, fo):
+        """Return the lines in the file as a list.
+
+        fo is the open file object."""
+
+        rows = []
+        for i in range(NUMROWS):
+            line = fo.readline()
+            if not line:
+                break
+            rows += [line]
+
+        return rows
+
     def count_matches(self):
         """Set the matches_p, matches_c and rows attributes."""
-        rows = []
 
         try:
             self.fn = self.fo.name
-            for i in range(NUMROWS):
-                line = self.fo.readline()
-                if not line:
-                    break
-                rows += [line]
+            rows = self.file_rows(self.fo)
             self.fo.seek(0)
 
         except AttributeError:
             with open(self.fn) as fo:
-                for i in range(NUMROWS):
-                    line = fo.readline()
-                    if not line:
-                        break
-                    rows += [line]
+                rows = self.file_rows(fo)
 
         matches_p = []
         matches_c = []
