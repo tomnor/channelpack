@@ -43,9 +43,11 @@ import datetime
 import xlrd
 import numpy as np
 
-XLNOT_RX = r'([A-Za-z]+)(\d+)'  # Two groups, col and row spread sheet notation.
+# Two groups, col and row spread sheet notation.
+XLNOT_RX = r'([A-Za-z]+)(\d+)'
 
 # StartStop = namedtuple('StartStop', ('row', 'col'))
+
 
 class StartStop:
     """Zero-based integers for row and column, xlrd style. Meaning, the
@@ -54,8 +56,10 @@ class StartStop:
     def __init__(self, row, col):
         self.row = row
         self.col = col
+
     def __getitem__(self, k):
         return [self.row, self.col][k]
+
     def __repr__(self):
         return 'StartStop({}, {})'.format(*self)
 
@@ -76,8 +80,10 @@ class StartStop:
 # https://secure.simplistix.co.uk/svn/xlrd/trunk/xlrd/doc/xlrd.html?p=4966#sheet.Cell-class
 # for details.
 
+
 NANABLE = set((xlrd.XL_CELL_NUMBER, xlrd.XL_CELL_EMPTY))
 NONABLES = (xlrd.XL_CELL_EMPTY, xlrd.XL_CELL_ERROR)
+
 
 def _get_startstop(sheet, startcell=None, stopcell=None):
     """
@@ -108,9 +114,11 @@ def _get_startstop(sheet, startcell=None, stopcell=None):
     if stopcell:
         m = re.match(XLNOT_RX, stopcell)
         stop.row = int(m.group(2))
-        stop.col = letter2num(m.group(1), zbase=False) # Stop number is exclusive.
+        # Stop number is exclusive
+        stop.col = letter2num(m.group(1), zbase=False)
 
     return [start, stop]
+
 
 def prepread(sheet, header=True, startcell=None, stopcell=None):
     """Return four StartStop objects, defining the outer bounds of
@@ -143,7 +151,7 @@ def prepread(sheet, header=True, startcell=None, stopcell=None):
 
     """
     datstart, datstop = _get_startstop(sheet, startcell, stopcell)
-    headstart, headstop = StartStop(0, 0), StartStop(0, 0) # Holders
+    headstart, headstop = StartStop(0, 0), StartStop(0, 0)  # Holders
 
     def typicalprep():
         headstart.row, headstart.col = datstart.row, datstart.col
@@ -154,7 +162,7 @@ def prepread(sheet, header=True, startcell=None, stopcell=None):
     def offsetheaderprep():
         headstart.row, headstart.col = headrow, headcol
         headstop.row = headrow + 1
-        headstop.col = headcol + (datstop.col - datstart.col) # stop > start
+        headstop.col = headcol + (datstop.col - datstart.col)  # stop > start
 
     if header is True:          # Simply the toprow of the table.
         typicalprep()
@@ -175,6 +183,7 @@ def prepread(sheet, header=True, startcell=None, stopcell=None):
             return [headstart, headstop, datstart, datstop]
     else:                       # header is False
         return [None, None, datstart, datstop]
+
 
 def sheetheader(sheet, startstops, usecols=None):
     """Return the channel names in a list suitable as an argument to
@@ -216,6 +225,7 @@ def sheetheader(sheet, startstops, usecols=None):
 
     return header
 
+
 def _sheet_asdict(sheet, startstops, usecols=None):
     """Read data from a spread sheet. Return the data in a dict with
     column numbers as keys.
@@ -241,7 +251,7 @@ def _sheet_asdict(sheet, startstops, usecols=None):
 
     if usecols is not None:
         iswithin = start.col <= min(usecols) and stop.col > max(usecols)
-        mess =  'Column in usecols outside defined data range, got '
+        mess = 'Column in usecols outside defined data range, got '
         assert iswithin, mess + str(usecols)
     else:                       # usecols is None.
         usecols = tuple(range(start.col, stop.col))
@@ -255,8 +265,8 @@ def _sheet_asdict(sheet, startstops, usecols=None):
 
         # Replace empty values with nan if appropriate:
         if (not types - NANABLE) and xlrd.XL_CELL_NUMBER in types:
-            D[c] = np.array([np.nan if cell.value == '' else cell.value for cell
-                          in cells])
+            D[c] = np.array([np.nan if cell.value == '' else cell.value
+                             for cell in cells])
         elif xlrd.XL_CELL_DATE in types:
             dm = sheet.book.datemode
             vals = []
@@ -275,6 +285,7 @@ def _sheet_asdict(sheet, startstops, usecols=None):
             D[c] = np.array(vals)
 
     return D
+
 
 def sheet_asdict(fn, sheet=0, header=True, startcell=None, stopcell=None,
                  usecols=None, chnames_out=None):
@@ -338,6 +349,7 @@ def sheet_asdict(fn, sheet=0, header=True, startcell=None, stopcell=None,
 
     return _sheet_asdict(sh, ss, usecols=usecols)
 
+
 def _sanitize_usecols(usecols):
     """Make a tuple of sorted integers and return it. Return None if
     usecols is None"""
@@ -349,7 +361,7 @@ def _sanitize_usecols(usecols):
         pats = usecols.split(',')
         pats = [p.strip() for p in pats if p]
     except AttributeError:
-        usecols = [int(c) for c in usecols] # Make error if mix.
+        usecols = [int(c) for c in usecols]  # Make error if mix.
         usecols.sort()
         return tuple(usecols)   # Assume sane sequence of integers.
 
@@ -367,6 +379,7 @@ def _sanitize_usecols(usecols):
     cols = list(set(cols))
     cols.sort()
     return tuple(cols)
+
 
 def letter2num(letters, zbase=False):
     """A = 1, C = 3 and so on. Convert spreadsheet style column
@@ -399,11 +412,12 @@ def letter2num(letters, zbase=False):
     weight = len(letters) - 1
     assert weight >= 0, letters
     for i, c in enumerate(letters):
-        assert 65 <= ord(c) <= 90, c # A-Z
+        assert 65 <= ord(c) <= 90, c  # A-Z
         res += (ord(c) - 64) * 26**(weight - i)
     if not zbase:
         return res
     return res - 1
+
 
 def toxldate(datetime, datemode=1):
     """Return a xl-date number from the datetime object datetime.
@@ -415,7 +429,8 @@ def toxldate(datetime, datemode=1):
         0: 1900-based, 1: 1904-based. See xlrd documentation.
     """
     return xlrd.xldate.xldate_from_datetime_tuple(datetime.timetuple()[:6],
-                                           datemode)
+                                                  datemode)
+
 
 def fromxldate(xldate, datemode=1):
     """Return a python datetime object
