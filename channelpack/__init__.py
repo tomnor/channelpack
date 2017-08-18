@@ -1,6 +1,6 @@
 
     # This is channelpack. Load and filter acquisition data.
-    # Copyright (C) 2014, 2015, 2016 Tomas Nordin
+    # Copyright (C) 2014, 2015, 2016, 2017 Tomas Nordin
 
     # This program is free software: you can redistribute it and/or modify
     # it under the terms of the GNU General Public License as published by
@@ -41,4 +41,4 @@ objects.
 
 from .pack import ChannelPack, txtpack, dbfpack, sheetpack
 
-__version__ = '0.3.2'
+__version__ = '0.4.0'
