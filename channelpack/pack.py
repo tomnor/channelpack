@@ -137,656 +137,369 @@ state::
     array([A, C, C, C, D], dtype=object)
 """
 import re
-import glob
-import fnmatch
-import os
-import time
-import ConfigParser
-from collections import OrderedDict, Counter, namedtuple
+from collections import Counter, namedtuple
 
 import numpy as np
 
 from . import pulltxt, pulldbf, pullxl
 from . import datautils
 
-ORIGINEXTENSIONS = []
-"""A list of file extensions excluding the dot. See
-:py:meth:`~.ChannelPack.set_basefilemtime` for a description.
-"""
 
-CHANNELPACK_RC_FILE = '.channelpackrc'
-"""The humble rc file of channelpack. It can exist and have a section
-``[channelpack]``. In this section, an option is ``originextensions``
-with a comma separated list of extensions as value that will be loaded
-to the ORIGINEXTENSIONS list on import of channelpack. Use
-`os.path.expanduser('~')` to see where channelpack look for this file,
-and then place it there.
-"""
+class IntKeyDict(dict):
+    """Subclass of dict that only accepts integers as keys."""
+    def __init__(self, *args, **kwargs):
+        if len(args) > 1:       # dict fail
+            super(IntKeyDict, self).__init__(*args, **kwargs)
+        self.update(*args, **kwargs)
 
-CONFIG_FILE = "conf_file.cfg"
-_CONFIG_SECS = ['channels',  'conditions']
+    def __setitem__(self, key, value):
+        if not isinstance(key, int):
+            raise TypeError(self._key_error_message(key))
+        super(IntKeyDict, self).__setitem__(key, value)
 
-_COND_PREFIXES = ['cond', 'startcond', 'stopcond', 'stopextend',  'duration',
-                  'samplerate']
-_ADDABLES = ['cond', 'startcond', 'stopcond']
+    def update(self, *args, **kwargs):
 
-FALLBACK_PREFIX = 'ch'
+        # only concern about keys being integers, let parent handle
+        # other dict violations
+        if args and isinstance(args[0], dict):
+            for key in args[0].keys():
+                if not isinstance(key, int):
+                    raise TypeError(self._key_error_message(key))
 
-NONES = [None, 'None', 'none', "''", '""', '']
+        elif args and hasattr(args[0], '__iter__'):
+            for seq in args[0]:
+                if hasattr(seq, '__len__') and len(seq) > 2:
+                    break       # not our problem
+                if hasattr(seq, '__getitem__') and not isinstance(seq[0], int):
+                    raise TypeError(self._key_error_message(seq[0]))
 
-CHANNEL_IDENTIFIER_RX = r'[\w ]+'
-"""Pattern used to find format strings for the channel identifiers. The
-pattern can be monkey patched for specific needs. It is used as is, not
-compiled or held by some instance of something apart from this module in
-the python session."""
+        for key, value in kwargs.items():
+            if not isinstance(key, int):
+                raise TypeError(self._key_error_message(key))
 
-CHANNEL_FMT_RX = r"""%\(["']?({})["']?\)"""  # Allowing quotes to remain
-"""Pattern used for the format string. The enclosing part around the
-channel identifier. It includes the re group, which must remain, (the
-inner-most ``()``). The ``{}`` part is replaced with
-CHANNEL_IDENTIFIER_RX."""
+        super(IntKeyDict, self).update(*args, **kwargs)
+
+    def setdefault(self, key, value=None):
+        if not isinstance(key, int):
+            raise TypeError(self._key_error_message)
+        super(IntKeyDict, self).setdefault(key, value)
+
+    def _key_error_message(self, key):
+        return 'Only integer keys accepted, got: {}'.format(repr(key))
 
 
-class ChannelPack:
-    """Pack of data. Hold a dict with channel index numbers as keys
-    (column number). This object is callable by channel name or index.
+class NpDict(IntKeyDict):
+    """Subclass of IntKeyDict casting values to np.ndarray as necessary.
+
+    Values are expected to be flat sequences. If the resulting numpy
+    array has ndim != 1, ValueErrror is raised.
+
     """
 
-    def __init__(self, loadfunc=None):
-        """Return a pack
+    def __init__(self, *args, **kwargs):
+        if len(args) > 1:       # dict fail
+            super(NpDict, self).__init__(*args, **kwargs)
+        self.update(*args, **kwargs)
 
-        loadfunc is a function that returns a dict holding numpy
-        arrays, being the channels. Keys are the index integer numbers,
-        (column numbers). Each array is of np.shape(N,).
+    def __setitem__(self, key, value):
+        proxyarr = np.array(value, copy=False)
+        # let non-int key error raise first
+        super(NpDict, self).__setitem__(key, proxyarr)
+        if proxyarr.ndim != 1:
+            raise ValueError('ndim != 1 in resulting array')
 
-        See method :meth:`~channelpack.ChannelPack.load`.
+    def update(self, *args, **kwargs):
+
+        proxyargs = []
+        proxykwargs = {}
+
+        if args and isinstance(args[0], dict):
+            proxydict = {}
+            for key in args[0]:
+                proxydict[key] = np.array(args[0][key], copy=False)
+
+            proxyargs.append(proxydict)
+            # append any (invalid) additional items in args to get familiar
+            # errors from dict constructor:
+            proxyargs += args[1:]
+
+        elif args and hasattr(args[0], '__iter__'):
+            proxypairs = []
+            # loop over the key, value pairs
+            for seq in args[0]:
+                if hasattr(seq, '__getitem__'):
+                    proxyarr = np.array(seq[-1], copy=False)
+                    # let possible invalid length of key, value pairs remain
+                    proxypairs.append([val for val in seq[:-1]] + [proxyarr])
+                else:           # just append what was given
+                    proxypairs.append(seq)
+
+            proxyargs.append(proxypairs)
+            # append any (invalid) additional items in args to get familiar
+            # errors from dict constructor:
+            proxyargs += args[1:]
+
+        elif args:              # a number of positional arguments (err)
+            proxyargs = args
+
+        for key, value in kwargs.items():
+            proxykwargs[key] = np.array(value, copy=False)
+
+        # first report on key and other dict errors
+        super(NpDict, self).update(*proxyargs, **proxykwargs)
+        self._audit_ndim()
+
+    def setdefault(self, key, value=None):
+        proxyval = np.array(value, copy=False)
+        # let non-int key error raise first
+        super(NpDict, self).setdefault(key, proxyval)
+        if proxyval.ndim != 1:
+            raise ValueError('ndim != 1 in resulting array')
+
+    def _audit_ndim(self):
+        """Walk through all arrays and check ndim == 1.
+
+        Assumes all values has ndim attribute. Raise ValueError on first
+        ndim !=1 found.
+        """
+
+        for key, arr in self.items():
+            if arr.ndim != 1:
+                raise ValueError('ndim != 1 for key {}'.format(key))
+
+class ChannelPack(object):
+    """Callable collection of data.
+
+    Hold a dict of data (numpy 1d arrays) and make possible to refer to
+    them by calls of this object, (pack(ch)). A boolean mask is kept
+    with the pack, used to optionally filter out sections of data in
+    calls.
+
+    Attributes
+    ----------
+    data : dict
+        Dict with numpy arrays. The dict is not supposed to be accessed
+        directly, call the ChannelPack object to refer to arrays. Keys
+        are integers representing column numbers.
+    mask : numpy.ndarray
+        A boolean array of the same size as the data arrays. Initially
+        all True.
+    nof : str or None
+        'nan', 'filter' or None. In calls to the object, this attribute
+        is consulted to determine how to return data arrays. If None,
+        arrays are returned as is. If 'nan', elements in the returned
+        array with corresponding False element in `mask` are replaced
+        with numpy.nan or None, equivalent to `np.where(array, mask,
+        np.full(len(array), np.nan))`. 'filter' yeilds the equivalent to
+        `array[mask]` -- the array is stripped down to elements with
+        corresponding True elements in `mask`. The effect of this
+        attribute can be overridden in calls of the object.
+    chnames : dict
+        Keys are integers representing column numbers (like in `data`),
+        values are strings, the channel names. A populated `chnames`
+        attribute aligned with `data` (having the same set of keys)
+        makes it possible to refer to arrays by channel names.
+    FALLBACK_PREFIX : str
+        Defaults to 'ch'. This can be used in calls of the pack in place
+        of a "proper" name. If 4 is a key in the data dict, pack('ch4')
+        can be used to get at that data. This is also used as requested
+        in calls to the `records` method. Everything after this prefix
+        is assumed to be a number. The prefix should be a valid python
+        variable name.
+    fn : str
+         File name of a possible source data file. After initialization
+         it is up to the caller to set this attribute.
+    filenames : list of str
+        If `fn` is set in some other pack, or this attribute is not
+        empty in some other pack provided to the method `append_pack`,
+        the file name of the other pack is appended to the `filenames`
+        attribute of this pack.
+
+    """
+    nofvalids = ('nan', 'filter', None)
+
+    def __init__(self, data={}, chnames={}):
+        """Initiate a ChannelPack
+
+        Convert given sequences in `data` to numpy arrays if necessary.
+
+        Parameters
+        ----------
+        data : dict
+            Keys are integers representing column numbers, values are
+            sequences representing column data.
+        chnames : dict
+            Keys are integers representing column numbers (like in D),
+            values are strings, the channel names.
 
         """
-        self.loadfunc = loadfunc
-        self.D = None           # Dict of data
-        self.fn = None          # The loaded filename
-        self.chnames = None     # Channel names maybe. dict
-        # Fall back names, always available. ch0, ch1... dict
-        self.chnames_0 = None
+        self.FALLBACK_PREFIX = 'ch'
+        self.data = NpDict(data)
+        # self.set_datadict(data)  # set self.data
+        self.fn = ''             # Possible file name
+        self.filenames = []
+        self.chnames = IntKeyDict(chnames)
+        self.nof = None
+        self.mask_reset()       # set self.mask
 
-        self.keys = None     # Sorted list of keys for the data dict
-        self.rec_cnt = 0     # Number of records
-        self.nof = None      # 'nan', 'filter' or None (nan or filter)
-
-        self.mask = None
-        self.conconf = _ConditionConfigure(self)
-        self.no_auto = False
-
-    def load(self, *args, **kwargs):
-        """Load data using loadfunc.
-
-        args, kwargs:
-            forward to the loadfunc. args[0] must be the filename, so it
-            means that loadfunc must take the filename as it's first
-            argument.
-
-        Set the filename attribute.
-
-        .. note::
-           Updates the mask if not no_auto.
-
-        ChannelPack is assuming a need for loading data from disc. If
-        there is a desire to load some made-up data, a filename pointing
-        to some actual file is nevertheless required. Here is a
-        suggestion::
-
-            >>> import channelpack as cp
-            >>> import tempfile
-
-            >>> tf = tempfile.NamedTemporaryFile()
-
-            >>> d = {2: np.arange(5), 5: np.arange(10, 15)}
-            >>> def lf(fn):
-            ...     return d
-            ...
-
-            >>> pack = cp.ChannelPack(lf)
-            >>> pack.load(tf.name)
-            >>> pack.filename is not None
-            True
-            >>> pack.chnames_0
-            {2: 'ch2', 5: 'ch5'}
-
-        """
-        D = self.loadfunc(*args, **kwargs)
-
-        if self.chnames is not None:
-            if set(D) - set(self.chnames):
-                raise ValueError('New data set have different keys')
-
-        self.D = D
-        self.keys = sorted(self.D.keys())
-        # If not all the same, there should have been an error already
-        self.rec_cnt = len(self.D[self.keys[0]])
-
-        fallnames = _fallback_names(self.keys)
-        self.chnames_0 = dict(zip(self.keys, fallnames))
-        self._set_filename(args[0])
-        self.set_basefilemtime()
-
-        self.args = args
-        self.kwargs = kwargs
-
-        if not self.no_auto:
-            # Called here if a reload is done on the current instance I guess.
-            self.make_mask()
-
-    def append_load(self, *args, **kwargs):
-        """Append data using loadfunc.
-
-        args, kwargs:
-            forward to the loadfunc. args[0] must be the filename, so it
-            means that loadfunc must take the filename as it's first
-            argument.
-
-        If self is not already a loaded instance, call load and return.
-
-        Make error if there is a mismatch of channels indexes or
-        channels count.
-
-        Append the data to selfs existing data. Set filename to the new
-        file.
-
-        Create new attribute - a dict with meta-data on all files loaded,
-        'metamulti.'
-
-        .. note::
-           Updates the mask if not no_auto.
-
-        """
-        if not self.D:
-            self.load(*args, **kwargs)
-            return
-
-        newD = self.loadfunc(*args, **kwargs)
-
-        s1, s2 = set(self.D.keys()), set(newD.keys())
-        offenders = s1 ^ s2
-        if offenders:
-            mess = ('Those keys (respectively) were in one of the dicts ' +
-                    'but not the other: {}.')
-            offs = ', '.join([str(n) for n in offenders])
-            raise KeyError(mess.format(offs))
-
-        # Append the data early to fail if fail before other actions.
-        for k, a in self.D.iteritems():
-            self.D[k] = np.append(a, newD.pop(k))
-
-        if not hasattr(self, 'metamulti'):
-            self.metamulti = dict(filenames=[], mtimestamps=[], mtimenames=[],
-                                  slices=[])
-
-            self.metamulti['filenames'].append(self.filename)
-            self.metamulti['mtimestamps'].append(self.mtimestamp)
-            self.metamulti['mtimenames'].append(self.mtimefs)
-            self.metamulti['slices'].append(slice(0, self.rec_cnt))
-
-        self.rec_cnt = len(self.D[self.keys[0]])
-        self._set_filename(args[0])
-        self.set_basefilemtime()
-
-        start = self.metamulti['slices'][-1].stop
-        stop = self.rec_cnt
-
-        self.metamulti['filenames'].append(self.filename)
-        self.metamulti['mtimestamps'].append(self.mtimestamp)
-        self.metamulti['mtimenames'].append(self.mtimefs)
-        self.metamulti['slices'].append(slice(start, stop))
-
-        if not self.no_auto:
-            self.make_mask()
-
-    def rebase(self, key, start=None, decimals=5):
-        """Rebase a channel (key) on start.
-
-        The step (between elements) need to be constant all through,
-        else ValueError is raised. The exception to this is the border
-        step between data loaded from two different files.
-
-        key: int or str
-            The key for the channel to rebase.
-
-        start: int or float or None
-            If specified - replace the first element in the first loaded
-            data channel with start.
-
-        decimals: int
-            Diffs are rounded to this number of decimals before the step
-            through arrays are checked. The diffs are otherwise likely never to
-            be all equal.
-
-        Typically this would be used to make a time channel
-        continuous. Like, not start over from 0, when data is appended
-        from multiple files. Or simply to rebase a channel on 'start'.
-
-        If start is None, and the instance is loaded from one file only,
-        this method has no effect.
-
-        .. note::
-           The instance channel is modified on success.
-
-        """
-        diffs = []
-
-        def diffsappend(d, sc):
-            diff = np.around(np.diff(d), decimals)
-            diffs.append((diff, diff[0], sc))
-
-        if hasattr(self, 'metamulti'):
-            for sc in self.metamulti['slices']:
-                diffsappend(self(key)[sc], sc)
+    def __setattr__(self, name, value):
+        if name == 'nof' and value not in ChannelPack.nofvalids:
+            raise ValueError('Expected one of ' + repr(ChannelPack.nofvalids))
+        elif name == 'FALLBACK_PREFIX' and not isinstance(value, str):
+            raise TypeError('Expected a string')
+        elif name == 'mask' and not isinstance(value, np.ndarray):
+            raise TypeError('Expected a numpy array')
+        elif name == 'data' and not isinstance(value, NpDict):
+            raise TypeError('Expected a NpDict')
         else:
-            diffsappend(self(key), slice(0, self.rec_cnt))
+            object.__setattr__(self, name, value)
 
-        for diff, d, sc in diffs:
-            if not np.all(diff == d):
-                raise ValueError('All diffs not equal within ' +
-                                 'indexes ' + str(sc))
+    def set_nof(self, value):
+        """Set the nof attribute to value.
 
-        S = set([t[1] for t in diffs])
-        if len(S) > 1:
-            raise ValueError('Diffs not equal between appended data files: ' +
-                             str(S))
+        See class attributes description for the meaning of `nof`.
 
-        # Now modify:
-        if start is None:
-            start = self(key)[0]
-        self.D[self._key(key)] = np.linspace(start, d * self.rec_cnt + start,
-                                             num=self.rec_cnt, endpoint=False)
+        value : str or None
+            If str it shall be one of 'nan' or 'filter', else None.
 
-        assert len(self(key)) == self.rec_cnt, 'Semantic error'
-
-    def _set_filename(self, fn):
-        """Set the filename attributes. (They are multiple for personal
-        reasons)."""
-        try:
-            self.filename = self.fs = self.fn = os.path.abspath(fn.name)
-        except AttributeError:
-            self.filename = self.fs = self.fn = os.path.abspath(fn)
-
-    def set_samplerate(self, rate):
-        """Set sample rate to rate.
-
-        rate: int or float
-
-        rate is given as samples / timeunit. If sample rate is set, it
-        will have an impact on the duration rule conditions. If duration
-        is set to 2.5 and samplerate is 100, a duration of 250 records
-        is required for the logical conditions to be true.
-
-        .. note::
-           Updates the mask if not no_auto."""
-
-        # Test and set value:
-        float(rate)
-        self.conconf.set_condition('samplerate', rate)
-        if not self.no_auto:
-            self.make_mask()
-
-    def add_condition(self, conkey, cond):
-        """Add a condition, one of the addable ones.
-
-        conkey: str
-            One of 'cond', startcond' or 'stopcond'. 'start' or 'stop'
-            is accepted as shorts for 'startcond' or 'stopcond'. If the
-            conkey is given with an explicit number (like 'stopcond3')
-            and already exist, it will be over-written, else created.
-
-            When the trailing number is implicit, the first condition
-            with a value of None is taken. If no None value is found, a
-            new condition is added.
-
-        cond: str
-            The condition string. See ...
-
-        .. note::
-           Updates the mask if not no_auto.
-
-        .. seealso::
-           :meth:`~channelpack.ChannelPack.set_duration`
-           :meth:`~channelpack.ChannelPack.set_samplerate`
-           :meth:`~channelpack.ChannelPack.set_stopextend`
-           :meth:`~channelpack.ChannelPack.clear_conditions`
+        Raises ValueError if value is not one of 'nan', 'filter' or
+        None.
 
         """
 
-        # Audit:
-        if conkey == 'start' or conkey == 'stop':
-            conkey += 'cond'
-        if not any(conkey.startswith(addable) for addable in _ADDABLES):
-            raise KeyError(conkey)
-        if not self.conconf.valid_conkey(conkey):
-            raise KeyError(conkey)
+        self.nof = value
 
-        self._parse_cond(cond)  # Checking
+    def set_chnames(self, chnames):
+        """Set the attribute chnames to chnames.
 
-        conkey = self.conconf.next_conkey(conkey)
-        self.conconf.set_condition(conkey, cond)
+        chnames : dict
+            Keys in the dict shall correspond with the keys in the
+            data dict attribute D. Values are any str channel names.
 
-        if not self.no_auto:
-            self.make_mask()       # On every update so errors are detected.
-
-    def _parse_cond(self, cond):
-        """Replace the format strings in cond with ``self.D[i]`` so it can
-        be used in eval calls. Use ``CHANNEL_RX`` as pattern. Return the
-        parsed string.
-
-        This method should be exposed so that one can experiment with
-        conditions and see that they are properly parsed."""
-
-        CHANNEL_RX = CHANNEL_FMT_RX.format(CHANNEL_IDENTIFIER_RX)
-
-        res = re.findall(CHANNEL_RX, cond)
-        for ident in res:
-            rx = CHANNEL_FMT_RX.format(ident)
-            i = self._key(ident)  # integer key
-
-            # repl = 'self(' + str(i) + ')'
-            # Cannot be. Calls (__call__) can be replaced by nan. So must call
-            # the array in the dict directly:
-
-            repl = 'self.D[' + str(i) + ']'
-            # %(<identifier>) replaced with self.D[i]
-            cond = re.sub(rx, repl, cond)
-        return cond
-
-    def _mask_array(self, cond):
-        """
-        Let the Boolean array mask production be here. Call this for
-        each condition. The _parse_cond method is called here.
-        """
-        cond = self._parse_cond(cond)
-        return eval(cond)
-
-    def spit_config(self, conf_file=None, firstwordonly=False):
-        """Write a config_file based on this instance.
-
-        conf_file: str (or Falseish)
-            If conf_file is Falseish, write the file to the directory
-            where self.filename sits, if self is not already associated
-            with such a file. If associated, and conf_file is Falseish,
-            use self.conf_file. If conf_file is a file name, write to
-            that file and set self.conf_file to conf_file.
-
-        firstwordonly: bool or "pattern"
-            Same meaning as in name method, and applies to the channel
-            names spitted. There is no effect on the instance channel
-            names until eat_config is called.
-
-        Sections in the ini/cfg kind of file can be:
-
-            [channels]
-            A mapping of self.D integer keys to channel names. Options
-            are numbers corresponding to the keys. Values are the
-            channel names, being the fallback names if custom names are
-            not available (self.chnames). (When spitting that is).
-
-            [conditions]
-            Options correspond to the keys in self.conditions, values
-            correspond to the values in the same.
         """
 
-        chroot = os.path.dirname(self.filename)
-        chroot = os.path.abspath(chroot)
+        self.chnames = IntKeyDict(chnames)
 
-        # Figure out file name of conf_file:
-        if hasattr(self, 'conf_file') and not conf_file:
-            cfgfn = self.conf_file
-        elif conf_file:
-            cfgfn = conf_file
+    def set_datadict(self, D):
+        """Convert sequences to numpy arrays as needed.
+
+        Raise TypeError if not all keys in data are integers.
+
+        data : dict"""
+
+        # FIXME: when do we check that all arrays are the same size, because it
+        # is a requirement, right?
+
+        for key, vals in D.items():
+            if not isinstance(key, int):
+                raise TypeError('Expected keys to be int: ' + repr(key))
+            if isinstance(vals, np.ndarray):
+                self.data[key] = vals
+            else:
+                self.data[key] = np.array(vals)
+
+    def append_pack(self, other):
+        """Append data from other into this pack.
+
+        other : ChannelPack instance
+            Non-empty data and chnames dicts in this object and the
+            provided pack must have equal set of keys, else ValueError
+            is raised.
+
+        FIXME: filename(s)?
+
+        """
+        if not self.data:
+            self.set_datadict(other._D)
+        elif other._D:
+            if not set(self.data.keys()) == set(other._D.keys()):
+                raise ValueError('Data dicts set of keys not equal')
+            for key in other._D.keys():
+                self.data[key] = np.append(self.data[key], other._D[key])
+
+        if not self.chnames:
+            self.set_chnames(other.chnames)
+        elif other.chnames:
+            if not set(self.chnames.keys()) == set(other.chnames.keys()):
+                raise ValueError('chnames dicts set of keys not equal')
+
+        # FIXME: when do we check (require) alignment between keys in
+        # self.data and self.chnames? -- Might be just to document the
+        # fact that ChannelPack do not take responsibility for this. If
+        # a name value in chnames has a corresponding key in datadict
+        # and the name is used in a call, we just return that data. If
+        # the name is not in chnames values, there will be a key error.
+
+        if other.filenames:
+            self.filenames += other.filenames
+        elif other.fn:
+            self.filenames.append(other.fn)
+
+        self.mask_reset()
+
+    def mask_reset(self):
+        """Set the attribute mask to the length of data and all True.
+
+        If this pack's data dict is empty, set mask to an empty
+        array.
+
+        """
+
+        if not self.data:
+            self.mask = np.array([])
         else:
-            cfgfn = os.path.join(chroot, CONFIG_FILE)
+            somekey = [key for key in self.data.keys()][0]  # 2&3
+            self.mask = self.data[somekey] == self.data[somekey]
 
-        with open(cfgfn, 'wb') as fo:
-            self.conconf.spit_config(fo, firstwordonly=firstwordonly)
+    def min_duration(self, duration, samplerate=1):
+        """Require each true part to be at least duration long.
 
-        self.conf_file = os.path.abspath(cfgfn)
+        Make False any true part in the mask attribute that is not
+        `duration` long. Any True part in the packs mask attribute not
+        fulfilling duration together with samplerate will be set to
+        False.
 
-    def eat_config(self, conf_file=None):
-        """
-        Read the the conf_file and update this instance accordingly.
+        Parameters
+        ----------
+        duration : int or float
+        samplerate : int or float
+            If samplerate is 10 and duration is 1, a True part of
+            minimum 10 elements is required.
 
-        conf_file: str or Falseish
-            If conf_file is Falseish, look in the directory where
-            self.filename sits if self is not already associated with a
-            conf_file. If associated, and conf_file arg is Falseish,
-            read self.conf_file. If conf_file arg is a file name, read
-            from that file, but do not update self.conf_file
-            accordingly. An Implicit IOError is raised if no conf_file
-            was found.
-
-        See spit_config for documentation on the file layout.
-
-        .. note::
-           Updates the mask if not no_auto.
-
-        .. note::
-           If the config_file exist because of an earlier spit, and
-           custom channel names was not available, channels are listed as the
-           fallback names in the file. Then after this eat, self.chnames
-           will be set to the list in the conf_file section 'channels'. The
-           result can be that self.chnames and self.chnames_0 will be
-           equal.
-
-        The message then is that, if channel names are updated, you
-        should spit before you eat.
+        Returns
+        -------
+        The possibly altered mask.
 
         """
 
-        chroot = os.path.dirname(self.filename)  # "channels root dir"
-        chroot = os.path.abspath(chroot)
+        req_duration = int(duration * samplerate)
+        for sc in self.slicelist():
+            if sc.stop - sc.start < req_duration:
+                self.mask[sc] = False
 
-        # Figure out file name of conf_file:
-        if hasattr(self, 'conf_file') and not conf_file:
-            cfgfn = self.conf_file
-        elif conf_file:
-            cfgfn = conf_file
-        else:
-            cfgfn = os.path.join(chroot, CONFIG_FILE)
-
-        with open(cfgfn, 'r') as fo:
-            self.conconf.eat_config(fo)
-
-        # Update mask:
-        if not self.no_auto:
-            self.make_mask()
-        else:
-            self.make_mask(dry=True)  # Produce possible error.
-
-    def pprint_conditions(self):
-        """Pretty print conditions.
-
-        This is the easiest (only exposed) way to view
-        all conditions interactively.
-
-        .. seealso::
-           :meth:`~channelpack.ChannelPack.spit_config`
-        """
-
-        self.conconf.pprint_conditions()
-
-    def set_stopextend(self, n):
-        """Extend the True elements by n when setting the conditions
-        based on a 'stopcond' condition.
-
-        n is an integer >= 0.
-
-        .. note::
-           Updates the mask if not no_auto.
-        """
-        self.conconf.set_condition('stopextend', n)
-        if not self.no_auto:
-            self.make_mask()
-
-    def set_duration(self, rule):
-        """Set the duration according to rule.
-
-        rule: str
-            The rule operating on the variable ``dur``.
-
-        rule is an expression like::
-
-            >>> rule = 'dur == 150 or dur > 822'
-
-        setting a duration rule assuming a pack sp::
-
-            >>> sp.set_duration(rule)
-
-        The identifier ``dur`` must be present or the rule will fail.
-
-        .. note::
-           The logical ``or`` and ``and`` operators must be used. ``dur`` is a
-           primitive, not an array.
-
-        .. note::
-           Updates the mask if not no_auto.
-
-        .. seealso::
-           :meth:`~channelpack.ChannelPack.set_samplerate`
-           :meth:`~channelpack.ChannelPack.add_condition`
-           :meth:`~channelpack.ChannelPack.pprint_conditions`
-
-        """
-
-        self.conconf.set_condition('duration', rule)
-        if not self.no_auto:
-            self.make_mask()
-
-    def clear_conditions(self, *conkeys, **noclear):
-        """Clear conditions.
-
-        Clear only the conditions conkeys if specified. Clear only the
-        conditions not specified by conkeys if noclear is True (False
-        default).
-
-        .. note::
-           Updates the mask if not no_auto.
-        """
-
-        offenders = set(conkeys) - set(self.conconf.conditions.keys())
-        if offenders:
-            raise KeyError(', '.join([off for off in offenders]))
-
-        # Valid keywords subtracted
-        offenders = set(noclear) - set({'noclear'})
-        if offenders:
-            raise KeyError(', '.join([off for off in offenders]))
-
-        noclear = noclear.get('noclear', False)
-
-        for ck in self.conconf.conditions:
-            if not conkeys:
-                # self.conconf.set_condition(ck, None)
-                self.conconf.reset()
-                break
-            elif not noclear and ck in conkeys:
-                self.conconf.set_condition(ck, None)
-            elif noclear and ck not in conkeys:
-                self.conconf.set_condition(ck, None)
-
-        if not self.no_auto:
-            self.make_mask()
-
-    def make_mask(self, clean=True, dry=False):
-        """Set the attribute self.mask to a mask based on
-        the conditions.
-
-        clean: bool
-            If not True, let the current mask be a condition as well. If
-            True, the mask is set solely on the pack's current
-            conditions
-
-        dry: bool
-            If True, only try to make a mask, but don't touch self.mask
-
-        This method is called automatically unless ``no_auto`` is set to
-        True, whenever conditions are updated.
-
-        .. seealso::
-           :meth:`~channelpack.ChannelPack.pprint_conditions`
-        """
-
-        cc = self.conconf
-        # All True initially.
-        mask = np.ones(self.rec_cnt) == True  # NOQA
-        for cond in cc.conditions_list('cond'):
-            try:
-                mask = mask & self._mask_array(cond)
-            except Exception:
-                print cond
-                print 'produced an error:'
-                raise           # re-raise
-
-        mask = mask & datautils.startstop_bool(self)
-
-        samplerate = cc.get_condition('samplerate')
-        if samplerate is not None:
-            samplerate = float(samplerate)
-        mask = datautils.duration_bool(mask, cc.get_condition('duration'),
-                                       samplerate)
-
-        if dry:
-            return
-        if not clean and self.mask is not None:
-            self.mask = self.mask & mask
-        else:
-            self.mask = mask
-
-    def set_channel_names(self, names):
-        """
-        Set self.chnames. Custom channel names that can be used in calls
-        on this object and in condition strings.
-
-        names: list or None
-            It is the callers responsibility to make sure the list is in
-            column order. self.chnames will be a dict with channel
-            integer indexes as keys. If names is None, self.chnames will
-            be None.
-
-        """
-        if not names:
-            self.chnames = None
-            return
-
-        if len(names) != len(self.keys):
-            raise ValueError('len(names) != len(self.D.keys())')
-
-        self.chnames = dict(zip(self.keys, names))
+        return self.mask
 
     def slicelist(self):
         """Return a slicelist based on self.mask.
 
-        This is used internally and might not be very useful from
-        outside. It's exposed anyway in case of interest to quickly see
-        where the parts are along the arrays.
-
-        It is a list of python slice objects corresponding to the True
-        sections in self.mask. If no conditions are set, there shall be
-        one slice in the list with start == 0 and stop == self.rec_cnt,
-        (the mask is all True). The len of this list corresponds to the
-        number of True sections in self.mask. (So a hint on the result
-        from the conditions).
-
-        .. seealso:: :meth:`~channelpack.ChannelPack.parts`
+        Return a list of python slice objects corresponding to the True
+        sections in self.mask. If mask is all True, there is one slice
+        in the list covering the whole mask. The len of returned list
+        corresponds to the number of True sections in self.mask.
 
         """
-
         return datautils.slicelist(self.mask)
 
     def parts(self):
         """Return the enumeration of the True parts.
 
-        The list is always consecutive or empty.
+        The list is always consecutive or empty. Each index in the
+        returned list can be used to refer to a True part in the mask
+        attribute.
 
-        .. seealso:: :meth:`~channelpack.ChannelPack.slicelist`
         """
 
-        return range(len(self.slicelist()))
+        return list(range(len(self.slicelist()))) # 2&3
 
     def counter(self, ch, part=None):
         """Return a counter on the channel ch.
@@ -794,45 +507,67 @@ class ChannelPack:
         ch: string or integer.
             The channel index number or channel name.
 
-        part: int or None
-            The 0-based enumeration of a True part to return. This
-            has an effect whether or not the mask or filter is turned
-            on. Raise IndexError if the part does not exist.
+        part: int
+            The 0-based enumeration of a True part to return. Overrides
+            any setting of the nof attribute.
 
         See `Counter
         <https://docs.python.org/2.7/library/collections.html#counter-objects>`_
         for the counter object returned.
 
+        FIXME: add nof argument
+
         """
-        return Counter(self(self._key(ch), part=part))
 
-    def __call__(self, key, part=None):
-        """Make possible to retrieve channels by key.
+        return Counter(self(self.datakey(ch), part=part))
 
-        key: string or integer.
-            The channel index number or channel name.
+    def __call__(self, ch, part=None, nof=None):
+        """Return data from "channel" ch.
 
-        part: int or None
-            The 0-based enumeration of a True part to return. This
-            has an effect whether or not the mask or filter is turned
-            on. Raise IndexError if the part does not exist.
+        If `part` is not given, return the array for `ch` respecting the
+        setting of attribute `nof`. See the class attributes description
+        for the meaning of `nof`.
+
+        Parameters
+        ----------
+        ch : str or int
+            The channel index number, name or fallback string. The
+            lookup order is keys in the data dict, names in the chnames
+            dict and finally if `ch` matches a fallback string.
+        part : int
+            The 0-based enumeration of a True part to return. Overrides
+            the effect of attribute or argument `nof`.
+        nof : str
+            One of 'nan', 'filter' or 'ignore'. Providing this argument
+            overrides any setting of the corresponding attribute `nof`,
+            and have the same effect on the returned data as the
+            attribute `nof`. The value 'ignore' can be used to get the
+            full array despite a setting of the attribute `nof`.
+
         """
-        # Primary need is to get an integer from key since D.keys are integers.
 
-        i = self._key(key)
+        key = self.datakey(ch)
 
         if part is not None:
-            sl = datautils.slicelist(self.mask)
-            return self.D[i][sl[part]]
+            sl = self.slicelist()
+            try:
+                return self.data[key][sl[part]]
+            except IndexError:
+                raise IndexError(str(part) + ' is out of range')
+        elif nof == 'nan':
+            return datautils.masked(self.data[key], self.mask)
+        elif nof == 'filter':
+            return self.data[key][self.mask]
+        elif nof == 'ignore':
+            return self.data[key]
         elif self.nof == 'nan':
-            return datautils.masked(self.D[i], self.mask)
+            return datautils.masked(self.data[key], self.mask)
         elif self.nof == 'filter':
-            return self.D[i][self.mask]
+            return self.data[key][self.mask]
         elif self.nof:
-            raise ValueError('The nof value is invalid: ' + str(self.nof) +
-                             '\nmust be "nan", "filter" or falsish')
+            raise ValueError('nof = ' + repr(nof))
         else:
-            return self.D[i]
+            return self.data[key]
 
     def records(self, part=None, fallback=True):
         """Return an iterator over the records in the pack.
@@ -841,7 +576,7 @@ class ChannelPack:
         as field names. This is useful if each record make a meaningful
         data set on its own.
 
-        part: int or None
+        part: int
             Same meaning as in
             :meth:`~channelpack.ChannelPack.__call__`.
 
@@ -851,11 +586,8 @@ class ChannelPack:
             valid names and not None. If True, fall back to the
             ``self.chnames_0`` on error.
 
-        .. note:: The error produced on invalid names if fallback is
-           False is not produced until iteration start. Here is a good
-           post on stack overflow on the subject `231767
-           <http://stackoverflow.com/questions/231767/what-does-the-yield-keyword-do-in-python>`_
-
+        FIXME: add nof argument and update this documentation and audit
+               the code.
         """
 
         names_0 = [self.chnames_0[k] for k in sorted(self.chnames_0.keys())]
@@ -877,330 +609,74 @@ class ChannelPack:
         for tup in zip(*[self(name, part) for name in names]):
             yield Record(*tup)
 
-    def _key(self, ch):
-        """Return the integer key for ch. It is the key for the first
-        value found in chnames and chnames_0, that matches ch. Or if
-        ch is an int, ch is returned if it is a key in self.D"""
+    def datakey(self, ch):
+        """Return the integer key for ch.
 
-        if ch in self.D:
+        ch : int or str
+            The channel index number, name or fallback string. The
+            lookup order is keys in the data dict, names in the chnames
+            dict and finally if `ch` matches a fallback string.
+
+        Raise KeyError if `ch` do not correspond to any key in the data
+        dict.
+
+        """
+
+        # doc for ch same as in __call__
+
+        if ch in self.data:
             return ch
 
-        if isinstance(ch, int):
-            raise KeyError(ch)  # dont accept integers as custom names
+        for key, name in self.chnames.items():
+            if ch == name:
+                if key not in self.data.keys():
+                    raise KeyError(ch)
+                return key
 
-        if self.chnames:
-            for item in self.chnames.items():
-                if item[1] == ch:
-                    return item[0]
-        for item in self.chnames_0.items():
-            if item[1] == ch:
-                return item[0]
+        # not in D, not a name in chnames, last chance is a fallback
+        # string
 
-        # If we got here, ch can be an int represented by a string if it comes
-        # from a condition string:
         try:
-            chint = int(ch)
-            if chint in self.D:
-                return chint
-        except ValueError:
-            pass
+            key = int(ch.split(self.FALLBACK_PREFIX)[-1])
+        except AttributeError:  # ch was an int? but not in D.
+            raise KeyError(ch)
+        except ValueError:      # no number in end of fallback str
+            raise KeyError(ch)
 
-        raise KeyError(ch)
+        if key in self.data.keys():
+            return key
+        else:
+            raise KeyError
 
-    def name(self, ch, firstwordonly=False):
-        """Return channel name for ch. ch is the channel name or the
-        index number for the channel name, 0-based.
+    def name(self, ch, firstwordonly=False, fallback=False):
+        """Return channel name string for ch.
 
         ch: str or int.
-            The channel name or indexed number.
+            The channel name or key.
 
         firstwordonly: bool or "pattern".
-            If True, return only the first non-spaced word in the name.
-            If a string, use as a re-pattern to re.findall and return
-            the first element found. There will be error if no
-            match. r'\w+' is good pattern for excluding
-            leading and trailing obscure characters.
+            If True, return only the first non-spaced word in the name,
+            a name in the attribute chnames. If a string, use as a
+            re-pattern with re.findall and return the first element
+            found. There will be error if no match. r'\w+' is a good
+            pattern for excluding leading and trailing obscure
+            characters.
 
-        Returned channel name is the fallback string if "custom" names
-        are not available.
-
+        fallback : bool
+            If True, return the fallback string <FALLBACK_PREFIX><N>.
+            Ignore the firstwordonly argument.
         """
 
-        names = self.chnames or self.chnames_0
-        i = self._key(ch)
+        key = self.datakey(ch)
+        if fallback:
+            return self.FALLBACK_PREFIX + str(key)
 
         if not firstwordonly:
-            return names[i]
-        elif firstwordonly is True or firstwordonly == 1:
-            return names[i].split()[0].strip()
-
-        # According to user pattern
-        return re.findall(firstwordonly, names[i])[0]
-
-    def query_names(self, pat):
-        """pat a shell pattern. See fnmatch.fnmatchcase. Print the
-        results to stdout."""
-
-        for item in self.chnames.items():
-            if fnmatch.fnmatchcase(item[1], pat):
-                print item
-
-    def set_basefilemtime(self):
-        """Set attributes mtimestamp and mtimefs. If the global list
-        ORIGINEXTENSIONS include any items, try and look for files (in
-        the directory where self.filename is sitting) with the same base
-        name as the loaded file, but with an extension specified in
-        ORIGINEXTENSIONS.
-
-        mtimestamp is a timestamp and mtimefs is the file (name) with
-        that timestamp.
-
-        ORIGINEXTENSIONS is empty on delivery. Which means that the
-        attributes discussed will be based on the file that was loaded,
-        (unless ORIGINEXTENSIONS is populated before this call).
-
-        This is supposed to be a convenience in cases the data file
-        loaded is some sort of "exported" file format, and the original
-        file creation time is of interest.
-
-        .. note::
-           If the provided functions in this module is used to get a
-           pack, this method does not have to be called. It is called by
-           those functions.
-        """
-
-        dirpath = os.path.split(self.filename)[0]
-        name = os.path.basename(self.fs).split('.')[0]
-        for ext in ORIGINEXTENSIONS:  # This should be some user configuration.
-            res = glob.glob(dirpath + '/' + name + '.' + ext)
-            if res:             # Assume first match is valid.
-                # If some shell patterns will be used later
-                self.mtimefs = os.path.normpath(res[0])
-                # Time stamp string:
-                self.mtimestamp = time.ctime(os.path.getmtime(self.mtimefs))
-                break
+            return self.chnames[key]
+        elif firstwordonly is True:
+            return self.chnames[key].split()[0]
         else:
-            self.mtimefs = self.filename
-            self.mtimestamp = time.ctime(os.path.getmtime(self.mtimefs))
-
-
-def _fallback_names(nums):
-    """Return a list like ['ch0', 'ch1',...], based on nums. nums is a
-    list with integers.
-
-    This is the one function allowed to return fallback names to
-    ChannelPack"""
-
-    return [FALLBACK_PREFIX + str(i) for i in nums]
-
-
-class _ConditionConfigure:
-
-    def __init__(self, pack):
-
-        self.pack = pack
-        self.numrx = r'[\w]+?(\d+)'  # To extract the trailing number.
-        self.reset()
-
-    def reset(self):
-        conpairs = [('cond1', None), ('startcond1', None),
-                    ('stopcond1', None), ('stopextend', None),
-                    ('duration', None), ('samplerate', None)]
-        # Ordered dict is of no use any more. cond<n> will be inserted later
-        # on, and that is to be printed together with the cond conditions.
-        self.conditions = OrderedDict(conpairs)
-
-    def set_condition(self, conkey, val):
-        """Set condition conkey to value val. Convert val to str if not
-        None.
-
-        conkey: str
-            A valid condition key.
-
-        val: str, int, float, None
-            Can always be None. Can be number or string depending on conkey.
-        """
-
-        if not any([conkey.startswith(c) for c in _COND_PREFIXES]):
-            raise KeyError(conkey)
-
-        if val in NONES:
-            self.conditions[conkey] = None
-        else:
-            self.conditions[conkey] = str(val)
-
-    def spit_config(self, conf_file, firstwordonly=False):
-        """conf_file a file opened for writing."""
-
-        cfg = ConfigParser.RawConfigParser()
-        for sec in _CONFIG_SECS:
-            cfg.add_section(sec)
-
-        sec = 'channels'
-        for i in sorted(self.pack.D):
-            cfg.set(sec, str(i),
-                    self.pack.name(i, firstwordonly=firstwordonly))
-
-        sec = 'conditions'
-        for k in self.sorted_conkeys():
-            cfg.set(sec, k, self.conditions[k])
-
-        cfg.write(conf_file)
-
-    def eat_config(self, conf_file):
-        """conf_file a file opened for reading.
-
-        Update the packs channel names and the conditions, accordingly.
-
-        """
-
-        # Read the file:
-        cfg = ConfigParser.RawConfigParser()
-        cfg.readfp(conf_file)
-
-        # Update channel names:
-        sec = 'channels'
-        mess = 'missmatch of channel keys'
-        assert(set(self.pack.D.keys()) == set([int(i) for i in cfg.options(sec)])), mess  # NOQA
-        if not self.pack.chnames:
-            self.pack.chnames = dict(self.pack.chnames_0)
-        for i in cfg.options(sec):  # i is a string.
-            self.pack.chnames[self.pack._key(int(i))] = cfg.get(sec, i)
-
-        # Update conditions:
-        sec = 'conditions'
-
-        # conkeys = set(self.conditions.keys())
-        # conops = set(cfg.options(sec))
-
-        # This check should be superfluous:
-        # --------------------------------------------------
-        # for conkey in conkeys:
-        #     if not any([conkey.startswith(c) for c in _COND_PREFIXES]):
-        #         raise KeyError(conkey)
-        # --------------------------------------------------
-
-        # for con in conkeys - conops: # Removed conditions.
-        # self.set_condition(con, None)
-        conops = cfg.options(sec)
-        self.reset()            # Scary
-        for con in conops:
-            self.set_condition(con, cfg.get(sec, con))
-
-        # That's it
-
-    def conditions_list(self, conkey):
-        """
-        Return a (possibly empty) list of conditions based on
-        conkey. The conditions are returned raw, not parsed.
-
-        conkey: str
-            for cond<n>, startcond<n> or stopcond<n>, specify only the
-            prefix. The list will be filled with all conditions.
-        """
-        L = []
-        keys = [k for k in self.conditions if k.startswith(conkey)]  # sloppy
-        if not keys:
-            raise KeyError(conkey)
-        for k in keys:
-            if self.conditions[k] is None:
-                continue
-            raw = self.conditions[k]
-            L.append(raw)
-
-        return L
-
-    def get_condition(self, conkey):
-        """As it is."""
-        return self.conditions[conkey]
-
-    def get_stopextend(self):
-        """As an integer. Return 0 if None."""
-
-        try:
-            return int(self.conditions['stopextend'])
-        except TypeError:
-            return 0
-
-    def cond_int(self, conkey):
-        """Return the trailing number from cond if any, as an int. If no
-        trailing number, return the string conkey as is.
-
-        This is used for sorting the conditions properly even when
-        passing the number 10. The name of this function could be
-        improved since it might return a string."""
-
-        m = re.match(self.numrx, conkey)
-        if not m:
-            return conkey
-        return int(m.group(1))
-
-    def valid_conkey(self, conkey):
-        """Check that the conkey is a valid one. Return True if valid. A
-        condition key is valid if it is one in the _COND_PREFIXES
-        list. With the prefix removed, the remaining string must be
-        either a number or the empty string."""
-
-        for prefix in _COND_PREFIXES:
-            trailing = conkey.lstrip(prefix)
-            if trailing == '' and conkey:  # conkey is not empty
-                return True
-            try:
-                int(trailing)
-                return True
-            except ValueError:
-                pass
-
-        return False
-
-    def next_conkey(self, conkey):
-        """Return the next <conkey><n> based on conkey as a
-        string. Example, if 'startcond3' and 'startcond5' exist, this
-        will return 'startcond6' if 'startcond5' value is not None,
-        else startcond5 is returned.
-
-        It is assumed conkey is a valid condition key.
-
-        .. warning::
-           Under construction. There is work to do. This function in
-           combination with the pack.add_condition. But now it's time for
-           bed.
-
-        """
-
-        if conkey in self.conditions:
-            return conkey       # Explicit conkey
-
-        conkeys = self.sorted_conkeys(prefix=conkey)  # Might be empty.
-        if not conkeys:
-            # A trailing number given that does not already exist.
-            # accept possible gap from previous number.
-            return conkey
-        for candidate in conkeys:
-            if self.conditions[candidate] is None:
-                return candidate
-
-        i = self.cond_int(candidate)  # The last one.
-        return re.sub(r'\d+', str(i + 1), candidate)
-
-    def sorted_conkeys(self, prefix=None):
-        """Return all condition keys in self.conditions as a list sorted
-        suitable for print or write to a file. If prefix is given return
-        only the ones prefixed with prefix."""
-
-        # Make for defined and sorted output:
-        conkeys = []
-        for cond in _COND_PREFIXES:
-            conkeys += sorted([key for key in self.conditions
-                               if key.startswith(cond)], key=self.cond_int)
-        if not prefix:
-            return conkeys
-        return [key for key in conkeys if key.startswith(prefix)]
-
-    def pprint_conditions(self):
-
-        for k in self.sorted_conkeys():
-            print k + ':', self.conditions[k]
+            return re.findall(firstwordonly, self.chnames[key])[0]
 
 
 def txtpack(fn, **kwargs):
@@ -1270,11 +746,11 @@ def sheetpack(fn, sheet=0, header=True, startcell=None, stopcell=None,
         a spread sheet style notation of the startcell for the header
         ("F9"). The "width" of this record is the same as for the data.
 
-    startcell: str or None
+    startcell: str
         If given, a spread sheet style notation of the cell where reading
         start, ("F9").
 
-    stopcell: str or None
+    stopcell: str
         A spread sheet style notation of the cell where data end,
         ("F9").
 
@@ -1296,36 +772,3 @@ def sheetpack(fn, sheet=0, header=True, startcell=None, stopcell=None,
 
     cp.set_channel_names(chnames or None)
     return cp
-
-
-# Look for rc file:
-_aspirants = []
-if os.getenv('HOME'):
-    _aspirants.append(os.getenv('HOME'))
-_aspirants += [os.path.expanduser('~')]
-
-_cfg = ConfigParser.RawConfigParser()
-
-for _asp in _aspirants:
-    try:
-        with open(os.path.join(_asp, CHANNELPACK_RC_FILE)) as fp:
-            try:
-                _cfg.readfp(fp)
-                exts = _cfg.get('channelpack', 'originextensions')
-                ORIGINEXTENSIONS += [ext.strip() for ext in exts.split(',')]
-                # print 'ORIGINEXTENSIONS:', ORIGINEXTENSIONS
-                break           # First read satisfy.
-            except (ConfigParser.NoSectionError,
-                    ConfigParser.NoOptionError,
-                    ConfigParser.ParsingError) as e:
-                print fp.name, 'exist, but:'
-                print e
-                # Not gonna look for a file that work when one that fails
-                # exist
-                break
-
-    except IOError:
-        pass
-    except Exception as e:
-        print 'Unexpected error when searching for', CHANNELPACK_RC_FILE
-        print e
