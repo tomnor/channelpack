@@ -2,65 +2,33 @@
 """
 Helper module for processing data arrays and such.
 """
-
-# http://nbviewer.ipython.org/github/demotu/BMC/blob/master/notebooks/DetectPeaks.ipynb
-# See it for a cool peak detection function. Rep, interresting stuff:
-# https://github.com/demotu/BMC
-
-# TODO: Make all helper functions take a ChannelPack instance pack instead of
-# all possible arguments.
-
 import numpy as np
 
 
 def masked(a, b):
-    """Return a numpy array with values from a where elements in b are
-    not False. Populate with numpy.nan where b is False. When plotting,
-    those elements look like missing, which can be a desired result.
+    """Return values as is in a which are True in b
+
+    a, b : numpy.array
+        b should be a boolean array. Both have the same size.
+
+    Populate elements in returned array that are not True in b with
+    numpy.nan or None as appropriate in the returned array.
+
+    numpy.nan is used with numerical arrays (numpy.dtype.kind one of
+    i, u, f, c). For all other types None is used. Note that integer
+    values are upcasted to float when mixed with numpy.nan (which is a
+    special kind of float). This happens with Numpy when creating the
+    array.
 
     """
 
-    if np.any([a.dtype.kind.startswith(c) for c in ['i', 'u', 'f', 'c']]):
-        n = np.array([np.nan for i in range(len(a))])
+    # https://docs.scipy.org/doc/numpy/reference/generated/numpy.dtype.kind.html#numpy-dtype-kind
+    # https://docs.scipy.org/doc/numpy/reference/arrays.scalars.html#arrays-scalars
+
+    if a.dtype.kind in ('i', 'u', 'f', 'c'):
+        return np.where(b, a, np.full(len(a), np.nan))
     else:
-        n = np.array([None for i in range(len(a))])
-        # a = a.astype(object)
-    return np.where(b, a, n)    # a if b is True, else n.
-
-
-def duration_bool(b, rule, samplerate=None):
-    """
-    Mask the parts in b being True but does not meet the duration
-    rules. Return an updated copy of b.
-
-    b: 1d array with True or False elements.
-
-    rule: str
-        The rule including the string 'dur' to be evaled.
-
-    samplerate: None or float
-        Has an effect on the result.
-
-    For each part of b that is True, a variable ``dur`` is set to the
-    count of elements, or the result of (len(part) / samplerate). And then
-    eval is called on the rule.
-
-    """
-    if rule is None:
-        return b
-
-    slicelst = slicelist(b)
-    b2 = np.array(b)
-
-    if samplerate is None:
-        samplerate = 1.0
-
-    for sc in slicelst:
-        dur = (sc.stop - sc.start) / samplerate  # NOQA
-        if not eval(rule):
-            b2[sc] = False
-
-    return b2
+        return np.where(b, a, np.full(len(a), None))
 
 
 def startstop_bool(pack):
@@ -179,10 +147,10 @@ def slicelist(b):
     slicelst = []
     started = False
     for i, e in enumerate(b):
-        if e and not started:
+        if not started and e:
             start = i
             started = True
-        elif not e and started:
+        elif started and not e:
             slicelst.append(slice(start, i))
             started = False
 
