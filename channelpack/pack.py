@@ -1,140 +1,37 @@
+# -*- coding: utf-8 -*-
 
-# -*- coding: UTF-8 -*-
+"""This module provides the ChannelPack class and some factory functions.
 
-"""Provide ChannelPack. Provide lazy functions to get loaded instances
-of ChannelPack.
+Example
+-------
 
-:class:`~channelpack.ChannelPack` is a class holding data read from some
-data file. It takes a function as its only argument for ``__init__``.
-The function is responsible for returning a dict with numpy 1d arrays
-corresponding to the "channels" in the data file. Keys are integers
-corresponding to the "columns" used, 0-based. The load-function is
-called with an instance of ChannelPack by calling
-:meth:`~channelpack.ChannelPack.load`.
+>>> import channelpack as cp
+>>> pack = cp.ChannelPack(data={0: ('A', 'B', 'C', 'C', 'D'),
+                                1: (22, 22, 10, 15, 15)})
 
-Making a pack
-=============
+>>> pack
+ChannelPack(
+data={0: array(['A', 'B', 'C', 'C', 'D'], dtype='|S1'),
+      1: array([22, 22, 10, 15, 15])},
+chnames={})
 
-There are functions in this module for easy pack creation:
-:func:`~txtpack`, :func:`~dbfpack`, :func:`~sheetpack`. Using one of
-those, a call to load is not necessary::
+>>> pack.set_chnames({0: 'section', 1: 'seats'})
+>>> pack
+ChannelPack(
+data={0: array(['A', 'B', 'C', 'C', 'D'], dtype='|S1'),
+      1: array([22, 22, 10, 15, 15])},
+chnames={0: 'section',
+         1: 'seats'})
 
-    >>> import channelpack as cp
-    >>> tp = cp.txtpack('testdata/sampledat2.txt')
-    >>> for k in sorted(tp.chnames):
-    ...     print tp.name(k)
-    ...
-    RPT
-    B_CACT
-    P_CACT
-    VG_STOP
-    AR_BST
-    PLRT_1
-    TOQ_BUM
+>>> pack('section')
+array(['A', 'B', 'C', 'C', 'D'], dtype='|S1')
 
-    # Arrays are callable by name or column number
-    >>> tp('RPT') is tp(0)
-    True
+>>> pack.mask = pack('section') == 'C'
+>>> pack('section', part=0)
+array(['C', 'C'], dtype='|S1')
 
-Setting the mask
-================
-
-The ChannelPack is holding a dict with numpy arrays and provide ways to
-get at them by familiar names or column numbers, as just shown. The pack
-also holds a Boolean array, initially all true. channelpack calls the
-array ``mask``, and it is of the same length as the channels in the
-pack::
-
-    >>> import numpy as np
-    >>> np.all(tp.mask)
-    True
-    >>> tp(0).size == tp.mask.size
-    True
-
-The mask is used to retrieve specific parts from the channels or to
-filter the returned data::
-
-    >>> sp = cp.sheetpack('testdata/sampledat3.xls')
-    >>> for k in sorted(sp.chnames):
-    ...     print k, sp.name(k)
-    ...
-    0 txtdata
-    1 nums
-    2 floats
-
-    >>> sp('txtdata')
-    array([u'A', u'A', u'C', u'D', u'D'],
-          dtype='<U1')
-
-    >>> sp.mask = (sp('txtdata') == 'A') | (sp('txtdata') == 'D')
-    >>> sp.mask
-    array([ True,  True, False,  True,  True], dtype=bool)
-    >>> sp('txtdata', 0)
-    array([u'A', u'A'],
-          dtype='<U1')
-    >>> sp('txtdata', 1)
-    array([u'D', u'D'],
-          dtype='<U1')
-    >>> sp('txtdata', 2)
-    Traceback (most recent call last):
-        ...
-    IndexError: list index out of range
-
-The above example try to say that *parts* are chunks of the channel
-elements that has corresponding True elements in the mask. And they are
-retrieved by adding an enumeration of the part in the call for the
-channel, see :meth:`~channelpack.ChannelPack.__call__`.
-
-For filtering, an attribute ``nof`` is set to the string 'filter'::
-
-    >>> sp.nof = 'filter'
-    >>> sp('txtdata')
-    array([u'A', u'A', u'D', u'D'],
-          dtype='<U1')
-
-The attribute ``nof`` can have the values 'filter', ``None`` or 'nan'.
-``None`` mean that the attribute has no effect. The effect of 'nan' is
-that elements that is not corresponding to a True element in ``mask`` is
-replaced with ``numpy.nan`` or ``None`` in calls::
-
-    >>> sp.nof = 'nan'
-    >>> sp('txtdata')
-    array([u'A', u'A', None, u'D', u'D'], dtype=object)
-    >>> sp('nums')
-    array([   0.,   30.,   nan,   90.,  120.])
-
-Calls for a specific part are not affected by the attribute ``nof``::
-
-    >>> sp('txtdata', 1)
-    array([u'D', u'D'],
-          dtype='<U1')
-
-Calling load on a running instance
-==================================
-
-If the pack is to be loaded with a new data set that is to be subjected
-to the same conditions, do like this::
-
-    >>> sp.add_condition('cond', "(%('txtdata') == 'A') | (%('txtdata') == 'D')")
-    >>> sp.pprint_conditions()
-    cond1: (%('txtdata') == 'A') | (%('txtdata') == 'D')
-    ...
-
-Note that the string for the condition is the same as in the above
-assignment (``sp.mask = (sp('txtdata') == 'A') | (sp('txtdata') ==
-'D')``) with the identifier for the pack replaced with ``%``. Now a new
-file with the same data lay-out can be loaded and receive the same
-state::
-
-    >>> sp.load('testdata/sampledat4.xls', stopcell='c6')
-    >>> sp('txtdata')
-    array([u'A', None, None, None, u'D'], dtype=object)
-    >>> sp.nof = None
-    >>> sp('txtdata')
-    array([u'A', u'C', u'C', u'C', u'D'],
-          dtype='<U1')
-
-    array([A, C, C, C, D], dtype=object)
+>>> pack('seats', part=0)
+array([10, 15])
 """
 import re
 from collections import Counter, namedtuple
@@ -147,9 +44,10 @@ from . import datautils
 
 class IntKeyDict(dict):
     """Subclass of dict that only accepts integers as keys."""
+
     def __init__(self, *args, **kwargs):
-        if len(args) > 1:       # dict fail
-            super(IntKeyDict, self).__init__(*args, **kwargs)
+        if args and (len(args) > 1 or isinstance(args[0], str)):
+            super(IntKeyDict, self).__init__(*args, **kwargs)  # delegate fail
         self.update(*args, **kwargs)
 
     def __setitem__(self, key, value):
@@ -162,15 +60,17 @@ class IntKeyDict(dict):
         # only concern about keys being integers, let parent handle
         # other dict violations
         if args and isinstance(args[0], dict):
-            for key in args[0].keys():
+            for key in args[0]:
                 if not isinstance(key, int):
                     raise TypeError(self._key_error_message(key))
 
-        elif args and hasattr(args[0], '__iter__'):
+        elif args and (hasattr(args[0], '__iter__') and not
+                       isinstance(args[0], str)):
             for seq in args[0]:
                 if hasattr(seq, '__len__') and len(seq) > 2:
                     break       # not our problem
-                if hasattr(seq, '__getitem__') and not isinstance(seq[0], int):
+                elif (hasattr(seq, '__getitem__') and not
+                      isinstance(seq[0], int)):
                     raise TypeError(self._key_error_message(seq[0]))
 
         for key, value in kwargs.items():
@@ -189,7 +89,7 @@ class IntKeyDict(dict):
 
 
 class NpDict(IntKeyDict):
-    """Subclass of IntKeyDict casting values to np.ndarray as necessary.
+    """Subclass of IntKeyDict converting values to np.ndarray as necessary.
 
     Values are expected to be flat sequences. If the resulting numpy
     array has ndim != 1, ValueErrror is raised.
@@ -197,8 +97,8 @@ class NpDict(IntKeyDict):
     """
 
     def __init__(self, *args, **kwargs):
-        if len(args) > 1:       # dict fail
-            super(NpDict, self).__init__(*args, **kwargs)
+        if args and (len(args) > 1 or isinstance(args[0], str)):
+            super(NpDict, self).__init__(*args, **kwargs)  # delage fail
         self.update(*args, **kwargs)
 
     def __setitem__(self, key, value):
@@ -267,6 +167,7 @@ class NpDict(IntKeyDict):
             if arr.ndim != 1:
                 raise ValueError('ndim != 1 for key {}'.format(key))
 
+
 class ChannelPack(object):
     """Callable collection of data.
 
@@ -287,18 +188,19 @@ class ChannelPack(object):
     nof : str or None
         'nan', 'filter' or None. In calls to the object, this attribute
         is consulted to determine how to return data arrays. If None,
-        arrays are returned as is. If 'nan', elements in the returned
-        array with corresponding False element in `mask` are replaced
-        with numpy.nan or None, equivalent to `np.where(array, mask,
-        np.full(len(array), np.nan))`. 'filter' yeilds the equivalent to
-        `array[mask]` -- the array is stripped down to elements with
-        corresponding True elements in `mask`. The effect of this
-        attribute can be overridden in calls of the object.
+        arrays are returned as is (the default). If 'nan', elements in
+        the returned array with corresponding False element in `mask`
+        are replaced with numpy.nan or None, equivalent to
+        `np.where(array, mask, np.full(len(array), np.nan))`. 'filter'
+        yeilds the equivalent to `array[mask]` -- the array is stripped
+        down to elements with corresponding True elements in `mask`. The
+        effect of this attribute can be overridden in calls of the
+        object.
     chnames : dict
         Keys are integers representing column numbers (like in `data`),
-        values are strings, the channel names. A populated `chnames`
-        attribute aligned with `data` (having the same set of keys)
-        makes it possible to refer to arrays by channel names.
+        values are strings, the channel names. Keys in `chnames` aligned
+        with keys in `data` makes it possible to refer to arrays by
+        channel names. This alignment is not enforced.
     FALLBACK_PREFIX : str
         Defaults to 'ch'. This can be used in calls of the pack in place
         of a "proper" name. If 4 is a key in the data dict, pack('ch4')
@@ -317,6 +219,7 @@ class ChannelPack(object):
 
     """
     nofvalids = ('nan', 'filter', None)
+    id_rx = r'[^\d\W]\w*'       # valid python identifier in some string
 
     def __init__(self, data={}, chnames={}):
         """Initiate a ChannelPack
@@ -329,8 +232,8 @@ class ChannelPack(object):
             Keys are integers representing column numbers, values are
             sequences representing column data.
         chnames : dict
-            Keys are integers representing column numbers (like in D),
-            values are strings, the channel names.
+            Keys are integers representing column numbers (like in
+            data), values are strings, the channel names.
 
         """
         self.FALLBACK_PREFIX = 'ch'
@@ -350,15 +253,26 @@ class ChannelPack(object):
         elif name == 'mask' and not isinstance(value, np.ndarray):
             raise TypeError('Expected a numpy array')
         elif name == 'data' and not isinstance(value, NpDict):
-            raise TypeError('Expected a NpDict')
+            object.__setattr__(self, name, NpDict(value))
+        elif name == 'chnames' and not isinstance(value, IntKeyDict):
+            object.__setattr__(self, name, IntKeyDict(value))
         else:
             object.__setattr__(self, name, value)
+
+    def __delattr__(self, name):
+        if name in ('FALLBACK_PREFIX', 'data', 'fn',
+                    'filenames', 'chnames', 'nof'):
+            raise AttributeError('Cannot delete {}'.format(name))
+        else:
+            object.__delattr__(self, name)
 
     def set_nof(self, value):
         """Set the nof attribute to value.
 
         See class attributes description for the meaning of `nof`.
 
+        Parameters
+        ----------
         value : str or None
             If str it shall be one of 'nan' or 'filter', else None.
 
@@ -370,52 +284,77 @@ class ChannelPack(object):
         self.nof = value
 
     def set_chnames(self, chnames):
-        """Set the attribute chnames to chnames.
+        """Set the chnames attribute to chnames.
 
+        Parameters
+        ----------
         chnames : dict
-            Keys in the dict shall correspond with the keys in the
-            data dict attribute D. Values are any str channel names.
+            Keys in the dict should correspond with the integer keys in
+            the data attribute. Values are any str channel names.
+
+        Raises
+        ------
+        TypeError if keys are not integers.
 
         """
 
-        self.chnames = IntKeyDict(chnames)
+        self.chnames = chnames
 
-    def set_datadict(self, D):
+    def set_data(self, data):
         """Convert sequences to numpy arrays as needed.
 
-        Raise TypeError if not all keys in data are integers.
+        This method replaces any existing data with `data`.
 
-        data : dict"""
+        Parameters
+        ----------
+        data : dict
 
-        # FIXME: when do we check that all arrays are the same size, because it
-        # is a requirement, right?
+        Raises
+        ------
+        TypeError
+            If keys are not integers.
+        ValueError
+            If a value in dict are not a sequence that result in a numpy
+            array with ndim equal to 1, (1D array).
 
-        for key, vals in D.items():
-            if not isinstance(key, int):
-                raise TypeError('Expected keys to be int: ' + repr(key))
-            if isinstance(vals, np.ndarray):
-                self.data[key] = vals
-            else:
-                self.data[key] = np.array(vals)
+        """
+        self.data = data
+        self.mask_reset()
 
     def append_pack(self, other):
         """Append data from other into this pack.
 
-        other : ChannelPack instance
-            Non-empty data and chnames dicts in this object and the
-            provided pack must have equal set of keys, else ValueError
-            is raised.
+        If this pack has data (attribute data is non-empty), it has to
+        have the same set of keys as other.data (if that is non-empty).
+        Same is true for the attribute chnames.
 
-        FIXME: filename(s)?
+        Array dtypes in respective pack.data are at the mercy of numpy
+        append function.
+
+        If the attribute fn is not the empty string in other, append
+        other.fn to the filenames list attribute. Ignore
+        other.filenames.
+
+        mask_reset is called after the append.
+
+        Parameters
+        ----------
+        other : ChannelPack instance
+
+        Raises
+        ------
+        ValueError
+            If non-empty dicts in packs do not align.
 
         """
+
         if not self.data:
-            self.set_datadict(other._D)
-        elif other._D:
-            if not set(self.data.keys()) == set(other._D.keys()):
+            self.set_data(other.data)
+        elif other.data:
+            if not set(self.data.keys()) == set(other.data.keys()):
                 raise ValueError('Data dicts set of keys not equal')
-            for key in other._D.keys():
-                self.data[key] = np.append(self.data[key], other._D[key])
+            for key in other.data:
+                self.data[key] = np.append(self.data[key], other.data[key])
 
         if not self.chnames:
             self.set_chnames(other.chnames)
@@ -423,41 +362,35 @@ class ChannelPack(object):
             if not set(self.chnames.keys()) == set(other.chnames.keys()):
                 raise ValueError('chnames dicts set of keys not equal')
 
-        # FIXME: when do we check (require) alignment between keys in
-        # self.data and self.chnames? -- Might be just to document the
-        # fact that ChannelPack do not take responsibility for this. If
-        # a name value in chnames has a corresponding key in datadict
-        # and the name is used in a call, we just return that data. If
-        # the name is not in chnames values, there will be a key error.
-
-        if other.filenames:
-            self.filenames += other.filenames
-        elif other.fn:
+        if self.fn and self.fn not in self.filenames:
+            self.filenames.append(self.fn)
+        if other.fn:
             self.filenames.append(other.fn)
 
         self.mask_reset()
 
     def mask_reset(self):
-        """Set the attribute mask to the length of data and all True.
+        """Set the mask attribute to the length of data and all True.
 
-        If this pack's data dict is empty, set mask to an empty
-        array.
+        If this pack's data dict is empty, set mask to an empty array.
+        Size of the mask is based on the array with the lowest key in
+        data.
 
         """
 
         if not self.data:
             self.mask = np.array([])
         else:
-            somekey = [key for key in self.data.keys()][0]  # 2&3
-            self.mask = self.data[somekey] == self.data[somekey]
+            lowest = sorted(self.data)[0]
+            self.mask = self.data[lowest] == self.data[lowest]
 
     def min_duration(self, duration, samplerate=1):
         """Require each true part to be at least duration long.
 
-        Make False any true part in the mask attribute that is not
-        `duration` long. Any True part in the packs mask attribute not
+        Make false any true part in the mask attribute that is not
+        `duration` long. Any true part in the packs mask attribute not
         fulfilling duration together with samplerate will be set to
-        False.
+        false.
 
         Parameters
         ----------
@@ -499,27 +432,30 @@ class ChannelPack(object):
 
         """
 
-        return list(range(len(self.slicelist()))) # 2&3
+        return list(range(len(self.slicelist())))  # 2&3
 
-    def counter(self, ch, part=None):
+    def counter(self, ch, part=None, nof=None):
         """Return a counter on the channel ch.
 
-        ch: string or integer.
-            The channel index number or channel name.
+        A collections.Counter instance.
 
+        Parameters
+        ----------
+        ch: string or integer.
+            The channel key, name or fallback string.
         part: int
             The 0-based enumeration of a True part to return. Overrides
             any setting of the nof attribute.
-
-        See `Counter
-        <https://docs.python.org/2.7/library/collections.html#counter-objects>`_
-        for the counter object returned.
-
-        FIXME: add nof argument
+        nof : str
+            One of 'nan', 'filter' or 'ignore'. Providing this argument
+            overrides any setting of the corresponding attribute `nof`,
+            and have the same effect on the returned data as the
+            attribute `nof`. The value 'ignore' can be used to get the
+            full array despite a setting of the attribute `nof`.
 
         """
 
-        return Counter(self(self.datakey(ch), part=part))
+        return Counter(self(self.datakey(ch), part=part, nof=nof))
 
     def __call__(self, ch, part=None, nof=None):
         """Return data from "channel" ch.
@@ -531,9 +467,9 @@ class ChannelPack(object):
         Parameters
         ----------
         ch : str or int
-            The channel index number, name or fallback string. The
-            lookup order is keys in the data dict, names in the chnames
-            dict and finally if `ch` matches a fallback string.
+            The channel key, name or fallback string. The lookup order
+            is keys in the data dict, names in the chnames dict and
+            finally if `ch` matches a fallback string.
         part : int
             The 0-based enumeration of a True part to return. Overrides
             the effect of attribute or argument `nof`.
@@ -569,114 +505,158 @@ class ChannelPack(object):
         else:
             return self.data[key]
 
-    def records(self, part=None, fallback=True):
-        """Return an iterator over the records in the pack.
+    def records(self, part=None, nof=None, fallback=False):
+        """Return a generator producing records of the pack.
 
-        Each record is supplied as a namedtuple with the channel names
-        as field names. This is useful if each record make a meaningful
-        data set on its own.
+        Each record is supplied as a collections.namedtuple with the
+        channel names as field names. This is useful if each record make
+        a meaningful data set on its own.
 
-        part: int
-            Same meaning as in
-            :meth:`~channelpack.ChannelPack.__call__`.
-
-        fallback: boolean
+        part : int
+            The 0-based enumeration of a True part to return. Overrides
+            the effect of attribute or argument `nof`.
+        nof : str
+            One of 'nan', 'filter' or 'ignore'. Providing this argument
+            overrides any setting of the corresponding attribute `nof`,
+            and have the same effect on the returned data as the
+            attribute `nof`. The value 'ignore' can be used to get all
+            the records despite a setting of the attribute `nof`.
+        fallback: bool
             The named tuple requires python-valid naming. If fallback is
-            False, there will be an error if ``self.chnames`` is not
-            valid names and not None. If True, fall back to the
-            ``self.chnames_0`` on error.
+            False, ValueError is raised if any of the names in chnames
+            is an invalid identifier. fallback=True will use
+            FALLBACK_PREFIX to produce names.
 
-        FIXME: add nof argument and update this documentation and audit
-               the code.
         """
 
-        names_0 = [self.chnames_0[k] for k in sorted(self.chnames_0.keys())]
-        if self.chnames is not None:
-            names = [self.chnames[k] for k in sorted(self.chnames.keys())]
+        # fixme: use the name method and add a firstwordonly argument
+        # here. But then the pack call has to be done on keys.
+        names = [self.chnames[key] for key in sorted(self.chnames)]
+        if fallback:
+            names = [self.FALLBACK_PREFIX + str(key) for key in
+                     sorted(self.data)]
 
         try:
             Record = namedtuple('Record', names)
-        except NameError:       # no names
-            Record = namedtuple('Record', names_0)
-            names = names_0
-        except ValueError:      # no good names
-            if fallback:
-                Record = namedtuple('Record', names_0)
-                names = names_0
-            else:
-                raise
+        except ValueError:      # bad names
+            raise ValueError('Includes invalid names: {}'.format(names))
 
-        for tup in zip(*[self(name, part) for name in names]):
-            yield Record(*tup)
+        for record in map(Record._make, zip(*[self(name, part=part, nof=nof)
+                                              for name in names])):
+            yield record
 
     def datakey(self, ch):
         """Return the integer key for ch.
 
+        Parameters
+        ----------
         ch : int or str
-            The channel index number, name or fallback string. The
-            lookup order is keys in the data dict, names in the chnames
-            dict and finally if `ch` matches a fallback string.
+            The channel key, name or fallback string. The lookup order
+            is keys in the data dict, names in the chnames dict and
+            finally if `ch` matches a fallback string.
 
-        Raise KeyError if `ch` do not correspond to any key in the data
-        dict.
+        Raises
+        ------
+        KeyError
+            If `ch` do not evaluate to a key in the data dict.
 
         """
-
-        # doc for ch same as in __call__
 
         if ch in self.data:
             return ch
 
+        # if ch is an int and we are here, there is no match
+        if isinstance(ch, int):
+            raise KeyError('{} not in data')
+
         for key, name in self.chnames.items():
             if ch == name:
-                if key not in self.data.keys():
-                    raise KeyError(ch)
+                if key not in self.data:
+                    fmt = '{} value in chnames with key {} but {} not in data'
+                    raise KeyError(fmt.format(name, key, key))
                 return key
 
-        # not in D, not a name in chnames, last chance is a fallback
-        # string
+        # not in data, not a good name in chnames, last chance is a
+        # fallback string
 
-        try:
-            key = int(ch.split(self.FALLBACK_PREFIX)[-1])
-        except AttributeError:  # ch was an int? but not in D.
-            raise KeyError(ch)
-        except ValueError:      # no number in end of fallback str
-            raise KeyError(ch)
+        prefix_rx = self.FALLBACK_PREFIX + r'(\d+)'
+        m = re.match(prefix_rx, ch)
 
-        if key in self.data.keys():
-            return key
-        else:
-            raise KeyError
+        if m:
+            key = int(m.group(1))
+            if key in self.data:
+                return key
+
+        raise KeyError
 
     def name(self, ch, firstwordonly=False, fallback=False):
-        """Return channel name string for ch.
+        """Return a name string for channel `ch` in chnames.
 
-        ch: str or int.
-            The channel name or key.
+        A helper method to get a name string, possibly modified
+        according to arguments. It is not required by this method that
+        ch also evaluate to a key in data.
 
-        firstwordonly: bool or "pattern".
-            If True, return only the first non-spaced word in the name,
-            a name in the attribute chnames. If a string, use as a
-            re-pattern with re.findall and return the first element
-            found. There will be error if no match. r'\w+' is a good
-            pattern for excluding leading and trailing obscure
-            characters.
-
+        Parameters
+        ----------
+        ch: int or str.
+            The channel key or name. An integer key has precedence.
+        firstwordonly: bool or str
+            If True, return only the first space-stripped word in the
+            name. If a string, use that string as a regex pattern with
+            re.findall and return the first element found.
         fallback : bool
-            If True, return the fallback string <FALLBACK_PREFIX><N>.
-            Ignore the firstwordonly argument.
+            If True, return the fallback string <FALLBACK_PREFIX><N>,
+            where N corresponds to the channel key. Ignore the
+            firstwordonly argument.
+
+        Raises
+        ------
+        KeyError
+            If ch is an integer and not in chnames.
+        ValueError
+            If ch is a string and not a name in chnames.
+
         """
 
-        key = self.datakey(ch)
-        if fallback:
-            return self.FALLBACK_PREFIX + str(key)
-
-        if not firstwordonly:
-            return self.chnames[key]
-        elif firstwordonly is True:
-            return self.chnames[key].split()[0]
+        # figure out the integer key and value
+        chkey, value = None, None
+        if ch in self.chnames:
+            chkey, value = ch, self.chnames[ch]
+        elif isinstance(ch, int):
+            raise KeyError('{} not in chnames'.format(ch))
         else:
-            return re.findall(firstwordonly, self.chnames[key])[0]
+            for key, val in self.chnames.items():
+                if ch == val:
+                    chkey, value = key, val
+                    break
+            else:               # no break
+                raise ValueError('No name as {} in chnames'.format(ch))
+
+        # if no error we have the chkey and value now
+
+        if fallback:
+            return self.FALLBACK_PREFIX + str(chkey)
+        elif not firstwordonly:
+            return value
+        elif firstwordonly is True:
+            return value.split()[0]
+        else:
+            return re.findall(firstwordonly, value)[0]
+
+    def __repr__(self):
+        """Return a string representing creation of the pack.
+
+        """
+
+        fmtstr = 'ChannelPack(\ndata={{{}}},\nchnames={{{}}})'
+        datjoinstr = ',\n      '
+        chjoinstr = ',\n         '
+        datkeyvalstr = (datjoinstr.join(str(key) + ': ' + repr(self.data[key])
+                                        for key in sorted(self.data.keys())))
+        chkeyvalstr = (chjoinstr.join(str(key) + ': ' + repr(self.chnames[key])
+                                      for key in sorted(self.chnames.keys())))
+
+        return fmtstr.format(datkeyvalstr, chkeyvalstr)
 
 
 def txtpack(fn, **kwargs):

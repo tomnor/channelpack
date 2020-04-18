@@ -145,7 +145,8 @@ def slicelist(b):
     Start and stop in each slice describe the True sections in b."""
 
     slicelst = []
-    started = False
+    started, e = False, False
+
     for i, e in enumerate(b):
         if not started and e:
             start = i

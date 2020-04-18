@@ -47,7 +47,7 @@ DATCRX = r'[-+]?(?:\d+(?:,\d*)?|,\d+)(?:[eE][-+]?\d+)?'  # With decimal comma
 # least it requires that numbers are never directly preceeded by a letter
 # A-Za-z. (negative lookbehind assertion).
 
-ALPHAS = tuple(string.lowercase + string.uppercase + '_' + u'åäöÅÄÖ')
+ALPHAS = tuple(string.ascii_lowercase + string.ascii_uppercase + '_' + u'åäöÅÄÖ')
 
 # Number of rows with equal number of data pattern matches
 EQUAL_CNT_REQ = 10
