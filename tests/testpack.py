@@ -10,7 +10,8 @@ sys.path.insert(0, pardir)
 
 import channelpack as cp
 
-print('Testing channelpack package:', cp.__file__)
+print('Testing channelpack package:', cp)
+print('Testing with', unittest)
 print()
 
 
@@ -592,6 +593,15 @@ class TestPackBasics(unittest.TestCase):
             self.assertEqual(record.letter, pack('letter')[index])
             self.assertEqual(record.number, pack('number')[index])
 
+    def test_records_partial_chnames(self):
+        pack = self.pack
+        pack.chnames = {0: 'section'}
+        for record in pack.records():
+            self.assertEqual(len(record), 1)
+
+        for record, section in zip(pack.records(), self.D1[0]):
+            self.assertEqual(record.section, section)
+
     def test_records_fallback_true(self):
         pack = self.pack
         for index, record in enumerate(pack.records(fallback=True)):
@@ -614,6 +624,13 @@ class TestPackBasics(unittest.TestCase):
         for record in pack.records():
             count += 1
         self.assertEqual(count, 0)
+
+    def test_records_bad_chnames_fallback_false(self):
+        pack = self.pack
+        pack.chnames = {0: '0-invalid', 1: '1-invalid'}
+        with self.assertRaises(ValueError):
+            for record in pack.records():
+                _rec = record   # NOQA
 
     def test_datakey(self):
         pack = self.pack
