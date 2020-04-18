@@ -512,6 +512,8 @@ class ChannelPack(object):
         channel names as field names. This is useful if each record make
         a meaningful data set on its own.
 
+        Parameters
+        ----------
         part : int
             The 0-based enumeration of a True part to return. Overrides
             the effect of attribute or argument `nof`.
@@ -526,6 +528,12 @@ class ChannelPack(object):
             False, ValueError is raised if any of the names in chnames
             is an invalid identifier. fallback=True will use
             FALLBACK_PREFIX to produce names.
+
+        Raises
+        ------
+        ValueError
+            In iteration of the generator if any of the names used for
+            the namedtuple is invalid python identifiers.
 
         """
 
