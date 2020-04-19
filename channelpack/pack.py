@@ -254,6 +254,7 @@ class ChannelPack(object):
             raise TypeError('Expected a numpy array')
         elif name == 'data' and not isinstance(value, NpDict):
             object.__setattr__(self, name, NpDict(value))
+            self.mask_reset()
         elif name == 'chnames' and not isinstance(value, IntKeyDict):
             object.__setattr__(self, name, IntKeyDict(value))
         else:
