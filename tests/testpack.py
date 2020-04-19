@@ -47,8 +47,8 @@ class TestIntKeyDict(unittest.TestCase):
             cp.pack.IntKeyDict(1, 2)
         with self.assertRaises(TypeError):
             cp.pack.IntKeyDict(1, 2, 3)
-        with self.assertRaises(TypeError):
-            cp.pack.IntKeyDict({1, 'one'})
+        with self.assertRaises(ValueError):
+            cp.pack.IntKeyDict(['123', '345'])
 
     def test_update_nok_pargs(self):
         # should be normal dict errors
@@ -59,8 +59,8 @@ class TestIntKeyDict(unittest.TestCase):
             ikd.update(1, 2)
         with self.assertRaises(TypeError):
             ikd.update(1, 2, 3)
-        with self.assertRaises(TypeError):
-            ikd.update({1, 'one'})
+        with self.assertRaises(ValueError):
+            ikd.update(['123', '345'])
 
     def test_create_nok_pairs(self):
         # should be normal dict errors
@@ -182,8 +182,8 @@ class TestNpDict(unittest.TestCase):
             cp.pack.NpDict(1, 2)
         with self.assertRaises(TypeError):
             cp.pack.NpDict(1, 2, 3)
-        with self.assertRaises(TypeError):
-            cp.pack.NpDict({1, 'one'})
+        with self.assertRaises(ValueError):
+            cp.pack.NpDict(['123', '345'])
 
     def test_update_nok_pargs(self):
         # should be normal dict errors
@@ -194,8 +194,8 @@ class TestNpDict(unittest.TestCase):
             npd.update(1, 2)
         with self.assertRaises(TypeError):
             npd.update(1, 2, 3)
-        with self.assertRaises(TypeError):
-            npd.update({1, 'one'})
+        with self.assertRaises(ValueError):
+            npd.update(['123', '345'])
 
     def test_create_nok_pairs(self):
         # should be normal dict errors
