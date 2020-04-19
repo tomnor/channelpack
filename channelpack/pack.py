@@ -413,6 +413,41 @@ class ChannelPack(object):
 
         return self.mask
 
+    def startstop(self, startb, stopb, apply=True):
+        """Start and stop trigger masking.
+
+        Elements in startb and stopb are start and stop triggers for
+        masking. A true stop dominates a true start.
+
+        Parameters
+        ----------
+        startb, stopb : sequence
+            Elements are tested with `if el...`
+        apply : bool
+            If True, apply the result of this method to the mask
+            attribute by anding it, (mask &= result).
+
+        Returns
+        -------
+        A bool ndarray, the result of this method.
+
+        Example
+        -------
+        One descend
+
+        height: 1 2 3 4 5 4 3 2 1
+        startb: F F F F T F F F F (height == 5)
+        stobb:  T F F F F F F F T (height == 1)
+        result: F F F F T T T T F
+        -> height:      5 4 3 2
+
+        """
+
+        result = np.array(tuple(datautils.startstop_bool(startb, stopb)))
+        if apply:
+            self.mask &= result
+        return result
+
     def slicelist(self):
         """Return a slicelist based on self.mask.
 

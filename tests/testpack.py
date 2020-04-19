@@ -336,6 +336,39 @@ class TestPackBasics(unittest.TestCase):
         self.pack = cp.ChannelPack(data=self.D1, chnames=self.C1)
         self.emptypack = cp.ChannelPack()
 
+    def test_startstop_parts(self):
+        pack = self.pack
+        pack.startstop(pack('letter') == pack('letter'), pack('letter') == 'C')
+        self.assertEqual(len(pack.parts()), 2)
+
+    def test_startstop_values(self):
+        pack = cp.ChannelPack()
+        pack.data = {0: (1, 2, 3, 4, 5, 4, 3, 2, 1)}
+        pack.startstop(pack(0) == 5, pack(0) == 1)
+        expected = (5, 4, 3, 2)
+
+        for val, compare in zip(pack(0, nof='filter'), expected):
+            self.assertEqual(val, compare)
+
+    def test_startstop_pack_apply_true(self):
+        pack = cp.ChannelPack()
+        pack.data = {0: (1, 2, 3, 4, 5, 4, 3, 2, 1)}
+        pack.mask = pack(0) < 4
+        pack.startstop(pack(0) == 5, pack(0) == 1)  # result anded w mask
+        expected = (3, 2)
+
+        for val, compare in zip(pack(0, nof='filter'), expected):
+            self.assertEqual(val, compare)
+
+    def test_startstop_pack_apply_false(self):
+        pack = cp.ChannelPack()
+        pack.data = {0: (1, 2, 3, 4, 5, 4, 3, 2, 1)}
+        pack.startstop(pack(0) == 5, pack(0) == 1, apply=False)
+        expected = (1, 2, 3, 4, 5, 4, 3, 2, 1)
+
+        for val, compare in zip(pack(0, nof='filter'), expected):
+            self.assertEqual(val, compare)
+
     def test_calls_by_int(self):
 
         pack = self.pack
