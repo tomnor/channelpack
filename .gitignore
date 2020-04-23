@@ -1,17 +1,6 @@
 *.pyc
 *.html
 *.tmp
-testdata/*
-!testdata/subdir1
-testdata/subdir1/*
-!testdata/subdir1/MesA1.blob
-!testdata/subdir1/MesA1.csv
-!testdata/plot*.py
-!testdata/sample*.txt
-!testdata/sample*.xls
-!testdata/dat_0000.txt
-!testdata/*conf_file*
-!testdata/mesdat?.dbf
 docs/_build/
 docs/BAK*
 docs/.#*
