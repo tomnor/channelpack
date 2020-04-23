@@ -38,7 +38,7 @@ from collections import Counter, namedtuple
 
 import numpy as np
 
-from . import pulltxt, pulldbf, pullxl
+from . import pulldbf, pullxl
 from . import datautils
 
 
@@ -701,40 +701,6 @@ class ChannelPack(object):
                                       for key in sorted(self.chnames.keys())))
 
         return fmtstr.format(datkeyvalstr, chkeyvalstr)
-
-
-def txtpack(fn, **kwargs):
-    """Return a ChannelPack instance loaded with text data file fn.
-
-    Attempt to read out custom channel names from the file and call
-    instance.set_channel_names(). Then return the pack.
-
-    This is a lazy function to get a loaded instance, using the
-    cleverness provided by pulltxt module. No delimiter or rows-to-skip
-    and such need to be provided. However, if necessary, `**kwargs` can
-    be used to override clevered items to provide to numpys
-    loadtxt. usecols might be such an item for example. Also, the
-    cleverness is only clever if all data is numerical.
-
-    Note that the call signature is the same as numpys `loadtxt
-    <http://docs.scipy.org/doc/numpy/reference/generated/numpy.loadtxt.html#numpy-loadtxt>`_, which look like this::
-
-        np.loadtxt(fname, dtype=<type 'float'>, comments='#',
-        delimiter=None, converters=None, skiprows=0, usecols=None,
-        unpack=False, ndmin=0)
-
-    But, when using this function as a wrapper, the only meaningful
-    argument to override should be `usecols`.
-"""
-
-    loadfunc = pulltxt.loadtxt_asdict
-    cp = ChannelPack(loadfunc)
-    cp.load(fn, **kwargs)
-    names = pulltxt.PP.channel_names(kwargs.get('usecols', None))
-    cp.set_channel_names(names)
-    cp._patpull = pulltxt.PP    # Give a reference to the patternpull.
-    # cp.set_basefilemtime()
-    return cp
 
 
 def dbfpack(fn, usecols=None):

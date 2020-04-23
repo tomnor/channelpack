@@ -39,6 +39,6 @@ objects.
 
 """
 
-from .pack import ChannelPack, txtpack, dbfpack, sheetpack
+from .pack import ChannelPack, dbfpack, sheetpack
 
 __version__ = '0.4.0'
