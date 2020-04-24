@@ -25,10 +25,10 @@ def _floatit(s):
     return float(s.replace(',', '.'))
 
 
-def preparse(lines):
+def preparse(lines, firstfieldrx=r'\w'):
     """Populate a dict with keyword arguments to use with data readers.
 
-    Works with numerical data files only, which might have a header with
+    Works with numerical data files, which might have a header with
     extra information to ignore.
 
     Populate a dict with following data
@@ -116,6 +116,12 @@ def preparse(lines):
 
     if validcounts[-1].septypcnt != exp_septypcnt:
         return {}
+    # if only one column of data (exp_septypcnt == 0) there shouldn't be
+    # any non-numbers, non-whites around the number
+    elif exp_septypcnt == 0:
+        if ((flag == 'd' and any(m.strip() for m in re.split(DNUMRX, lines[-1])))
+            or (flag == 'c' and any(m.strip() for m in re.split(CNUMRX, lines[-1])))):
+            return {}
 
     # Data starts before line where number of different seps is not 1
     # anymore, checking backwards. Or where there is no numbers found
@@ -141,10 +147,11 @@ def preparse(lines):
     chnames = {}
     # line above startline and up, (no iteration if startline=0)
     for line in lines[:startline][::-1]:
-        fields = [field.strip() for field in line.split(delimiter)]
+        fields = [field.strip() for field in
+                  line.split(delimiter) if field.strip()]
         if len(fields) != validcounts[-1].numcnt:
             continue
-        else:
+        elif re.match(firstfieldrx, fields[0]):
             chnames = {colnum: field for colnum, field in enumerate(fields)}
             break
 
