@@ -1,0 +1,16 @@
+test data files in this directory
+
+file                        encoding / type         datastart (1-based)
+dat_0000.txt                ascii                   12
+loremipsum                  ascii                   n/a
+loremipsum-numsend          ascii                   22
+loremipsum-numsend-delok    ascii                   24
+loremipsum-numsmid          ascii                   16 (followed by txt)
+MesA1.csv                   ascii                   24
+mesdat2.dbf                 FoxBase+/dBase III DBF  n/a
+mesdat3.dbf                 FoxBase+/dBase III DBF  n/a
+onecolumn                   ascii                   1
+sampledat1.txt              ascii                   2
+sampledat2.txt              ascii                   2
+sampledat3.xls              application/vnd.ms-xl   n/a
+sampledat4.xls              application/vnd.ms-xl   n/a
