@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-"""This module provides the ChannelPack class and some factory functions.
+"""This module provides the ChannelPack class.
 
 Example
 -------
@@ -611,7 +611,7 @@ class ChannelPack(object):
 
         # if ch is an int and we are here, there is no match
         if isinstance(ch, int):
-            raise KeyError('{} not in data')
+            raise KeyError('{} not in data'.format(ch))
 
         for key, name in self.chnames.items():
             if ch == name:
@@ -647,7 +647,8 @@ class ChannelPack(object):
         firstwordonly: bool or str
             If True, return only the first space-stripped word in the
             name. If a string, use that string as a regex pattern with
-            re.findall and return the first element found.
+            re.findall on the name string and return the first element
+            found.
         fallback : bool
             If True, return the fallback string <FALLBACK_PREFIX><N>,
             where N corresponds to the channel key. Ignore the
@@ -666,7 +667,7 @@ class ChannelPack(object):
         chkey, value = None, None
         if ch in self.chnames:
             chkey, value = ch, self.chnames[ch]
-        elif isinstance(ch, int):
+        elif isinstance(ch, int):  # FIXME, allow fallback if exist in data
             raise KeyError('{} not in chnames'.format(ch))
         else:
             for key, val in self.chnames.items():
