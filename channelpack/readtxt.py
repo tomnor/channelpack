@@ -5,6 +5,13 @@ Funtions for reading data from text files.
 from __future__ import print_function
 import re
 from collections import namedtuple
+import io
+import locale
+from pprint import pprint
+
+import numpy as np
+
+from . import pack as cp
 
 # The scanf kind of regular expressions as suggested by python docs
 # the re module: r'[-+]?(\d+(\.\d*)?|\.\d+)([eE][-+]?\d+)?'
@@ -23,6 +30,11 @@ def _escape(s):
 def _floatit(s):
     """Replace ',' with '.' and convert to float."""
     return float(s.replace(',', '.'))
+
+
+def _floatit_bytes(b):
+    """Replace b',' with b'.' and convert to float."""
+    return float(b.replace(b',', b'.'))
 
 
 def preparse(lines, firstfieldrx=r'\w'):
@@ -116,17 +128,19 @@ def preparse(lines, firstfieldrx=r'\w'):
 
     if validcounts[-1].septypcnt != exp_septypcnt:
         return {}
+
     # if only one column of data (exp_septypcnt == 0) there shouldn't be
     # any non-numbers, non-whites around the number
     elif exp_septypcnt == 0:
-        if ((flag == 'd' and any(m.strip() for m in re.split(DNUMRX, lines[-1])))
-            or (flag == 'c' and any(m.strip() for m in re.split(CNUMRX, lines[-1])))):
+        if ((flag == 'd' and any(m.strip()
+                                 for m in re.split(DNUMRX, lines[-1])))
+            or (flag == 'c' and any(m.strip()
+                                    for m in re.split(CNUMRX, lines[-1])))):
             return {}
 
     # Data starts before line where number of different seps is not 1
     # anymore, checking backwards. Or where there is no numbers found
     # with one column of data.
-
     for i, triplet in enumerate(reversed(validcounts)):
         if triplet.septypcnt != exp_septypcnt:
             break
@@ -165,3 +179,109 @@ def preparse(lines, firstfieldrx=r'\w'):
 # np.loadtxt(fname, dtype=<type 'float'>, comments='#', delimiter=None,
 # converters=None, skiprows=0, usecols=None, unpack=False, ndmin=0,
 # encoding='bytes', max_rows=None)
+
+
+def lazy_loadtxt_pack(fname, parselines=25, chnames={}, firstfieldrx=r'\w',
+                      **loadtxtkwargs):
+    """Return a ChannelPack instance using numpy loadtxt function.
+
+    Try to automatically derive values for the numpy loadtxt keyword
+    arguments 'delimiter', 'skiprows' and 'converters'. Also try to
+    parse out the field names, "channel names".
+
+    Works with numerical data files, which might have a header with
+    extra information to ignore. The only kind of converter derived is
+    one that converts numbers with decimal comma to a float.
+
+    Keyword arguments provided to this function overrides any derived
+    equivalents.
+
+    Parameters
+    ----------
+    fname : file, str
+        Encoding given in loadtxtkwargs is respected.
+    parselines : int
+        The number of lines to preparse. For a successful preparse it
+        must include at least one line of numeric data.
+    chnames : dict
+        Keys are integers (0-based column numbers) and values are
+        channel names. If provided it will be set in the pack and is
+        mutually exclusive with the usecols argument.
+    firstfieldrx : str
+    **loadtxtkwargs
+        Other keyword arguments accepted by numpy loadtxt. Overrides
+        derived keyword arguments if duplicated.
+
+    """
+
+    derived = {}
+    bytesalert = ('encoding' not in loadtxtkwargs or
+                  (loadtxtkwargs.get('encoding', 'None') == 'bytes'))
+    parseencoding = loadtxtkwargs.get('encoding', None)
+    # 'bytes' has a meaning to np.loadtxt but not for preparse
+    parseencoding = ((parseencoding and (parseencoding != 'bytes'))
+                     and parseencoding or None)
+
+    filename = ''
+    if type(fname) is str:
+        with io.open(fname, encoding=parseencoding) as fo:
+            derived = preparse(fo.readlines()[:parselines], firstfieldrx)
+        filename = fname
+
+    elif hasattr(fname, 'readlines') and 'b' in fname.mode:
+        # questionable, maybe we need to parse bytes if encoding is
+        # 'bytes' and bytes are given. Consider an extra argument,
+        # (parseencoding) for the preparse otherwise.
+        lineencoding = parseencoding or locale.getpreferredencoding()
+        lines = [line.decode(encoding=lineencoding) for line
+                 in fname.readlines()[:parselines]]
+        derived = preparse(lines, firstfieldrx)
+        fname.seek(0)
+        filename = fname.name
+    elif hasattr(fname, 'readlines'):
+        derived = preparse(fname.readlines()[:parselines], firstfieldrx)
+        fname.seek(0)
+        filename = fname.name
+    else:
+        fmt = 'not str or has no readlines method: {}'
+        raise TypeError(fmt.format(type(fname)))
+
+    # in any case where encoding is not given or encoding is 'bytes',
+    # loadtxt send bytes to the converter.
+    if bytesalert and 'converters' in derived:
+        try:
+            for key in derived['converters']:
+                derived['converters'][key] = _floatit_bytes
+        except TypeError:
+            # converters is None
+            pass
+
+    if chnames:
+        derived['usecols'] = sorted(chnames)  # the integer keys (columns)
+        packnames = chnames
+    elif 'usecols' in loadtxtkwargs:
+        usecols = loadtxtkwargs['usecols']
+        usecols = type(usecols) is int and (usecols,) or usecols
+        packnames = derived.get('chnames', {})
+        for key in set(packnames) - set(usecols):
+            packnames.pop(key, None)
+        derived['usecols'] = usecols
+    else:
+        packnames = derived.get('chnames', {})
+
+    loadtxtkwargs.pop('usecols', None)
+    derived.pop('chnames', None)
+
+    derived.update(loadtxtkwargs)
+    derived.update(unpack=True)  # enforce unpack (transpose)
+    derived.update(ndmin=2)      # enforce ndim=2 (for single col or row)
+
+    data = np.loadtxt(fname, **derived)
+
+    packdata = {col: array for col, array in
+                zip(sorted(derived['usecols']), data)}
+
+    pack = cp.ChannelPack(data=packdata, chnames=packnames)
+    pack.fn = filename
+
+    return pack
