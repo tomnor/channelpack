@@ -697,8 +697,8 @@ class TestPackBasics(unittest.TestCase):
 
     def test_name_valueerror(self):
         pack = self.pack
-        self.assertRaises(ValueError, pack.name, 'nosuch')
-        self.assertRaises(ValueError, pack.name, '')
+        self.assertRaises(KeyError, pack.name, 'nosuch')
+        self.assertRaises(KeyError, pack.name, '')
 
     def test_parts_single_elements(self):
 

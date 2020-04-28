@@ -637,8 +637,8 @@ class ChannelPack(object):
         """Return a name string for channel `ch` in chnames.
 
         A helper method to get a name string, possibly modified
-        according to arguments. It is not required by this method that
-        ch also evaluate to a key in data.
+        according to arguments. Succeeds only if `ch` corresponds to a
+        key in data.
 
         Parameters
         ----------
@@ -646,47 +646,28 @@ class ChannelPack(object):
             The channel key or name. An integer key has precedence.
         firstwordonly: bool or str
             If True, return only the first space-stripped word in the
-            name. If a string, use that string as a regex pattern with
-            re.findall on the name string and return the first element
-            found.
+            name. If a string, use as a regex pattern with re.findall on
+            the name string and return the first element found.
         fallback : bool
             If True, return the fallback string <FALLBACK_PREFIX><N>,
-            where N corresponds to the channel key. Ignore the
+            where N corresponds to the data key. Ignore the
             firstwordonly argument.
-
-        Raises
-        ------
-        KeyError
-            If ch is an integer and not in chnames.
-        ValueError
-            If ch is a string and not a name in chnames.
 
         """
 
-        # figure out the integer key and value
-        chkey, value = None, None
-        if ch in self.chnames:
-            chkey, value = ch, self.chnames[ch]
-        elif isinstance(ch, int):  # FIXME, allow fallback if exist in data
-            raise KeyError('{} not in chnames'.format(ch))
-        else:
-            for key, val in self.chnames.items():
-                if ch == val:
-                    chkey, value = key, val
-                    break
-            else:               # no break
-                raise ValueError('No name as {} in chnames'.format(ch))
-
-        # if no error we have the chkey and value now
+        key = self.datakey(ch)
 
         if fallback:
-            return self.FALLBACK_PREFIX + str(chkey)
-        elif not firstwordonly:
-            return value
+            return self.FALLBACK_PREFIX + str(key)
+
+        if not firstwordonly:
+            return self.chnames[key]
         elif firstwordonly is True:
-            return value.split()[0]
+            return self.chnames.split()[0]
+        elif type(firstwordonly) is str:
+            return re.findall(firstwordonly, self.chnames[key])[0]
         else:
-            return re.findall(firstwordonly, value)[0]
+            raise TypeError(firstwordonly)
 
     def __repr__(self):
         """Return a string representing creation of the pack.
