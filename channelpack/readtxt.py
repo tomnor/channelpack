@@ -4,10 +4,9 @@ Funtions for reading data from text files.
 """
 from __future__ import print_function
 import re
-from collections import namedtuple
+from collections import namedtuple, defaultdict
 import io
 import locale
-from pprint import pprint
 
 import numpy as np
 
@@ -206,7 +205,7 @@ def lazy_loadtxt_pack(fname, parselines=25, chnames={}, firstfieldrx=r'\w',
     chnames : dict
         Keys are integers (0-based column numbers) and values are
         channel names. If provided it will be set in the pack and is
-        mutually exclusive with the usecols argument.
+        mutually exclusive with the usecols argument in loadtxtkwargs.
     firstfieldrx : str
     **loadtxtkwargs
         Other keyword arguments accepted by numpy loadtxt. Overrides
@@ -237,11 +236,17 @@ def lazy_loadtxt_pack(fname, parselines=25, chnames={}, firstfieldrx=r'\w',
                  in fname.readlines()[:parselines]]
         derived = preparse(lines, firstfieldrx)
         fname.seek(0)
-        filename = fname.name
+        try:
+            filename = fname.name
+        except AttributeError:  # assuming some other io
+            pass
     elif hasattr(fname, 'readlines'):
         derived = preparse(fname.readlines()[:parselines], firstfieldrx)
         fname.seek(0)
-        filename = fname.name
+        try:
+            filename = fname.name
+        except AttributeError:  # assuming some other io
+            pass
     else:
         fmt = 'not str or has no readlines method: {}'
         raise TypeError(fmt.format(type(fname)))
@@ -285,3 +290,215 @@ def lazy_loadtxt_pack(fname, parselines=25, chnames={}, firstfieldrx=r'\w',
     pack.fn = filename
 
     return pack
+
+
+# backwards compatibility
+txtpack = lazy_loadtxt_pack
+
+
+# np.loadtxt(fname, dtype=<type 'float'>, comments='#', delimiter=None,
+# converters=None, skiprows=0, usecols=None, unpack=False, ndmin=0,
+# encoding='bytes', max_rows=None)
+
+
+def textpack(fname, chnames={}, delimiter=None, skiprows=0, usecols=None,
+             encoding=None, converters=None, stripstrings=False, debug=False):
+    """Make a ChannelPack from delimited text data.
+
+    First line of data is the line following skiprows.
+
+    First line of data determines what fields (splitted by delimiter)
+    can be converted to a float. Fields that can't be converted to float
+    will be treated as strings. Converters in converters are used if
+    given.
+
+    Numeric fields with decimal comma are understood as numeric (if
+    delimiter is not a comma).
+
+    Parameters:
+    fname : str, file or io stream
+    chnames : dict
+        Keys are integers (0-based column numbers) and values are
+        channel names. If provided it will be set in the pack and is
+        mutually exclusive with the usecols argument.
+    delimiter : str or bytes
+        If not given, any white space is assumed. If fname is a stream
+        of bytes, delimiter must be bytes if not None.
+    skiprows : int
+        The number of lines to ignore in the top of fname.
+    usecols : sequence or int
+        The columns to read. A single integer means read that one
+        column. Ignore if chnames is given.
+    encoding : str
+        Use encoding to open fname. If None, use default encoding with
+        io.open. Valid when fname is as string. If fname is a stream of
+        bytes and encoding is given, use encoding to decode bytes in
+        text fields.
+    converters : dict
+        A mapping of column numbers and functions. Each function take
+        one string argument and return a value.
+    stripstrings : bool
+        For string fields, strip off leading and trailing whitespace
+        resulting from whitespace around the delimiter.
+    debug : bool
+        If true, output the functions used on fields and the last
+        successful line number read, before an exception is raised.
+
+    """
+
+    if usecols is not None:
+        usecols = (usecols,) if type(usecols) is int else usecols
+    if chnames:
+        usecols = sorted(chnames)
+
+    bytehint = False
+
+    def datadict(fo, debugoutput=False):
+
+        linetupler = linetuples(fo, delimiter=delimiter, usecols=usecols,
+                                bytehint=bytehint, converters=converters,
+                                stripstrings=stripstrings)
+
+        debugdict = dict(funcs=next(linetupler))
+
+        if not debugoutput:
+            if usecols is not None:
+                return {col: data for col, data
+                        in zip(usecols, zip(*linetupler))}
+            else:
+                return {col: data for col, data
+                        in enumerate(zip(*linetupler))}
+
+        # Then debug is on. Do the exact same thing but loop over the
+        # tuples so we can count lines and provide meaningful debug
+        # output prior to an exception.
+        columndata = defaultdict(list)
+        try:
+            for i, linetuple in enumerate(linetupler):
+                debugdict['linum'] = i
+                if usecols is not None:
+                    for column, value in zip(usecols, linetuple):
+                        columndata[column].append(value)
+                else:
+                    for column, value in enumerate(linetuple):
+                        columndata[column].append(value)
+        except Exception:
+            for i, converter in enumerate(debugdict['funcs']):
+                print('converter func field', i, converter)
+            print('last successful parse 1-based line number:',
+                  debugdict['linum'] + skiprows + 1)
+            print('Traceback follows...')
+            raise
+
+        return columndata
+
+    if type(fname) is str:
+        with io.open(fname, encoding=encoding) as fo:
+            for i in range(skiprows):
+                fo.readline()
+            packdict = datadict(fo, debugoutput=debug)
+
+    else:                       # some kind of io
+        if type(fname.read(1)) is bytes:
+            bytehint = encoding or True
+        fname.seek(0)
+        for i in range(skiprows):
+            fname.readline()
+        packdict = datadict(fname, debugoutput=debug)
+
+    return cp.ChannelPack(data=packdict, chnames=chnames)
+
+
+def linetuples(fo, bytehint=False, delimiter=None, usecols=None,
+               converters=None, stripstrings=False):
+    """Yield data tuples from io stream fo.
+
+    First yield is the list of functions that will be used (for
+    debug).
+
+    """
+
+    # require an io stream with readline method. don't concern about
+    # encoding here. but have a flag for bytes decoding if the io stream
+    # is bytes.
+
+    # process data from given stream position.
+
+    # usecols is a sequence to this function
+
+    # bytehint argument: True means bytes are coming in, but don't
+    # decode them. A string means bytes are coming in and the string is
+    # a codec for decoding them. With bytes io the given delimiter must
+    # be byte(s)
+
+    # stripstrings True means to strip white space from things that are
+    # not numeric data.
+
+    encoding = bytehint
+
+    def as_is(s):
+        return s
+
+    def as_is_stripped(s):
+        return s.strip()
+
+    def as_is_decode(b):
+        return b.decode(encoding)
+
+    def as_is_stripped_decode(b):
+        return b.strip().decode(encoding)
+
+    firstvals = fo.readline().strip().split(delimiter)  # delimiter bytes?
+    funcs = []
+    for val in firstvals:
+        try:
+            float(val)          # works with bytes too
+            funcs.append(float)
+            continue
+        except ValueError:
+            pass
+        try:
+            if not bytehint:
+                _floatit(val)
+                funcs.append(_floatit)
+            else:
+                _floatit_bytes(val)
+                funcs.append(_floatit_bytes)
+            continue
+        except ValueError:
+            if not stripstrings:
+                if type(bytehint) is not str:
+                    funcs.append(as_is)
+                else:
+                    funcs.append(as_is_decode)
+            else:
+                if type(bytehint) is not str:
+                    funcs.append(as_is_stripped)
+                else:
+                    funcs.append(as_is_stripped_decode)
+
+    # If any of the floating funcs is the func for decimal comma, then
+    # assume all floating funcs should be for decimal comma. Problem is
+    # with numbers that are 0, the usual float succeed.
+    decfloatfunc = _floatit if not bytehint else _floatit_bytes
+    if decfloatfunc in funcs:
+        funcs = [decfloatfunc if func is float else func for func in funcs]
+
+    # Replace functions with caller functions if any
+    if converters:
+        for key in converters:
+            funcs[key] = converters[key]
+
+    allcols = range(len(firstvals))
+    if usecols is None:
+        usecols = allcols
+
+    yield tuple(funcs)
+
+    yield tuple(func(val) for func, val, col in
+                zip(funcs, firstvals, allcols) if col in usecols)
+
+    for line in fo:
+        yield tuple(func(val) for func, val, col in
+                    zip(funcs, line.strip().split(delimiter), allcols)
+                    if col in usecols)
