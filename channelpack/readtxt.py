@@ -301,8 +301,9 @@ txtpack = lazy_loadtxt_pack
 # encoding='bytes', max_rows=None)
 
 
-def textpack(fname, chnames={}, delimiter=None, skiprows=0, usecols=None,
-             encoding=None, converters=None, stripstrings=False, debug=False):
+def textpack(fname, chnames=None, delimiter=None, skiprows=0, usecols=None,
+             names=False, encoding=None, converters=None, stripstrings=False,
+             debug=False):
     """Make a ChannelPack from delimited text data.
 
     First line of data is the line following skiprows.
@@ -325,10 +326,15 @@ def textpack(fname, chnames={}, delimiter=None, skiprows=0, usecols=None,
         If not given, any white space is assumed. If fname is a stream
         of bytes, delimiter must be bytes if not None.
     skiprows : int
-        The number of lines to ignore in the top of fname.
+        The number of lines to ignore in the top of fname. First line
+        following skiprows is data.
     usecols : sequence or int
         The columns to read. A single integer means read that one
         column. Ignore if chnames is given.
+    names : bool
+        If True, the last line of skiprows is assumed to be field names
+        and will be used to set chnames in the pack. Ignored if chnames
+        is given.
     encoding : str
         Use encoding to open fname. If None, use default encoding with
         io.open. Valid when fname is as string. If fname is a stream of
@@ -348,8 +354,13 @@ def textpack(fname, chnames={}, delimiter=None, skiprows=0, usecols=None,
 
     if usecols is not None:
         usecols = (usecols,) if type(usecols) is int else usecols
-    if chnames:
+
+    if chnames is not None:
         usecols = sorted(chnames)
+        names = False
+    elif names:
+        skiprows = skiprows - 1
+        chnames = {}
 
     bytehint = False
 
@@ -357,9 +368,16 @@ def textpack(fname, chnames={}, delimiter=None, skiprows=0, usecols=None,
 
         linetupler = linetuples(fo, delimiter=delimiter, usecols=usecols,
                                 bytehint=bytehint, converters=converters,
-                                stripstrings=stripstrings)
+                                stripstrings=stripstrings, names=names)
 
         debugdict = dict(funcs=next(linetupler))
+
+        if names and usecols is not None:
+            for col, name in zip(usecols, next(linetupler)):
+                chnames[col] = name
+        elif names:
+            for col, name in enumerate(next(linetupler)):
+                chnames[col] = name
 
         if not debugoutput:
             if usecols is not None:
@@ -406,11 +424,11 @@ def textpack(fname, chnames={}, delimiter=None, skiprows=0, usecols=None,
             fname.readline()
         packdict = datadict(fname, debugoutput=debug)
 
-    return cp.ChannelPack(data=packdict, chnames=chnames)
+    return cp.ChannelPack(data=packdict, chnames=chnames or {})
 
 
 def linetuples(fo, bytehint=False, delimiter=None, usecols=None,
-               converters=None, stripstrings=False):
+               converters=None, stripstrings=False, names=False):
     """Yield data tuples from io stream fo.
 
     First yield is the list of functions that will be used (for
@@ -434,6 +452,9 @@ def linetuples(fo, bytehint=False, delimiter=None, usecols=None,
     # stripstrings True means to strip white space from things that are
     # not numeric data.
 
+    # names True means fo is on the line of names and a split of this
+    # line will be the second yield (after funcs).
+
     encoding = bytehint
 
     def as_is(s):
@@ -447,6 +468,10 @@ def linetuples(fo, bytehint=False, delimiter=None, usecols=None,
 
     def as_is_stripped_decode(b):
         return b.strip().decode(encoding)
+
+    if names:
+        fieldnames = [field.strip() for field in
+                      fo.readline().strip().split(delimiter)]
 
     firstvals = fo.readline().strip().split(delimiter)  # delimiter bytes?
     funcs = []
@@ -494,6 +519,10 @@ def linetuples(fo, bytehint=False, delimiter=None, usecols=None,
         usecols = allcols
 
     yield tuple(funcs)
+
+    if names:
+        yield tuple(name for name, col in
+                    zip(fieldnames, allcols) if col in usecols)
 
     yield tuple(func(val) for func, val, col in
                 zip(funcs, firstvals, allcols) if col in usecols)
