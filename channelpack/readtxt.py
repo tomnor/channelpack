@@ -180,7 +180,7 @@ def preparse(lines, firstfieldrx=r'\w'):
 # encoding='bytes', max_rows=None)
 
 
-def lazy_loadtxt_pack(fname, parselines=25, chnames={}, firstfieldrx=r'\w',
+def lazy_loadtxt_pack(fname, parselines=25, chnames=None, firstfieldrx=r'\w',
                       **loadtxtkwargs):
     """Return a ChannelPack instance using numpy loadtxt function.
 
