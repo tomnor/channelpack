@@ -221,7 +221,7 @@ class ChannelPack(object):
     nofvalids = ('nan', 'filter', None)
     id_rx = r'[^\d\W]\w*'       # valid python identifier in some string
 
-    def __init__(self, data={}, chnames={}):
+    def __init__(self, data=None, chnames=None):
         """Initiate a ChannelPack
 
         Convert given sequences in `data` to numpy arrays if necessary.
@@ -237,11 +237,11 @@ class ChannelPack(object):
 
         """
         self.FALLBACK_PREFIX = 'ch'
-        self.data = NpDict(data)
+        self.data = NpDict(data or {})
         # self.set_datadict(data)  # set self.data
         self.fn = ''             # Possible file name
         self.filenames = []
-        self.chnames = IntKeyDict(chnames)
+        self.chnames = IntKeyDict(chnames or {})
         self.nof = None
         self.mask_reset()       # set self.mask
 
