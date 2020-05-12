@@ -313,8 +313,9 @@ def textpack(fname, chnames=None, delimiter=None, skiprows=0, usecols=None,
     will be treated as strings. Converters in converters are used if
     given.
 
-    Numeric fields with decimal comma are understood as numeric (if
-    delimiter is not a comma).
+    Numeric fields with decimal comma are understood as numeric (besides
+    numerics with decimal point). If delimiter is a comma it is
+    therefore important to specify that.
 
     Parameters:
     fname : str, file or io stream
