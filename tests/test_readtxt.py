@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from __future__ import print_function
 import unittest
 import sys
@@ -417,3 +418,177 @@ class TestLazyLoadTxtPack(unittest.TestCase):
         with self.assertRaises(ValueError):
             # ValueError: could not convert string to float: 'Data'
             rt.lazy_loadtxt_pack('../testdata/sampledat1.txt', 1)
+
+
+datstring_comma = \
+    u"""date: 20-05-01 17:39
+room: east lab hall, floor 2, room 8
+operator: Goran Operatorsson
+
+time, speed, onoff, distance
+0, 23, on, 0.3
+1, 21, off, 0.28
+"""
+
+
+class TestLineTuples(unittest.TestCase):
+
+    def test_dat_0000(self):
+        numvals = 4
+        with open('../testdata/dat_0000.txt') as fo:
+            for i in range(11):
+                fo.readline()
+            linetupler = rt.linetuples(fo)
+            funcs = next(linetupler)
+            self.assertEqual(len(funcs), numvals)
+            for func in funcs:
+                self.assertIs(func, rt._floatit)
+            firstline = next(linetupler)
+            for value in firstline:
+                self.assertIsInstance(value, float)
+            self.assertEqual(len(firstline), numvals)
+            secondline = next(linetupler)
+            for value in secondline:
+                self.assertIsInstance(value, float)
+            self.assertEqual(len(secondline), numvals)
+
+    def test_MesA1(self):
+        numvals = 7             # last due to trailing delimiter
+        with open('../testdata/MesA1.csv') as fo:
+            for i in range(23):
+                fo.readline()
+            linetupler = rt.linetuples(fo, delimiter=';')
+            funcs = next(linetupler)
+            self.assertEqual(len(funcs), numvals)
+            for func in funcs[:-1]:
+                self.assertIs(func, float)
+            firstline = next(linetupler)
+            for value in firstline[:-1]:
+                self.assertIsInstance(value, float)
+            self.assertEqual(len(firstline), numvals)
+            secondline = next(linetupler)
+            for value in secondline[:-1]:
+                self.assertIsInstance(value, float)
+            self.assertEqual(len(secondline), numvals)
+            self.assertEqual(secondline[-1], '')
+
+    def test_onecolumn(self):
+        numvals = 1
+        with open('../testdata/onecolumn') as fo:
+            linetupler = rt.linetuples(fo)
+            funcs = next(linetupler)
+            self.assertEqual(len(funcs), numvals)
+            for func in funcs:
+                self.assertIs(func, float)
+
+            for tup, should in zip(linetupler, range(1, 13)):
+                self.assertEqual(tup[-1], should)
+
+            self.assertEqual(tup[0], 12)
+
+    def test_sampledat1(self):
+        numvals = 7
+        with open('../testdata/sampledat1.txt') as fo:
+            for i in range(1):
+                fo.readline()
+            linetupler = rt.linetuples(fo)
+            funcs = next(linetupler)
+            self.assertEqual(len(funcs), numvals)
+            for func in funcs:
+                self.assertIs(func, float)
+            firstline = next(linetupler)
+            for value in firstline:
+                self.assertIsInstance(value, float)
+            self.assertEqual(len(firstline), numvals)
+            secondline = next(linetupler)
+            for value in secondline:
+                self.assertIsInstance(value, float)
+            self.assertEqual(len(secondline), numvals)
+
+    def test_sampledat1_names(self):
+        numvals = 7
+        names = ('RPT', 'B_CACT', 'P_CACT', 'VG_STOP',
+                 'AR_BST', 'PLRT_1', 'TOQ_BUM')
+        with open('../testdata/sampledat1.txt') as fo:
+            linetupler = rt.linetuples(fo, names=True)
+            funcs = next(linetupler)
+            self.assertEqual(len(funcs), numvals)
+            for name, should in zip(next(linetupler), names):
+                self.assertEqual(name, should)
+            self.assertEqual(name, names[-1])
+            for func in funcs:
+                self.assertIs(func, float)
+            firstline = next(linetupler)
+            for value in firstline:
+                self.assertIsInstance(value, float)
+            self.assertEqual(len(firstline), numvals)
+            secondline = next(linetupler)
+            for value in secondline:
+                self.assertIsInstance(value, float)
+            self.assertEqual(len(secondline), numvals)
+
+    def test_usecols(self):
+
+        sio = io.StringIO(datstring_comma)
+
+        for i in range(5):
+            sio.readline()
+
+        linetupler = rt.linetuples(sio, usecols=(0, 1, 3), delimiter=',')
+        next(linetupler)        # consume the funcs
+        line1should = (0, 23, 0.3)
+        line2should = (1, 21, 0.28)
+        for i, val in enumerate(next(linetupler)):
+            self.assertEqual(val, line1should[i])
+
+        for i, val in enumerate(next(linetupler)):
+            self.assertEqual(val, line2should[i])
+
+    def test_converters(self):
+
+        sio = io.StringIO(datstring_comma)
+
+        for i in range(5):
+            sio.readline()
+
+        linetupler = rt.linetuples(sio, converters={0: int, 1: int},
+                                   delimiter=',')
+        next(linetupler)        # consume the funcs
+        line1 = next(linetupler)
+        line2 = next(linetupler)
+        self.assertIsInstance(line1[0], int)
+        self.assertIsInstance(line1[1], int)
+        self.assertIsInstance(line2[0], int)
+        self.assertIsInstance(line2[1], int)
+
+    def test_stripstrings_false(self):
+
+        sio = io.StringIO(datstring_comma)
+
+        for i in range(5):
+            sio.readline()
+
+        linetupler = rt.linetuples(sio, stripstrings=False, delimiter=',')
+        next(linetupler)        # consume the funcs
+        line1 = next(linetupler)
+        line2 = next(linetupler)
+        self.assertEqual(line1[2], ' on')
+        self.assertEqual(line2[2], ' off')
+
+    def test_stripstrings_true(self):
+
+        sio = io.StringIO(datstring_comma)
+
+        for i in range(5):
+            sio.readline()
+
+        linetupler = rt.linetuples(sio, stripstrings=True, delimiter=',')
+        next(linetupler)        # consume the funcs
+        line1 = next(linetupler)
+        line2 = next(linetupler)
+        self.assertEqual(line1[2], 'on')
+        self.assertEqual(line2[2], 'off')
+
+
+class TestTextPack(unittest.TestCase):
+    pass
