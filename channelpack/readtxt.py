@@ -411,11 +411,13 @@ def textpack(fname, chnames=None, delimiter=None, skiprows=0, usecols=None,
 
         return columndata
 
+    filename = ''
     if type(fname) is str:
         with io.open(fname, encoding=encoding) as fo:
             for i in range(skiprows):
                 fo.readline()
             packdict = datadict(fo, debugoutput=debug)
+        filename = fname
 
     else:                       # some kind of io
         if type(fname.read(1)) is bytes:
@@ -424,8 +426,14 @@ def textpack(fname, chnames=None, delimiter=None, skiprows=0, usecols=None,
         for i in range(skiprows):
             fname.readline()
         packdict = datadict(fname, debugoutput=debug)
+        try:
+            filename = fname.name
+        except AttributeError:
+            pass
 
-    return cp.ChannelPack(data=packdict, chnames=chnames or {})
+    pack = cp.ChannelPack(data=packdict, chnames=chnames)
+    pack.fn = filename
+    return pack
 
 
 def linetuples(fo, bytehint=False, delimiter=None, usecols=None,
