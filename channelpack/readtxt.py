@@ -537,6 +537,9 @@ def linetuples(fo, bytehint=False, delimiter=None, usecols=None,
                 zip(funcs, firstvals, allcols) if col in usecols)
 
     for line in fo:
+        stripped = line.strip()
+        if not stripped:
+            continue
         yield tuple(func(val) for func, val, col in
-                    zip(funcs, line.strip().split(delimiter), allcols)
+                    zip(funcs, stripped.split(delimiter), allcols)
                     if col in usecols)
