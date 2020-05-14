@@ -4,6 +4,7 @@ import unittest
 import sys
 import os
 import io
+from itertools import zip_longest
 
 pardir = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
 sys.path.insert(0, pardir)
@@ -430,6 +431,21 @@ time, speed, onoff, distance
 1, 21, off, 0.28
 """
 
+datstring_space_f2missing = \
+    u"""0 23 0.3
+1  0.28
+2 21.5 0.27
+"""
+
+datstring_space_blanks = \
+    u"""0 23 0.3
+
+1 22.1 0.28
+2 21.5 0.27
+
+
+"""
+
 
 class TestLineTuples(unittest.TestCase):
 
@@ -481,7 +497,7 @@ class TestLineTuples(unittest.TestCase):
             for func in funcs:
                 self.assertIs(func, float)
 
-            for tup, should in zip(linetupler, range(1, 13)):
+            for tup, should in zip_longest(linetupler, range(1, 13)):
                 self.assertEqual(tup[-1], should)
 
             self.assertEqual(tup[0], 12)
@@ -513,7 +529,7 @@ class TestLineTuples(unittest.TestCase):
             linetupler = rt.linetuples(fo, names=True)
             funcs = next(linetupler)
             self.assertEqual(len(funcs), numvals)
-            for name, should in zip(next(linetupler), names):
+            for name, should in zip_longest(next(linetupler), names):
                 self.assertEqual(name, should)
             self.assertEqual(name, names[-1])
             for func in funcs:
@@ -591,4 +607,151 @@ class TestLineTuples(unittest.TestCase):
 
 
 class TestTextPack(unittest.TestCase):
-    pass
+
+    def test_dat_0000(self):
+        fname = '../testdata/dat_0000.txt'
+        pack = rt.textpack(fname, skiprows=11)
+        self.assertIsInstance(pack, cp.ChannelPack)
+        self.assertEqual(pack.fn, fname)
+        self.assertEqual(pack(0)[-1], 31.175)
+        self.assertEqual(pack(2)[-1], 11.835044)
+
+    def test_MesA1(self):
+        fname = '../testdata/MesA1.csv'
+        pack = rt.textpack(fname, skiprows=23, delimiter=';')
+        self.assertIsInstance(pack, cp.ChannelPack)
+        self.assertEqual(pack.fn, fname)
+        self.assertEqual(pack(0)[-1], 176.64000000)
+        self.assertEqual(pack(2)[-1], 0.07213194)
+        self.assertEqual(pack(6)[0], '')  # due to trailing delim
+
+    def test_MesA1_usecols(self):
+        fname = '../testdata/MesA1.csv'
+        pack = rt.textpack(fname, skiprows=23, delimiter=';', usecols=range(6))
+        self.assertIsInstance(pack, cp.ChannelPack)
+        self.assertEqual(pack.fn, fname)
+        self.assertEqual(pack(0)[-1], 176.64000000)
+        self.assertEqual(pack(2)[-1], 0.07213194)
+        self.assertRaises(KeyError, pack, 6)
+
+    def test_onecolumn(self):
+        fname = '../testdata/onecolumn'
+        pack = rt.textpack(fname)
+        self.assertIsInstance(pack, cp.ChannelPack)
+        self.assertEqual(pack.fn, fname)
+        self.assertEqual(pack(0)[0], 1.0)
+        self.assertEqual(pack(0)[-1], 12.0)
+
+    def test_sampledat1(self):
+        fname = '../testdata/sampledat1.txt'
+        pack = rt.textpack(fname, skiprows=1)
+        self.assertIsInstance(pack, cp.ChannelPack)
+        self.assertEqual(pack.fn, fname)
+        self.assertEqual(pack(0)[0], 0)
+        self.assertEqual(pack(6)[-1], 20.285)
+
+    def test_sampledat1_names(self):
+        fname = '../testdata/sampledat1.txt'
+        pack = rt.textpack(fname, skiprows=1, names=True)
+        self.assertIsInstance(pack, cp.ChannelPack)
+        self.assertEqual(pack.fn, fname)
+        self.assertEqual(pack('RPT')[0], 0)
+        self.assertEqual(pack('TOQ_BUM')[-1], 20.285)
+
+    def test_datstringspace_f2missing(self):
+        sio = io.StringIO(datstring_space_f2missing)
+        pack = rt.textpack(sio)
+        self.assertEqual(len(pack.data), 2)  # should be 3
+        self.assertEqual(pack(1)[1], 0.28)  # field 3 became field 2
+        self.assertEqual(pack(1)[2], 21.5)  # as expected
+
+    def test_datstringspace_f2missing_delimspec(self):
+        sio = io.StringIO(datstring_space_f2missing)
+        with self.assertRaises(ValueError):
+            rt.textpack(sio, delimiter=' ')
+
+    def test_datstringspace_f2missing_delimspec_converter(self):
+        sio = io.StringIO(datstring_space_f2missing)
+
+        def maybemissing(s):
+            return float(s) if s else -999
+
+        pack = rt.textpack(sio, delimiter=' ', converters={1: maybemissing})
+        self.assertEqual(len(pack.data), 3)
+        self.assertEqual(pack(1)[1], -999)
+        self.assertEqual(pack(1)[2], 21.5)
+
+    def test_datstring_space_blanks(self):
+
+        sio = io.StringIO(datstring_space_blanks)
+        pack = rt.textpack(sio)
+        self.assertIsInstance(pack, cp.ChannelPack)
+        for i in range(3):
+            self.assertEqual(pack(i).size, 3)
+        self.assertEqual(len(pack.data), 3)
+        self.assertEqual(pack(1)[1], 22.1)
+
+    def test_datstring_comma_names(self):
+
+        sio = io.StringIO(datstring_comma)
+        pack = rt.textpack(sio, skiprows=5, names=True, delimiter=',')
+        names = 'time', 'speed', 'onoff', 'distance'
+        for key, name in zip_longest(sorted(pack.chnames), names):
+            # names stripped by default
+            self.assertEqual(pack.name(key), name)
+
+        for val, should in zip_longest(pack('onoff'), (' on', ' off')):
+            self.assertEqual(val, should)
+
+        for val, should in zip_longest(pack('distance'), (0.3, 0.28)):
+            self.assertEqual(val, should)
+
+    def test_datstring_comma_stripstrings(self):
+
+        sio = io.StringIO(datstring_comma)
+        pack = rt.textpack(sio, skiprows=5, names=True, delimiter=',',
+                           stripstrings=True)
+        names = 'time', 'speed', 'onoff', 'distance'
+        for key, name in zip_longest(sorted(pack.chnames), names):
+            # names stripped by default
+            self.assertEqual(pack.name(key), name)
+
+        for val, should in zip_longest(pack('onoff'), ('on', 'off')):
+            self.assertEqual(val, should)
+
+        for val, should in zip_longest(pack('distance'), (0.3, 0.28)):
+            self.assertEqual(val, should)
+
+    def test_datstring_comma_asbytes(self):
+
+        bio = io.BytesIO(datstring_comma.encode('latin1'))
+        pack = rt.textpack(bio, skiprows=5, delimiter=b',')
+
+        for val, should in zip_longest(pack(2), (b' on', b' off')):
+            self.assertEqual(val, should)
+
+        for val, should in zip_longest(pack(3), (0.3, 0.28)):
+            self.assertEqual(val, should)
+
+    def test_datstring_comma_asbytes_stripstrings(self):
+
+        bio = io.BytesIO(datstring_comma.encode('latin1'))
+        pack = rt.textpack(bio, skiprows=5, delimiter=b',',
+                           stripstrings=True)
+
+        for val, should in zip_longest(pack(2), (b'on', b'off')):
+            self.assertEqual(val, should)
+
+        for val, should in zip_longest(pack(3), (0.3, 0.28)):
+            self.assertEqual(val, should)
+
+    def test_datstring_comma_asbytes_decoded(self):
+
+        bio = io.BytesIO(datstring_comma.encode('latin1'))
+        pack = rt.textpack(bio, skiprows=5, delimiter=b',', encoding='latin1')
+
+        for val, should in zip_longest(pack(2), (' on', ' off')):
+            self.assertEqual(val, should)
+
+        for val, should in zip_longest(pack(3), (0.3, 0.28)):
+            self.assertEqual(val, should)
