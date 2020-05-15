@@ -401,7 +401,7 @@ def textpack(fname, chnames=None, delimiter=None, skiprows=0, usecols=None,
     if usecols is not None:
         usecols = (usecols,) if type(usecols) is int else usecols
 
-    if chnames is not None:
+    if chnames:
         usecols = sorted(chnames)
         names = False
     elif names:
