@@ -341,9 +341,41 @@ def lazy_loadtxt_pack(fname, parselines=25, chnames=None, firstfieldrx=r'\w',
 txtpack = lazy_loadtxt_pack
 
 
-# np.loadtxt(fname, dtype=<type 'float'>, comments='#', delimiter=None,
-# converters=None, skiprows=0, usecols=None, unpack=False, ndmin=0,
-# encoding='bytes', max_rows=None)
+def lazy_textpack(fname, parselines=25, **textkwargs):
+    """Return a ChannelPack instance using textpack function.
+
+    Try to automatically derive values for the textpack keyword
+    arguments 'delimiter', 'skiprows' and 'converters'. Also try to
+    parse out the field names, "channel names".
+
+    Works with numerical data files, which might have a header with
+    extra information to ignore. Converters derived is either float or
+    one that converts numbers with decimal comma to a float.
+
+    Keyword arguments provided to this function overrides any derived
+    equivalents.
+
+    Parameters
+    ----------
+    fname : file, str
+        Encoding given in textkwargs is respected.
+    parselines : int
+        The number of lines to preparse. For a successful preparse it
+        must include at least one line of numeric data.
+    **textkwargs
+        Other keyword arguments accepted by textpack. Overrides derived
+        keyword arguments if duplicated.
+
+    """
+    with contextopen(fname) as context:
+        fo = context.fo
+        derived = preparse([fo.readline() for i in range(parselines)])
+        fo.seek(0)
+        derived.update(textkwargs)
+
+        pack = textpack(fo, **derived)
+
+    return pack
 
 
 def textpack(fname, chnames=None, delimiter=None, skiprows=0, usecols=None,
