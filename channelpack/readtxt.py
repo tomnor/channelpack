@@ -456,28 +456,16 @@ def textpack(fname, chnames=None, delimiter=None, skiprows=0, usecols=None,
 
         return columndata
 
-    filename = ''
-    if type(fname) is str:
-        with io.open(fname, encoding=encoding) as fo:
-            for i in range(skiprows):
-                fo.readline()
-            packdict = datadict(fo, debugoutput=debug)
-        filename = fname
-
-    else:                       # some kind of io
-        if type(fname.read(1)) is bytes:
+    with contextopen(fname) as context:
+        fo = context.fo
+        if context.bytehint:
             bytehint = encoding or True
-        fname.seek(0)
         for i in range(skiprows):
-            fname.readline()
-        packdict = datadict(fname, debugoutput=debug)
-        try:
-            filename = fname.name
-        except AttributeError:
-            pass
+            fo.readline()
+        packdict = datadict(fo, debugoutput=debug)
 
     pack = cp.ChannelPack(data=packdict, chnames=chnames)
-    pack.fn = filename
+    pack.fn = context.name
     return pack
 
 
