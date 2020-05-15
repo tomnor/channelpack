@@ -175,9 +175,54 @@ def preparse(lines, firstfieldrx=r'\w'):
     return kwdict
 
 
-# np.loadtxt(fname, dtype=<type 'float'>, comments='#', delimiter=None,
-# converters=None, skiprows=0, usecols=None, unpack=False, ndmin=0,
-# encoding='bytes', max_rows=None)
+class contextopen(object):
+    """Manager to open io streams as necessary.
+
+    If fname is an io object it is not closed by this manager.
+
+    Sneakread and reset one position of the io stream to set the
+    bytehint attribute, (True or False).
+
+    Return self as context. The io stream is available as a `fo`
+    attribute.
+
+    Example
+    -------
+
+    with contextopen(fname) as context:
+        fo = context.fo
+        print(fo.read())
+
+    print(context.name)
+    print(context.bytehint)
+
+    """
+
+    def __init__(self, fname, *args, **kwargs):
+        self.closeit = False
+        self.name = ''
+        if type(fname) is str:
+            self.fo = io.open(fname, *args, **kwargs)
+            self.closeit = True
+            self.name = fname
+        else:
+            self.fo = fname
+            try:
+                self.name = fname.name
+            except AttributeError:
+                pass
+
+        tell = self.fo.tell()
+        self.bytehint = type(self.fo.read(1)) is bytes
+        self.fo.seek(tell)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if self.closeit:
+            self.fo.close()
+        return False
 
 
 def lazy_loadtxt_pack(fname, parselines=25, chnames=None, firstfieldrx=r'\w',
