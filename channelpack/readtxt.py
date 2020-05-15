@@ -104,6 +104,13 @@ def preparse(lines, firstfieldrx=r'\w'):
         dresults.append((dnumbersline, dsepsline))
         cresults.append((cnumbersline, csepsline))
 
+    for line in reversed(lines):
+        if not line.strip():
+            dresults.pop()
+            cresults.pop()
+        else:
+            break
+
     Triplet = namedtuple('Triplet', ('numcnt', 'sepcnt', 'septypcnt'))
     dcounts = [Triplet(len(tup[0]), len(tup[1]), len(set(tup[1]))) for tup
                in dresults]
