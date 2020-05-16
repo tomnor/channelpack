@@ -376,7 +376,18 @@ def lazy_textpack(fname, parselines=25, **textkwargs):
     """
     with contextopen(fname) as context:
         fo = context.fo
-        derived = preparse([fo.readline() for i in range(parselines)])
+        if context.bytehint:
+            encoding = textkwargs.get('encoding',
+                                      locale.getpreferredencoding())
+            derived = preparse([fo.readline().decode(encoding)
+                                for i in range(parselines)])
+            if derived and derived['delimiter'] is not None:
+                derived['delimiter'] = derived['delimiter'].encode(encoding)
+            if derived and derived['converters'] is not None:
+                for key in derived['converters']:
+                    derived['converters'][key] = _floatit_bytes
+        else:
+            derived = preparse([fo.readline() for i in range(parselines)])
         fo.seek(0)
         derived.update(textkwargs)
 
