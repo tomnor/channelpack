@@ -384,6 +384,7 @@ def lazy_textpack(fname, parselines=25, **textkwargs):
                                 for i in range(parselines)])
             if derived and derived['delimiter'] is not None:
                 derived['delimiter'] = derived['delimiter'].encode(encoding)
+            # only float converter for decimal comma provided by preparse
             if derived and derived['converters'] is not None:
                 for key in derived['converters']:
                     derived['converters'][key] = _floatit_bytes
