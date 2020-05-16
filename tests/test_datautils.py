@@ -8,10 +8,9 @@ import numpy as np
 pardir = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
 sys.path.insert(0, pardir)
 
-import channelpack as cp
-from channelpack.datautils import startstop_bool
+import channelpack.datautils as du
 
-print('Testing channelpack package:', cp)
+print('Testing datautils module:', du)
 print('Testing with', unittest)
 print()
 
@@ -26,7 +25,7 @@ class TestStartStopBool(unittest.TestCase):
 
     def test_with_numpy_arrays_as_args(self):
 
-        descends = np.array(tuple(startstop_bool(self.a_height == 5,
+        descends = np.array(tuple(du.startstop_bool(self.a_height == 5,
                                                  self.a_height == 1)))
         self.assertTrue(np.all(self.a_height[descends] == self.expected))
 
@@ -35,14 +34,14 @@ class TestStartStopBool(unittest.TestCase):
         startlist = [True if el == 5 else False for el in self.t_height]
         stoplist = [True if el == 1 else False for el in self.t_height]
 
-        truefalse = list(startstop_bool(startlist, stoplist))
+        truefalse = list(du.startstop_bool(startlist, stoplist))
 
         self.assertTrue(np.all(self.a_height[truefalse] == self.expected))
 
     def test_with_empty_sequences(self):
 
         count = 0
-        for truefalse in startstop_bool((), ()):
+        for truefalse in du.startstop_bool((), ()):
             count += 1
         self.assertEqual(count, 0)
 
@@ -52,7 +51,7 @@ class TestStartStopBool(unittest.TestCase):
         stopb = (0, 0, 0, 0)
         expected = (0, 1, 1, 1)
 
-        for b, compare in zip(startstop_bool(startb, stopb), expected):
+        for b, compare in zip(du.startstop_bool(startb, stopb), expected):
             if b:
                 self.assertTrue(compare)
             else:
@@ -64,7 +63,7 @@ class TestStartStopBool(unittest.TestCase):
         stopb = (0, 1, 0, 0)
         expected = (0, 0, 0, 0)
 
-        for b, compare in zip(startstop_bool(startb, stopb), expected):
+        for b, compare in zip(du.startstop_bool(startb, stopb), expected):
             if b:
                 self.assertTrue(compare)
             else:
@@ -76,7 +75,7 @@ class TestStartStopBool(unittest.TestCase):
         stopb = (0, 0, 1, 0)
         expected = (0, 0, 0, 0)
 
-        for b, compare in zip(startstop_bool(startb, stopb), expected):
+        for b, compare in zip(du.startstop_bool(startb, stopb), expected):
             if b:
                 self.assertTrue(compare)
             else:
@@ -88,7 +87,7 @@ class TestStartStopBool(unittest.TestCase):
         stopb = (0, 0, 0, 1)
         expected = (0, 1, 1, 0)
 
-        for b, compare in zip(startstop_bool(startb, stopb), expected):
+        for b, compare in zip(du.startstop_bool(startb, stopb), expected):
             if b:
                 self.assertTrue(compare)
             else:
@@ -100,7 +99,7 @@ class TestStartStopBool(unittest.TestCase):
         stopb = (0, 1, 0, 0)
         expected = (1, 0, 1, 1)
 
-        for b, compare in zip(startstop_bool(startb, stopb), expected):
+        for b, compare in zip(du.startstop_bool(startb, stopb), expected):
             if b:
                 self.assertTrue(compare)
             else:
