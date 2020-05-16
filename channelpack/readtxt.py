@@ -574,6 +574,8 @@ def linetuples(fo, bytehint=False, delimiter=None, usecols=None,
     if names:
         fieldnames = [field.strip() for field in
                       fo.readline().strip().split(delimiter)]
+        namesfunc = (as_is_stripped if not type(bytehint) is str
+                     else as_is_stripped_decode)
 
     firstvals = fo.readline().strip().split(delimiter)  # delimiter bytes?
     funcs = []
@@ -623,7 +625,7 @@ def linetuples(fo, bytehint=False, delimiter=None, usecols=None,
     yield tuple(funcs)
 
     if names:
-        yield tuple(name for name, col in
+        yield tuple(namesfunc(name) for name, col in
                     zip(fieldnames, allcols) if col in usecols)
 
     yield tuple(func(val) for func, val, col in
