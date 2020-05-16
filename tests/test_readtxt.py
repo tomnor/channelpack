@@ -4,6 +4,7 @@ import unittest
 import sys
 import os
 import io
+from pprint import pprint
 try:
     from itertools import zip_longest
 except ImportError:
@@ -434,6 +435,17 @@ time, speed, onoff, distance
 1, 21, off, 0.28
 """
 
+datstring_ru = \
+    u"""дата: 20-05-01 17:39
+комната: восточный лабораторный зал, этаж 2, комната 8
+оператор: Горан Операторссон
+
+время, скорость, onoff, расстояние
+0, 23, вкл, 0.3
+1, 21, выкл, 0.28
+"""
+encoding_ru = 'cp866'
+
 datstring_space_f2missing = \
     u"""0 23 0.3
 1  0.28
@@ -757,4 +769,253 @@ class TestTextPack(unittest.TestCase):
             self.assertEqual(val, should)
 
         for val, should in zip_longest(pack(3), (0.3, 0.28)):
+            self.assertEqual(val, should)
+
+    def test_datstring_comma_cp866(self):
+
+        bio = io.BytesIO(datstring_ru.encode('cp866'))
+        pack = rt.textpack(bio, skiprows=5, delimiter=b',')
+
+        for val, should in zip_longest(pack(3), (0.3, 0.28)):
+            self.assertEqual(val, should)
+
+    def test_datstring_comma_cp866_decode(self):
+
+        bio = io.BytesIO(datstring_ru.encode('cp866'))
+        pack = rt.textpack(bio, skiprows=5, delimiter=b',', encoding='cp866')
+
+        for val, should in zip_longest(pack(2), (u' вкл', u' выкл')):
+            self.assertEqual(val, should)
+
+        for val, should in zip_longest(pack(3), (0.3, 0.28)):
+            self.assertEqual(val, should)
+
+    def test_datstring_comma_cp866_decode_names(self):
+
+        bio = io.BytesIO(datstring_ru.encode('cp866'))
+        pack = rt.textpack(bio, skiprows=5, delimiter=b',',
+                           encoding='cp866', names=True)
+
+        for val, should in zip_longest(pack(u'onoff'), (u' вкл', u' выкл')):
+            self.assertEqual(val, should)
+
+        for val, should in zip_longest(pack(u'расстояние'), (0.3, 0.28)):
+            self.assertEqual(val, should)
+
+
+class TestLazyTextPack(unittest.TestCase):
+
+    def test_dat_0000(self):
+        fname = '../testdata/dat_0000.txt'
+        pack = rt.lazy_textpack(fname)
+        self.assertIsInstance(pack, cp.ChannelPack)
+        self.assertEqual(pack.fn, fname)
+        self.assertEqual(pack(0)[-1], 31.175)
+        self.assertEqual(pack(2)[-1], 11.835044)
+        self.assertEqual(len(pack.data), 4)
+        names = ('Time [s]', 'Quantity1 - 12345678;  [qunit]',
+                 'Distance - 12345678;  [mm]',
+                 'Stresslevel& - 12345678;  [kLevel]')
+        for key, should in zip_longest(sorted(pack.data), names):
+            self.assertEqual(pack.name(key), should)
+
+    def test_MesA1(self):
+        fname = '../testdata/MesA1.csv'
+        pack = rt.lazy_textpack(fname)
+        self.assertIsInstance(pack, cp.ChannelPack)
+        self.assertEqual(pack.fn, fname)
+        self.assertEqual(pack(0)[-1], 176.64000000)
+        self.assertEqual(pack(2)[-1], 0.07213194)
+        self.assertEqual(len(pack.data), 6)
+        names = ('Time_100Hz', 'P_cyl', 'F_cyl', 'L_cyl', 'Fc1_cal', 'Fc2_cal')
+        for key, should in zip_longest(sorted(pack.data), names):
+            self.assertEqual(pack.name(key), should)
+
+    def test_MesA1_usecols(self):
+        fname = '../testdata/MesA1.csv'
+        pack = rt.lazy_textpack(fname, usecols=(0, 2, 5))
+        self.assertIsInstance(pack, cp.ChannelPack)
+        self.assertEqual(pack.fn, fname)
+        self.assertEqual(pack(0)[-1], 176.64000000)
+        self.assertEqual(pack(2)[-1], 0.07213194)
+        self.assertEqual(len(pack.data), 3)
+        self.assertRaises(KeyError, pack, 1)
+        self.assertRaises(KeyError, pack, 3)
+        self.assertRaises(KeyError, pack, 4)
+        names = ('Time_100Hz', 'F_cyl', 'Fc2_cal')
+        for key, should in zip_longest(sorted(pack.data), names):
+            self.assertEqual(pack.name(key), should)
+
+    def test_MesA1_chnames(self):
+        fname = '../testdata/MesA1.csv'
+        chnames = {0: 'names', 2: 'fcyl', 5: 'fc2'}
+        pack = rt.lazy_textpack(fname, chnames=chnames)
+        self.assertIsInstance(pack, cp.ChannelPack)
+        self.assertEqual(pack.fn, fname)
+        self.assertEqual(pack(0)[-1], 176.64000000)
+        self.assertEqual(pack(2)[-1], 0.07213194)
+        self.assertEqual(len(pack.data), 3)
+        self.assertRaises(KeyError, pack, 1)
+        self.assertRaises(KeyError, pack, 3)
+        self.assertRaises(KeyError, pack, 4)
+        for key in pack.data:
+            self.assertEqual(pack.name(key), chnames[key])
+
+    def test_onecolumn(self):
+        fname = '../testdata/onecolumn'
+        pack = rt.lazy_textpack(fname)
+        self.assertIsInstance(pack, cp.ChannelPack)
+        self.assertEqual(pack.fn, fname)
+        self.assertEqual(len(pack.data), 1)
+        self.assertEqual(pack(0)[0], 1.0)
+        self.assertEqual(pack(0)[-1], 12.0)
+
+    def test_sampledat1(self):
+        fname = '../testdata/sampledat1.txt'
+        pack = rt.lazy_textpack(fname)
+        self.assertIsInstance(pack, cp.ChannelPack)
+        self.assertEqual(pack.fn, fname)
+        self.assertEqual(len(pack.data), 7)
+        self.assertEqual(pack(0)[0], 0)
+        self.assertEqual(pack(6)[-1], 20.285)
+
+    def test_sampledat1_usecols1col(self):
+        fname = '../testdata/sampledat1.txt'
+        pack = rt.lazy_textpack(fname, usecols=3)
+        self.assertIsInstance(pack, cp.ChannelPack)
+        self.assertEqual(pack.fn, fname)
+        self.assertEqual(len(pack.data), 1)
+        self.assertEqual(pack('VG_STOP')[0], 60.0)
+
+    def test_datstringspace_f2missing(self):
+        sio = io.StringIO(datstring_space_f2missing)
+
+        # delimiter parses to ' ' and that allows for a converter
+        # error on line 2 with the missing field.
+        with self.assertRaises(ValueError):
+            rt.lazy_textpack(sio)
+
+    def test_datstringspace_f2missing_converter(self):
+        sio = io.StringIO(datstring_space_f2missing)
+
+        def maybemissing(s):
+            return float(s) if s else -999
+
+        pack = rt.lazy_textpack(sio, converters={1: maybemissing})
+        self.assertEqual(len(pack.data), 3)
+        self.assertEqual(pack(1)[1], -999)
+        self.assertEqual(pack(1)[2], 21.5)
+
+    def test_datstring_space_blanks(self):
+
+        # expecting two lines of data and first line numbers as
+        # chnames
+
+        sio = io.StringIO(datstring_space_blanks)
+        pack = rt.lazy_textpack(sio)
+        self.assertIsInstance(pack, cp.ChannelPack)
+        for i in range(3):
+            self.assertEqual(pack(i).size, 2)
+        self.assertEqual(len(pack.data), 3)
+        self.assertEqual(pack(1)[0], 22.1)
+        names = ('0', '23', '0.3')
+        for key, should in zip_longest(sorted(pack.data), names):
+            self.assertEqual(pack.name(key), should)
+
+    def test_datstring_comma_fail(self):
+
+        sio = io.StringIO(datstring_comma)
+        with self.assertRaises(ValueError) as context:
+            rt.lazy_textpack(sio)
+
+        self.assertEqual(context.exception.args[0], 'Failed lazy preparse')
+
+    def test_datstring_comma_provideargs(self):
+
+        sio = io.StringIO(datstring_comma)
+        pack = rt.lazy_textpack(sio, skiprows=5, delimiter=',')
+        self.assertIsInstance(pack, cp.ChannelPack)
+        for val, should in zip_longest(pack(2), (' on', ' off')):
+            self.assertEqual(val, should)
+        for val, should in zip_longest(pack(3), (0.3, 0.28)):
+            self.assertEqual(val, should)
+
+    def test_datstring_comma_stripstrings_provideargs(self):
+
+        sio = io.StringIO(datstring_comma)
+        pack = rt.lazy_textpack(sio, skiprows=5, delimiter=',',
+                                stripstrings=True)
+
+        for val, should in zip_longest(pack(2), ('on', 'off')):
+            self.assertEqual(val, should)
+
+        for val, should in zip_longest(pack(3), (0.3, 0.28)):
+            self.assertEqual(val, should)
+
+    def test_datstring_comma_asbytes_provideargs(self):
+
+        bio = io.BytesIO(datstring_comma.encode('latin1'))
+        pack = rt.lazy_textpack(bio, skiprows=5, delimiter=b',')
+
+        for val, should in zip_longest(pack(2), (b' on', b' off')):
+            self.assertEqual(val, should)
+
+        for val, should in zip_longest(pack(3), (0.3, 0.28)):
+            self.assertEqual(val, should)
+
+    def test_datstring_comma_asbytes_stripstrings(self):
+
+        bio = io.BytesIO(datstring_comma.encode('latin1'))
+        pack = rt.lazy_textpack(bio, skiprows=5, delimiter=b',',
+                                stripstrings=True)
+
+        for val, should in zip_longest(pack(2), (b'on', b'off')):
+            self.assertEqual(val, should)
+
+        for val, should in zip_longest(pack(3), (0.3, 0.28)):
+            self.assertEqual(val, should)
+
+    def test_datstring_comma_asbytes_decoded(self):
+
+        bio = io.BytesIO(datstring_comma.encode('latin1'))
+        pack = rt.lazy_textpack(bio, skiprows=5, delimiter=b',',
+                                encoding='latin1')
+
+        for val, should in zip_longest(pack(2), (' on', ' off')):
+            self.assertEqual(val, should)
+
+        for val, should in zip_longest(pack(3), (0.3, 0.28)):
+            self.assertEqual(val, should)
+
+    def test_datstring_comma_cp866(self):
+
+        bio = io.BytesIO(datstring_ru.encode('cp866'))
+        pack = rt.lazy_textpack(bio, skiprows=5, delimiter=b',',
+                                encoding='cp866')
+
+        for val, should in zip_longest(pack(3), (0.3, 0.28)):
+            self.assertEqual(val, should)
+
+    def test_datstring_comma_cp866_decode(self):
+
+        bio = io.BytesIO(datstring_ru.encode('cp866'))
+        pack = rt.lazy_textpack(bio, skiprows=5, delimiter=b',',
+                                encoding='cp866')
+
+        for val, should in zip_longest(pack(2), (u' вкл', u' выкл')):
+            self.assertEqual(val, should)
+
+        for val, should in zip_longest(pack(3), (0.3, 0.28)):
+            self.assertEqual(val, should)
+
+    def test_datstring_comma_cp866_decode_names(self):
+
+        bio = io.BytesIO(datstring_ru.encode('cp866'))
+        pack = rt.lazy_textpack(bio, skiprows=5, delimiter=b',',
+                                encoding='cp866', names=True)
+
+        for val, should in zip_longest(pack(u'onoff'), (u' вкл', u' выкл')):
+            self.assertEqual(val, should)
+
+        for val, should in zip_longest(pack(u'расстояние'), (0.3, 0.28)):
             self.assertEqual(val, should)
