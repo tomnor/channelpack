@@ -233,7 +233,7 @@ class contextopen(object):
         return False
 
 
-def lazy_textpack(fname, parselines=25, **textkwargs):
+def textpack_lazy(fname, parselines=25, **textkwargs):
     """Return a ChannelPack instance using textpack function.
 
     Try to automatically derive values for the textpack keyword
