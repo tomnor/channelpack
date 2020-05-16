@@ -7,6 +7,7 @@ import re
 from collections import namedtuple, defaultdict
 import io
 import locale
+from pprint import pprint
 
 import numpy as np
 
@@ -391,6 +392,15 @@ def lazy_textpack(fname, parselines=25, **textkwargs):
         fo.seek(0)
         derived.update(textkwargs)
 
+        if 'usecols' in textkwargs and 'chnames' not in textkwargs:
+            usecols = textkwargs['usecols']
+            usecols = (usecols,) if type(usecols) is int else usecols
+            for key in list(derived['chnames']):
+                if key not in usecols:
+                    derived['chnames'].pop(key, None)
+
+        if not derived:
+            raise ValueError('Failed lazy preparse', fname)
         pack = textpack(fo, **derived)
 
     return pack
