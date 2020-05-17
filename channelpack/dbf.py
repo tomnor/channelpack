@@ -5,9 +5,12 @@ import itertools
 import numpy as np
 
 
-# Created by Raymond Hettinger on Tue, 11 Jan 2005 (PSF)
+# dbfreader based on Raymond Hettinger recipe
 # http://code.activestate.com/recipes/362715/
-# There is also a writer there. Keep in mind, should I need it.
+
+# dbf spec
+# http://www.clicketyclick.dk/databases/xbase/format/dbf.html#DBF_STRUCT
+
 def dbfreader(f):
     """Returns an iterator over records in a Xbase DBF file.
 
@@ -19,57 +22,50 @@ def dbfreader(f):
     File should be opened for binary reads.
 
     """
-    # See DBF format spec at:
-    #     http://www.pgts.com.au/download/public/xbase.htm#DBF_STRUCT
 
     numrec, lenheader = struct.unpack('<xxxxLH22x', f.read(32))
     numfields = (lenheader - 33) // 32
 
     fields = []
-    for fieldno in xrange(numfields):
+    for fieldno in range(numfields):
         name, typ, size, deci = struct.unpack('<11sc4xBB14x', f.read(32))
-        name = name.replace('\0', '')       # eliminate NULs from string
-        fields.append((name, typ, size, deci))
+        name = name.replace(b'\0', b'')       # eliminate NULs from string
+        fields.append((name.decode('ascii'), typ, size, deci))
     yield [field[0] for field in fields]
     yield [tuple(field[1:]) for field in fields]
 
-    # replacing missing values with np.NaN. trade-off to make integers as
-    # floats. See
-    # http://stackoverflow.com/questions/11548005/numpy-or-pandas-keeping-array-type-as-integer-while-having-a-nan-value
-    # The limitation is not solved it seems. (Numpy).
-
     terminator = f.read(1)
-    assert terminator == '\r'
+    assert terminator == b'\r'
 
     fields.insert(0, ('DeletionFlag', 'C', 1, 0))
     fmt = ''.join(['%ds' % fieldinfo[2] for fieldinfo in fields])
     fmtsiz = struct.calcsize(fmt)
-    for i in xrange(numrec):
+    for i in range(numrec):
         record = struct.unpack(fmt, f.read(fmtsiz))
-        if record[0] != ' ':
+        if record[0] != b' ':
             continue                        # deleted record
         result = []
-        for (name, typ, size, deci), value in itertools.izip(fields, record):
+        for (name, typ, size, deci), value in zip(fields, record):
             if name == 'DeletionFlag':
                 continue
-            if typ == "N":
-                value = value.replace('\0', '').lstrip()
-                if value == '':
-                    # value = 0
-                    value = np.NaN  # 0 is a value.
+            if typ == b"N":
+                value = value.replace(b'\0', b'').lstrip()
+                if value == b'':
+                    value = np.NaN
                 elif deci:
                     value = float(value)
-                    # value = decimal.Decimal(value) Not necessary.
                 else:
                     value = int(value)
-            elif typ == 'D':
+            elif typ == b'D':
                 y, m, d = int(value[:4]), int(value[4:6]), int(value[6:8])
                 value = datetime.date(y, m, d)
-            elif typ == 'L':
-                value = ((value in 'YyTt' and 'T') or
-                         (value in 'NnFf' and 'F') or '?')
-            elif typ == 'F':    # Can this type not be null?
+            elif typ == b'L':
+                value = ((value in b'YyTt' and 'T') or
+                         (value in b'NnFf' and 'F') or '?')
+            elif typ == b'F':    # Can this type not be null?
                 value = float(value)
+            elif typ == b'C':
+                value = value.decode('ascii')
             result.append(value)
         yield result
 
