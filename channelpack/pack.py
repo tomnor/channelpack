@@ -38,7 +38,6 @@ from collections import Counter, namedtuple
 
 import numpy as np
 
-from . import pulldbf, pullxl
 from . import datautils
 
 
