@@ -33,7 +33,8 @@ def dbfreader(f):
     for fieldno in range(numfields):
         name, typ, size, deci = struct.unpack('<11sc4xBB14x', f.read(32))
         name = name.replace(b'\0', b'')       # eliminate NULs from string
-        fields.append((name.decode('ascii'), typ, size, deci))
+        name = name.decode('ascii')
+        fields.append((name, typ, size, deci))
     yield [field[0] for field in fields]
     yield [tuple(field[1:]) for field in fields]
 
@@ -51,7 +52,7 @@ def dbfreader(f):
         for (name, typ, size, deci), value in zip(fields, record):
             if name == 'DeletionFlag':
                 continue
-            if typ == b"N":
+            if typ == b'N':
                 value = value.replace(b'\0', b'').lstrip()
                 if value == b'':
                     value = np.NaN
@@ -67,8 +68,8 @@ def dbfreader(f):
                          or (value in b'NnFf' and 'F') or '?')
             elif typ == b'F':    # Can this type not be null?
                 value = float(value)
-            elif typ == b'C':
-                value = value.decode('ascii')
+            else:
+                value = value.decode('ascii')  # type = 'C' or other type
             result.append(value)
         yield result
 
@@ -143,8 +144,8 @@ def dbfrecords(f, names):
                          or (value in 'NnFf' and 'F') or '?')
             elif sf.typ == b'F':
                 value = float(value)
-            elif sf.typ == b'C':
-                value = value.decode('ascii')
+            else:
+                value = value.decode('ascii')  # type = 'C' or other type
             result.append(value)
         f.seek(refaddr + fields[-1].seekme + fields[-1].fmtsiz)
         yield result
