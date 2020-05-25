@@ -622,6 +622,18 @@ class TestTextPackLazy(unittest.TestCase):
         for key in pack.data:
             self.assertEqual(pack.name(key), chnames[key])
 
+    def test_orgtable(self):
+        fname = '../testdata/orgtable.txt'
+        pack = rt.textpack_lazy(fname, delimiter='|', names=True,
+                                stripstrings=True, usecols=(1, 2, 3, 4))
+        self.assertIsInstance(pack, cp.ChannelPack)
+        self.assertEqual(pack.fn, fname)
+        self.assertEqual(len(pack.data), 4)
+        self.assertEqual(pack('Kod')[-1], 2584)
+        self.assertEqual(pack('Kommun')[0], u'Upplands Väsby')
+        self.assertEqual(pack('qty')[-1], 64)
+        self.assertEqual(pack('meanprice')[-1], 1668)
+
     def test_onecolumn(self):
         fname = '../testdata/onecolumn'
         pack = rt.textpack_lazy(fname)
