@@ -280,7 +280,7 @@ def textpack_lazy(fname, parselines=25, **textkwargs):
         if 'usecols' in textkwargs and 'chnames' not in textkwargs:
             usecols = textkwargs['usecols']
             usecols = (usecols,) if type(usecols) is int else usecols
-            for key in list(derived['chnames']):
+            for key in list(derived.get('chnames', {})):  # no chnames no loop
                 if key not in usecols:
                     derived['chnames'].pop(key, None)
 
