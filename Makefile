@@ -1,5 +1,5 @@
 PY := python3
-TESTMODULES := test_datautils test_pack test_readtext
+TESTMODULES := test_datautils test_pack test_readtext test_readxl test_dbf
 
 tests:
 	cd tests; $(PY) -m unittest $(TESTMODULES)
