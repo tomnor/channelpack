@@ -9,6 +9,7 @@ loremipsum-numsmid          ascii                   16 (followed by txt)
 MesA1.csv                   ascii                   24
 mesdat2.dbf                 Xbase DBF               n/a
 mesdat3.dbf                 Xbase DBF               n/a
+orgtable.txt                utf-8                   2
 onecolumn                   ascii                   1
 sampledat1.txt              ascii                   2
 sampledat2.txt              ascii                   2
