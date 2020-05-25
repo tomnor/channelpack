@@ -13,10 +13,10 @@ except ImportError:
 pardir = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
 sys.path.insert(0, pardir)
 
-import channelpack.readtxt as rt
+import channelpack.readtext as rt
 import channelpack as cp
 
-print('Testing readtxt module:', rt)
+print('Testing readtext module:', rt)
 print('Testing with', unittest)
 print()
 
