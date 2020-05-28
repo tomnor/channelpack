@@ -572,8 +572,6 @@ class ChannelPack(object):
 
         """
 
-        # fixme: use the name method and add a firstwordonly argument
-        # here. But then the pack call has to be done on keys.
         names = [self.chnames[key] for key in sorted(self.chnames)]
         if fallback:
             names = [self.FALLBACK_PREFIX + str(key) for key in

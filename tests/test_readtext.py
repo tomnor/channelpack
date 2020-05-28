@@ -125,8 +125,6 @@ class TestPreParse(unittest.TestCase):
     def test_sampledat1_nodata(self):
         expected = {}
         lines = self.readlines('../testdata/sampledat1.txt', 1)
-        # fails because there is a number in one of the names
-        # we can fix it in the parser FIXME
         self.assertEqual(rt.preparse(lines), expected)
 
     def test_loremipsum(self):
