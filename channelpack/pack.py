@@ -628,7 +628,7 @@ class ChannelPack(object):
             if key in self.data:
                 return key
 
-        raise KeyError
+        raise KeyError(ch)
 
     def name(self, ch, firstwordonly=False, fallback=False):
         """Return a name string for channel `ch` in chnames.
