@@ -26,7 +26,7 @@ class TestStartStopBool(unittest.TestCase):
     def test_with_numpy_arrays_as_args(self):
 
         descends = np.array(tuple(du.startstop_bool(self.a_height == 5,
-                                                 self.a_height == 1)))
+                                                    self.a_height == 1)))
         self.assertTrue(np.all(self.a_height[descends] == self.expected))
 
     def test_with_lists_as_args(self):

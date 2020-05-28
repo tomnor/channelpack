@@ -4,7 +4,6 @@ import unittest
 import sys
 import os
 import io
-from pprint import pprint
 try:
     from itertools import zip_longest
 except ImportError:

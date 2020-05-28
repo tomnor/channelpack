@@ -7,9 +7,6 @@ import re
 from collections import namedtuple, defaultdict
 import io
 import locale
-from pprint import pprint
-
-import numpy as np
 
 from . import pack as cp
 
