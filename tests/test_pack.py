@@ -8,9 +8,9 @@ import numpy as np
 pardir = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
 sys.path.insert(0, pardir)
 
-import channelpack as cp
+import channelpack.pack as packmod
 
-print('Testing channelpack package:', cp)
+print('Testing pack module:', packmod)
 print('Testing with', unittest)
 print()
 
@@ -21,10 +21,10 @@ class TestIntKeyDict(unittest.TestCase):
         self.emptydict = dict()
         self.ok_dict = dict({1: 'one', 2: 'two'})
         self.nok_dict = dict(one=1, two=2)
-        self.ok_ikd = cp.pack.IntKeyDict(self.ok_dict)
+        self.ok_ikd = packmod.IntKeyDict(self.ok_dict)
 
     def test_is_dict(self):
-        ikd = cp.pack.IntKeyDict()
+        ikd = packmod.IntKeyDict()
         self.assertIsInstance(ikd, dict)
 
     def test_create_ok(self):
@@ -32,27 +32,27 @@ class TestIntKeyDict(unittest.TestCase):
 
     def test_create_nok(self):
         with self.assertRaises(TypeError):
-            cp.pack.IntKeyDict(one=1, two=2)
+            packmod.IntKeyDict(one=1, two=2)
 
     def test_update_ok(self):
-        ikd = cp.pack.IntKeyDict()
+        ikd = packmod.IntKeyDict()
         ikd.update({1: 'one', 2: 'two'})
         self.assertEqual(ikd[2], 'two')
 
     def test_create_nok_pargs(self):
         # should be normal dict errors
         with self.assertRaises(TypeError):
-            cp.pack.IntKeyDict(1)
+            packmod.IntKeyDict(1)
         with self.assertRaises(TypeError):
-            cp.pack.IntKeyDict(1, 2)
+            packmod.IntKeyDict(1, 2)
         with self.assertRaises(TypeError):
-            cp.pack.IntKeyDict(1, 2, 3)
+            packmod.IntKeyDict(1, 2, 3)
         with self.assertRaises(ValueError):
-            cp.pack.IntKeyDict(['123', '345'])
+            packmod.IntKeyDict(['123', '345'])
 
     def test_update_nok_pargs(self):
         # should be normal dict errors
-        ikd = cp.pack.IntKeyDict()
+        ikd = packmod.IntKeyDict()
         with self.assertRaises(TypeError):
             ikd.update(1)
         with self.assertRaises(TypeError):
@@ -65,13 +65,13 @@ class TestIntKeyDict(unittest.TestCase):
     def test_create_nok_pairs(self):
         # should be normal dict errors
         with self.assertRaises(TypeError):
-            cp.pack.IntKeyDict([(1), (2)])
+            packmod.IntKeyDict([(1), (2)])
         with self.assertRaises(ValueError):
-            cp.pack.IntKeyDict([(1, 2, 3), (2, 3, 4)])
+            packmod.IntKeyDict([(1, 2, 3), (2, 3, 4)])
 
     def test_update_nok_pairs(self):
         # should be normal dict errors
-        ikd = cp.pack.IntKeyDict()
+        ikd = packmod.IntKeyDict()
         with self.assertRaises(TypeError):
             ikd.update([(1), (2)])
         with self.assertRaises(ValueError):
@@ -80,30 +80,30 @@ class TestIntKeyDict(unittest.TestCase):
     def test_create_ok_arg_nok_kwarg(self):
         # should be normal dict errors
         with self.assertRaises(TypeError):
-            cp.pack.IntKeyDict([(0, 1), (1, 2)], [(2, 3), (3, 4)])
+            packmod.IntKeyDict([(0, 1), (1, 2)], [(2, 3), (3, 4)])
 
     def test_update_ok_arg_nok_kwarg(self):
         # should be normal dict errors
-        ikd = cp.pack.IntKeyDict()
+        ikd = packmod.IntKeyDict()
         with self.assertRaises(TypeError):
             ikd.update([(0, 1), (1, 2)], [(2, 3), (3, 4)])
 
     def test_setitem_nok(self):
-        ikd = cp.pack.IntKeyDict()
+        ikd = packmod.IntKeyDict()
         with self.assertRaises(TypeError):
             ikd['one'] = 1
 
     def test_setitem_ok(self):
-        ikd = cp.pack.IntKeyDict()
+        ikd = packmod.IntKeyDict()
         ikd[1] = 'one'
 
     def test_setdefault_ok(self):
-        ikd = cp.pack.IntKeyDict()
+        ikd = packmod.IntKeyDict()
         ikd.setdefault(1, 'one')
         self.assertEqual(ikd[1], 'one')
 
     def test_setdefault_nok(self):
-        ikd = cp.pack.IntKeyDict()
+        ikd = packmod.IntKeyDict()
         with self.assertRaises(TypeError):
             ikd.setdefault('one', 1)
 
@@ -156,10 +156,10 @@ class TestNpDict(unittest.TestCase):
 
     def setUp(self):
         self.ok_dict = dict({1: ('one', 'two'), 2: ('two', 'three')})
-        self.npd = cp.pack.NpDict(self.ok_dict)
+        self.npd = packmod.NpDict(self.ok_dict)
 
     def test_is_dict(self):
-        npd = cp.pack.NpDict()
+        npd = packmod.NpDict()
         self.assertIsInstance(npd, dict)
 
     def test_create_ok(self):
@@ -167,27 +167,27 @@ class TestNpDict(unittest.TestCase):
 
     def test_create_nok(self):
         with self.assertRaises(TypeError):
-            cp.pack.NpDict(one=1, two=2)
+            packmod.NpDict(one=1, two=2)
 
     def test_update_ok(self):
-        npd = cp.pack.NpDict()
+        npd = packmod.NpDict()
         npd.update({1: ('one', 'two'), 2: ('two', 'three')})
         self.assertEqual(npd[2][0], 'two')
 
     def test_create_nok_pargs(self):
         # should be normal dict errors
         with self.assertRaises(TypeError):
-            cp.pack.NpDict(1)
+            packmod.NpDict(1)
         with self.assertRaises(TypeError):
-            cp.pack.NpDict(1, 2)
+            packmod.NpDict(1, 2)
         with self.assertRaises(TypeError):
-            cp.pack.NpDict(1, 2, 3)
+            packmod.NpDict(1, 2, 3)
         with self.assertRaises(ValueError):
-            cp.pack.NpDict(['123', '345'])
+            packmod.NpDict(['123', '345'])
 
     def test_update_nok_pargs(self):
         # should be normal dict errors
-        npd = cp.pack.NpDict()
+        npd = packmod.NpDict()
         with self.assertRaises(TypeError):
             npd.update(1)
         with self.assertRaises(TypeError):
@@ -200,13 +200,13 @@ class TestNpDict(unittest.TestCase):
     def test_create_nok_pairs(self):
         # should be normal dict errors
         with self.assertRaises(TypeError):
-            cp.pack.NpDict([(1), (2)])
+            packmod.NpDict([(1), (2)])
         with self.assertRaises(ValueError):
-            cp.pack.NpDict([(1, 2, 3), (2, 3, 4)])
+            packmod.NpDict([(1, 2, 3), (2, 3, 4)])
 
     def test_update_nok_pairs(self):
         # should be normal dict errors
-        npd = cp.pack.NpDict()
+        npd = packmod.NpDict()
         with self.assertRaises(TypeError):
             npd.update([(1), (2)])
         with self.assertRaises(ValueError):
@@ -215,41 +215,41 @@ class TestNpDict(unittest.TestCase):
     def test_create_ok_arg_nok_kwarg(self):
         # should be normal dict errors
         with self.assertRaises(TypeError):
-            cp.pack.NpDict([(0, (1, 2)), (1, (1, 2))],
+            packmod.NpDict([(0, (1, 2)), (1, (1, 2))],
                            [(2, (3, 4)), (3, (3, 4))])
 
     def test_update_ok_arg_nok_kwarg(self):
         # should be normal dict errors
-        npd = cp.pack.NpDict()
+        npd = packmod.NpDict()
         with self.assertRaises(TypeError):
             npd.update([(0, 1), (1, 2)], [(2, 3), (3, 4)])
 
     def test_update_nok_value_pairs(self):
-        npd = cp.pack.NpDict()
+        npd = packmod.NpDict()
         with self.assertRaises(ValueError):
             npd.update([(1, 'one'), (2, 'two')])
 
     def test_setitem_nok(self):
-        npd = cp.pack.NpDict()
+        npd = packmod.NpDict()
         with self.assertRaises(TypeError):
             npd['one'] = 1
 
     def test_setitem_ok(self):
-        npd = cp.pack.NpDict()
+        npd = packmod.NpDict()
         npd[1] = ('one', 'two')
 
     def test_setdefault_ok(self):
-        npd = cp.pack.NpDict()
+        npd = packmod.NpDict()
         npd.setdefault(1, ('one', 'two'))
         self.assertEqual(npd[1][0], 'one')
 
     def test_setdefault_nok_key(self):
-        npd = cp.pack.NpDict()
+        npd = packmod.NpDict()
         with self.assertRaises(TypeError):
             npd.setdefault('one', (1, 2))
 
     def test_setdefault_nok_value(self):
-        npd = cp.pack.NpDict()
+        npd = packmod.NpDict()
         with self.assertRaises(ValueError):
             npd.setdefault(1, 'one')
 
@@ -260,12 +260,12 @@ class TestNpDict(unittest.TestCase):
     def test_fromkeys_with_sequence_value(self):
         newdict = self.npd.fromkeys((1, 2), (3, 4))
         self.assertEqual(set(newdict.keys()), set((1, 2)))
-        self.assertIsInstance(newdict, cp.pack.NpDict)
+        self.assertIsInstance(newdict, packmod.NpDict)
 
     def test_fromkeys_with_empty_sequence_value(self):
         newdict = self.npd.fromkeys((1, 2), ())
         self.assertEqual(set(newdict.keys()), set((1, 2)))
-        self.assertIsInstance(newdict, cp.pack.NpDict)
+        self.assertIsInstance(newdict, packmod.NpDict)
 
     def test_get(self):
         self.assertEqual(self.npd.get(2)[0], 'two')
@@ -296,36 +296,36 @@ class TestNpDict(unittest.TestCase):
 
     def test_array_is_not_copy(self):
         seq = range(3)
-        npd = cp.pack.NpDict([(1, seq)])
+        npd = packmod.NpDict([(1, seq)])
         self.assertFalse(seq is npd[1])
 
     def test_array_is_copy(self):
         seq = np.array(range(3))
-        npd = cp.pack.NpDict([(1, seq)])
+        npd = packmod.NpDict([(1, seq)])
         self.assertTrue(seq is npd[1])
 
     def test_ndim_nok_array_ndim0(self):
         a = np.array(3)
         with self.assertRaises(ValueError):
-            cp.pack.NpDict([(1, a)])
+            packmod.NpDict([(1, a)])
 
     def test_ndim_nok_array_ndim2(self):
         a = np.array([range(3)])
         with self.assertRaises(ValueError):
-            cp.pack.NpDict([(1, a)])
+            packmod.NpDict([(1, a)])
 
     def test_ndim_nok_scalar_ndim0(self):
         with self.assertRaises(ValueError):
-            cp.pack.NpDict([(1, 3)])
+            packmod.NpDict([(1, 3)])
 
     def test_ndim_nok_seq_ndim2(self):
         seq = [(1, 2, 3), (4, 5, 6)]
         with self.assertRaises(ValueError):
-            cp.pack.NpDict([(1, seq)])
+            packmod.NpDict([(1, seq)])
 
     def test_ndim_ok_array(self):
         a = np.array(range(3))
-        self.assertIsInstance(cp.pack.NpDict([(1, a)]), cp.pack.NpDict)
+        self.assertIsInstance(packmod.NpDict([(1, a)]), packmod.NpDict)
 
 
 class TestPackBasics(unittest.TestCase):
@@ -333,8 +333,8 @@ class TestPackBasics(unittest.TestCase):
     def setUp(self):
         self.D1 = {0: ('A', 'B', 'C', 'D', 'E'), 1: range(5)}
         self.C1 = {0: 'letter', 1: 'number'}
-        self.pack = cp.ChannelPack(data=self.D1, chnames=self.C1)
-        self.emptypack = cp.ChannelPack()
+        self.pack = packmod.ChannelPack(data=self.D1, chnames=self.C1)
+        self.emptypack = packmod.ChannelPack()
 
     def test_startstop_parts(self):
         pack = self.pack
@@ -342,7 +342,7 @@ class TestPackBasics(unittest.TestCase):
         self.assertEqual(len(pack.parts()), 2)
 
     def test_startstop_values(self):
-        pack = cp.ChannelPack()
+        pack = packmod.ChannelPack()
         pack.data = {0: (1, 2, 3, 4, 5, 4, 3, 2, 1)}
         pack.startstop(pack(0) == 5, pack(0) == 1)
         expected = (5, 4, 3, 2)
@@ -351,7 +351,7 @@ class TestPackBasics(unittest.TestCase):
             self.assertEqual(val, compare)
 
     def test_startstop_pack_apply_true(self):
-        pack = cp.ChannelPack()
+        pack = packmod.ChannelPack()
         pack.data = {0: (1, 2, 3, 4, 5, 4, 3, 2, 1)}
         pack.mask = pack(0) < 4
         pack.startstop(pack(0) == 5, pack(0) == 1)  # result anded w mask
@@ -361,7 +361,7 @@ class TestPackBasics(unittest.TestCase):
             self.assertEqual(val, compare)
 
     def test_startstop_pack_apply_false(self):
-        pack = cp.ChannelPack()
+        pack = packmod.ChannelPack()
         pack.data = {0: (1, 2, 3, 4, 5, 4, 3, 2, 1)}
         pack.startstop(pack(0) == 5, pack(0) == 1, apply=False)
         expected = (1, 2, 3, 4, 5, 4, 3, 2, 1)
@@ -452,7 +452,7 @@ class TestPackBasics(unittest.TestCase):
 
         pack = self.pack
         pack.set_chnames({0: 'codes', 1: 'grades'})
-        self.assertIsInstance(pack.chnames, cp.pack.IntKeyDict)
+        self.assertIsInstance(pack.chnames, packmod.IntKeyDict)
 
     def test_set_chnames_expected_value(self):
 
@@ -495,13 +495,13 @@ class TestPackBasics(unittest.TestCase):
 
         pack = self.pack
         pack.set_data(self.D1)
-        self.assertIsInstance(pack.data, cp.pack.NpDict)
+        self.assertIsInstance(pack.data, packmod.NpDict)
 
     def test_data_assign(self):
 
         pack = self.pack
         pack.data = {0: range(2)}
-        self.assertIsInstance(pack.data, cp.pack.NpDict)
+        self.assertIsInstance(pack.data, packmod.NpDict)
 
     def test_data_assign_wrong_type(self):
 
@@ -557,7 +557,7 @@ class TestPackBasics(unittest.TestCase):
     def test_append_pack_both_has_fn(self):
         pack1 = self.pack
         pack1.fn = 'file1'
-        pack2 = cp.pack.ChannelPack(self.D1)
+        pack2 = packmod.ChannelPack(self.D1)
         pack2.fn = 'file2'
         pack1.append_pack(pack2)
         self.assertEqual(pack1.fn, 'file1')
@@ -565,7 +565,7 @@ class TestPackBasics(unittest.TestCase):
 
     def test_append_pack_none_has_fn(self):
         pack1 = self.pack
-        pack2 = cp.pack.ChannelPack(self.D1)
+        pack2 = packmod.ChannelPack(self.D1)
         pack1.append_pack(pack2)
         self.assertFalse(pack1.fn)
         self.assertFalse(pack1.filenames)
@@ -573,14 +573,14 @@ class TestPackBasics(unittest.TestCase):
     def test_append_pack_1_has_fn(self):
         pack1 = self.pack
         pack1.fn = 'file1'
-        pack2 = cp.pack.ChannelPack(self.D1)
+        pack2 = packmod.ChannelPack(self.D1)
         pack1.append_pack(pack2)
         self.assertEqual(pack1.fn, 'file1')
         self.assertEqual(pack1.filenames, ['file1'])
 
     def test_append_pack_2_has_fn(self):
         pack1 = self.pack
-        pack2 = cp.pack.ChannelPack(self.D1)
+        pack2 = packmod.ChannelPack(self.D1)
         pack2.fn = 'file2'
         pack1.append_pack(pack2)
         self.assertFalse(pack1.fn)
@@ -589,7 +589,7 @@ class TestPackBasics(unittest.TestCase):
     def test_append_not_aligned(self):
         pack = self.pack
         D2 = {key + 1: value for key, value in self.D1.items()}
-        pack2 = cp.pack.ChannelPack(D2)
+        pack2 = packmod.ChannelPack(D2)
         self.assertRaises(ValueError, pack.append_pack, pack2)
 
     def test_min_duration(self):
@@ -611,12 +611,12 @@ class TestPackBasics(unittest.TestCase):
         pack = self.pack
         counter = pack.counter('number')
         self.assertEqual(len(counter), len(pack('number')))  # all unique
-        pack = cp.pack.ChannelPack({1: ('a', 'a', 'a', 'b', 'b')})
+        pack = packmod.ChannelPack({1: ('a', 'a', 'a', 'b', 'b')})
         self.assertEqual(pack.counter(1)['a'], 3)
         self.assertEqual(pack.counter(1)['b'], 2)
 
     def test_counter_empty_pack(self):
-        pack = cp.ChannelPack()
+        pack = packmod.ChannelPack()
         self.assertRaises(TypeError, pack.counter)  # no arg
         self.assertRaises(KeyError, pack.counter, 0)  # no such key
 
@@ -642,7 +642,7 @@ class TestPackBasics(unittest.TestCase):
             self.assertEqual(record.ch1, pack('number')[index])
 
     def test_records_empty_pack(self):
-        pack = cp.ChannelPack()
+        pack = packmod.ChannelPack()
         count = 0
 
         for record in pack.records():
@@ -725,7 +725,7 @@ class TestPackBasics(unittest.TestCase):
 
     def test_parts_empty_pack(self):
 
-        pack = cp.ChannelPack()
+        pack = packmod.ChannelPack()
         self.assertFalse(pack.parts())
         self.assertEqual(len(pack.parts()), 0)
 
@@ -765,7 +765,7 @@ class TestPackBasics(unittest.TestCase):
         self.assertTrue(pack.slicelist()[1] == slice(2, 3))
 
     def test_slicelist_empty_pack(self):
-        pack = cp.ChannelPack()
+        pack = packmod.ChannelPack()
         self.assertFalse(pack.slicelist())
         self.assertEqual(len(pack.slicelist()), 0)
 
