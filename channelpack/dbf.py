@@ -154,7 +154,8 @@ def dbfrecords(f, names):
 def dbfpack(dbf, names=None):
     """Make a ChannelPack from dbf data file.
 
-    Parameters:
+    Parameters
+    ----------
     dbf : str or file
         If a file it should be opened for binary reads.
     names : list of str

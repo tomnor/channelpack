@@ -171,7 +171,7 @@ class ChannelPack(object):
     """Callable collection of data.
 
     Hold a dict of data (numpy 1d arrays) and make possible to refer to
-    them by calls of this object, (pack(ch)). A boolean mask is kept
+    them by calls of this object, (`pack(ch)`). A boolean mask is kept
     with the pack, used to optionally filter out sections of data in
     calls.
 
@@ -276,8 +276,10 @@ class ChannelPack(object):
         value : str or None
             If str it shall be one of 'nan' or 'filter', else None.
 
-        Raises ValueError if value is not one of 'nan', 'filter' or
-        None.
+        Raises
+        ------
+        ValueError
+            If value is not one of 'nan', 'filter' or None.
 
         """
 
@@ -308,6 +310,7 @@ class ChannelPack(object):
         Parameters
         ----------
         data : dict
+            The new data dict.
 
         Raises
         ------
@@ -340,6 +343,7 @@ class ChannelPack(object):
         Parameters
         ----------
         other : ChannelPack instance
+            The other pack.
 
         Raises
         ------
@@ -401,7 +405,8 @@ class ChannelPack(object):
 
         Returns
         -------
-        The possibly altered mask.
+        array
+            The possibly altered mask.
 
         """
 
@@ -420,7 +425,8 @@ class ChannelPack(object):
 
         Parameters
         ----------
-        startb, stopb : sequence
+        startb : sequence
+        stopb : sequence
             Elements are tested with `if el...`
         apply : bool
             If True, apply the result of this method to the mask
@@ -428,17 +434,18 @@ class ChannelPack(object):
 
         Returns
         -------
-        A bool ndarray, the result of this method.
+        array
+            A bool ndarray, the result of this method.
 
         Example
         -------
-        One descend
+        One descend::
 
-        height: 1 2 3 4 5 4 3 2 1
-        startb: F F F F T F F F F (height == 5)
-        stobb:  T F F F F F F F T (height == 1)
-        result: F F F F T T T T F
-        -> height:      5 4 3 2
+            height: 1 2 3 4 5 4 3 2 1
+            startb: F F F F T F F F F (height == 5)
+            stobb:  T F F F F F F F T (height == 1)
+            result: F F F F T T T T F
+            -> height:      5 4 3 2
 
         """
 
@@ -497,7 +504,7 @@ class ChannelPack(object):
 
         If `part` is not given, return the array for `ch` respecting the
         setting of attribute `nof`. See the class attributes description
-        for the meaning of `nof`.
+        in :class:`~channelpack.ChannelPack` for the meaning of `nof`.
 
         Parameters
         ----------

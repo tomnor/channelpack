@@ -304,7 +304,8 @@ def textpack(fname, chnames=None, delimiter=None, skiprows=0, usecols=None,
     numerics with decimal point). If delimiter is a comma it is
     therefore important to specify that.
 
-    Parameters:
+    Parameters
+    ----------
     fname : str, file or io stream
     chnames : dict
         Keys are integers (0-based column numbers) and values are

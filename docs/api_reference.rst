@@ -1,72 +1,27 @@
-
 channelpack API Reference
 *************************
 
-.. automodule:: channelpack
+All objects and functions documented below are available by::
 
-pack module
-===========
+    import channelpack
 
-.. automodule:: channelpack.pack
-
-Functions to get a pack
------------------------
-
-.. autofunction:: channelpack.pack.dbfpack
-
-.. autofunction:: channelpack.pack.txtpack
-
-.. autofunction:: channelpack.pack.sheetpack
-
+in the `channelpack` namespace.
 
 ChannelPack object
 ------------------
 
 .. autoclass:: channelpack.ChannelPack
-   :special-members: __init__, __call__
-   :members:
+    :special-members: __init__, __call__
+    :members:
 
 
-Data
-----
+Functions to get a pack from data files
+---------------------------------------
 
-.. autodata:: channelpack.pack.ORIGINEXTENSIONS
-.. autodata:: channelpack.pack.CHANNELPACK_RC_FILE
+.. autofunction:: channelpack.textpack
 
-pulltxt module - automated study of text data files
-===================================================
+.. autofunction:: channelpack.textpack_lazy
 
-.. automodule:: channelpack.pulltxt
+.. autofunction:: channelpack.sheet_pack
 
-PatternPull object
-------------------
-
-.. autoclass:: channelpack.pulltxt.PatternPull
-   :members:
-
-Functions
----------
-
-.. autofunction:: channelpack.pulltxt.loadtxt
-.. autofunction:: channelpack.pulltxt.loadtxt_asdict
-
-pulldbf module
-==============
-
-.. automodule:: channelpack.pulldbf
-
-Functions
----------
-
-dbfreader is a recipe Created by Raymond Hettinger on Tue, 11 Jan 2005 (PSF)
-http://code.activestate.com/recipes/362715/ with minor edits.
-
-.. autofunction:: channelpack.pulldbf.dbfreader
-.. autofunction:: channelpack.pulldbf.dbf_asdict
-.. autofunction:: channelpack.pulldbf.channel_names
-
-pullxl module
-==============
-
-.. automodule:: channelpack.pullxl
-   :members:
+.. autofunction:: channelpack.dbfpack

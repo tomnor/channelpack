@@ -1,37 +1,43 @@
-.. channelpack documentation master file, created by
-   sphinx-quickstart on Sun Aug 17 21:47:36 2014.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
-
 Welcome to channelpack's documentation!
 ***************************************
 
-A python package for loading, analyzing and slicing out acquisition data based on
-conditions. Conditions and naming of channels can be saved as config files and
-reused later in a convenient way.
+A small Python library providing an object to hold a number of Numpy
+arrays. The object is callable like a function and calls are made to
+get at data.
+
+A few factory functions to get a ChannelPack object from data files
+are also provided.
 
 Site contents:
 
 .. toctree::
-   :maxdepth: 3
+   :maxdepth: 1
 
-   installation.rst
-   overview_examples.rst
-   api_reference.rst
-   test_examples.rst
-   changelog.rst
+   overview_examples
+   api_reference
+   changelog
 
-Help channelpack
-================
+Install
+=======
 
-Please feel welcome to place suggestions or issues, fork and make changes at the
-`repo <https://github.com/tomnor/channelpack>`_ on github. Or send a mail to
-tomnor@posteo.net.
+To install channelpack, do the usual pip tango::
 
-Indices and tables
-==================
+    $ pip install channelpack
 
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+A numpy (https://numpy.org/) installation is assumed and not installed
+by channelpack.
 
+Getting the source code
+=======================
+
+Get the source for the package::
+
+    $ git clone https://github.com/tomnor/channelpack.git
+
+License
+=======
+
+GPL
+
+.. image:: pics/gplv3-127x51.png
+   :target: https://www.gnu.org/licenses/gpl-3.0.en.html

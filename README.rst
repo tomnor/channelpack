@@ -1,104 +1,114 @@
 channelpack
 ===========
 
-A python package for loading, analyzing and slicing out acqusition data based on
-conditions. Conditions and naming of channels can be saved as config files and
-reused later in a convenient way.
+The ChannelPack class provides a callable container of data. The channelpack
+package also provides some factory functions to get such a pack from data
+files.
 
-channelpack origins from test engineering experience of handling data files from
-test measurements. If those file are text kind of files, they might have some
-inconvinient need-to-know features before loadable into python:
-
-* Rows to skip - a number of lines (file meta data) prior to test data.
-* Data delimiter - The character used to separate one data from the other, often
-  space, tab or comma.
-* Decimal separator - Depending on your region, the decimal separator is
-  sometimes a comma, sometimes a dot.
-* The naming of "channels", if named, could be on a row not immediately above
-  the data, (following row could be engineering units for example).
-
-channelpack intend to deal with the inconveniences of text data files described
-above.
-
-Data files:
-
-* Any text (numeric) kind of file (numpy's loadtxt is used).
-* dbf files (Raymond Hettinger `recipe
-  <http://code.activestate.com/recipes/362715>`_ as low level reader).
-* Spread sheet files (xlrd is used).
-* Any file read by your own tools, provide a function returning a dict
-  with channels to the ChannelPack class.
+Channelpack is a Python project (a small library) assuming Numpy being
+available and that numpy arrays are the preferred data sequences.
 
 Example
 -------
 
-channelpack has some convenience functions for getting a pack::
+Produce some data and make a pack::
 
     >>> import channelpack as cp
-    >>> sp = cp.sheetpack('testdata/sampledat3.xls')
-    >>> sp.chnames
-    {0: u'txtdata', 1: u'nums', 2: u'floats'}
-
-Packs are made callable, by name or column index::
-
-    >>> sp(0)
-    array([u'A', u'A', u'C', u'D', u'D'],
-          dtype='<U1')
-    >>> sp(0) is sp('txtdata')
+    >>> data = {0: range(5), 1: ('A', 'B', 'C', 'D', 'E')}
+    >>> names = {0: 'seq', 1: 'abc'}
+    >>> pack = cp.ChannelPack(data=data, chnames=names)
+    >>> pack
+    ChannelPack(
+    data={0: array([0, 1, 2, 3, 4]),
+          1: array(['A', 'B', 'C', 'D', 'E'], dtype='<U1')},
+    chnames={0: 'seq',
+             1: 'abc'})
+    >>> pack(0)
+    array([0, 1, 2, 3, 4])
+    >>> pack(0) is pack('seq')
     True
 
-A boolean mask array is kept to keep track of "True parts"::
+Set the pack mask and use it to slice or filter out parts::
 
-    >>> sp.parts()
-    [0]
-    >>> sp.add_condition('cond', '(%(0) == "A") | (%(0) == "D")')
-    >>> sp.parts()
-    [0, 1]
-    >>> sp('txtdata', 0)
-    array([u'A', u'A'],
-          dtype='<U1')
-    >>> sp('txtdata', 1)
-    array([u'D', u'D'],
-          dtype='<U1')
+    >>> pack.mask = (pack('seq') < 2) | (pack('abc') == 'D')
+    >>> pack('seq', part=0)
+    array([0, 1])
+    >>> pack('seq', part=1)
+    array([3])
+    >>> pack('abc', nof='filter')
+    array(['A', 'B', 'D'], dtype='<U1')
+    >>> pack('abc', nof='nan')
+    array(['A', 'B', None, 'D', None], dtype=object)
+    >>> pack('seq', nof='nan')
+    array([ 0.,  1., nan,  3., nan])
 
-Now persist the conditions and load a new data set that need the same
-conditions::
+Read data from file::
 
-    >>> sp.spit_config()
-    >>> sp = cp.sheetpack('testdata/sampledat4.xls', stopcell='c6')
-    >>> sp('txtdata')
-    array([u'A', u'C', u'C', u'C', u'D'],
-          dtype='<U1')
-    >>> sp.parts()
-    [0]
-    >>> sp.eat_config()
-    >>> sp.parts()
-    [0, 1]
-    >>> sp('txtdata', 0)
-    array([u'A'],
-          dtype='<U1')
-    >>> sp('txtdata', 1)
-    array([u'D'],
-          dtype='<U1')
+    >>> import io
+    >>> datstring = \
+    ... """date: 20-05-01 17:39
+    ... room: east lab hall, floor 2, room 8
+    ... operator: Goran Operatorsson
+    ...
+    ... time, speed, onoff, distance
+    ... 0, 23, on, 0.3
+    ... 1, 21, off, 0.28
+    ... """
+    >>> sio = io.StringIO(datstring)
+    >>> pack = cp.textpack(sio, delimiter=',', skiprows=5, names=True)
+    >>> pack
+    ChannelPack(
+    data={0: array([0., 1.]),
+          1: array([23., 21.]),
+          2: array([' on', ' off'], dtype='<U4'),
+          3: array([0.3 , 0.28])},
+    chnames={0: 'time',
+             1: 'speed',
+             2: 'onoff',
+             3: 'distance'})
+
+Lazy read numeric data::
+
+    >>> datstring = \
+    ... """date: 20-05-01 17:39
+    ... room: east lab hall, floor 2, room 8
+    ... operator: Goran Operatorsson
+    ...
+    ... time, speed, distance
+    ... 0, 23, 0.3
+    ... 1, 21, 0.28
+    ... """
+    >>> sio = io.StringIO(datstring)
+    >>> pack = cp.textpack_lazy(sio)
+    >>> pack
+    ChannelPack(
+    data={0: array([0., 1.]),
+          1: array([23., 21.]),
+          2: array([0.3 , 0.28])},
+    chnames={0: 'time',
+             1: 'speed',
+             2: 'distance'})
 
 
-Depends
+Channel?
+--------
+
+The naming (channelpack) sort of origins from work with measurements and data
+acquisition. Using tools for that, the recorded arrays of data are often called
+"channels", because it was acquired through some IO channel.
+
+
+Install
 -------
+::
 
-There is a dependency on xlrd as of version 0.2.0. It is installed if not
-available.
+    $ pip install channelpack
 
-channelpack imports numpy. Installation of channelpack will not arrange for
-numpy to be installed. Do it your way. It is likely that if you consider
-channelpack, you already have numpy installed.
+Documentation and repository
+----------------------------
 
-Documentation and changes
--------------------------
+There is some documentation at `Read the Docs`_ and the code repository is on
+`GitHub`_.
 
-`Documentation <http://channelpack.readthedocs.org/en/latest/>`_
-
-`Changes <http://channelpack.readthedocs.org/en/latest/changelog.html>`_
-
-As of version 0.3.0, channelpack is not backwards compatible. The way of storing
-and making substitutions of conditions is new, plus a bunch of other changes
-that breaks earlier versions. But it's much better now.
+.. _Read the Docs: https://channelpack.readthedocs.org/en/latest/
+.. _GitHub: https://github.com/tomnor/channelpack
