@@ -1,18 +1,22 @@
 Overview and examples
 *********************
 
-There is nothing special or magic about the ChannelPack class, it is a
-wrapper class for a dict of data and a dict of "channel" names. Those
-dict attributes, `data` and `chnames` are a little special -- they
-both require integer keys and the `data` dict will convert sequence
-values to Numpy arrays if not arrays already. And the `data` dict will
-error if any resulting array is not 1-dimensional.
+The ChannelPack class is a basic wrapper class for a dict of data and
+a dict of "channel" names. Those dict attributes, `data` and
+`chnames`, are a little special -- they both require integer keys and
+the `data` dict will convert sequence values to Numpy arrays if not
+arrays already. And the `data` dict will raise an exception if any
+resulting array is not 1-dimensional.
 
 The 1-dimensional requirement reflects a view of the ChannelPack
 object as a holder of flat file data columns.
 
 The integer keys in respective dict are supposed to align to be able
 to refer to arrays by name.
+
+ChannelPack objects are callable (like functions) and the idea is to
+get at data by making calls to the object, like `pack(ch)`, where `ch`
+is the key for data, either a string name or an integer key.
 
 Make an object
 ==============
@@ -38,19 +42,22 @@ Produce some data and make a pack
     >>> pack(0) is pack('seq')
     True
 
-Slicing out relevant parts of data
-==================================
+Slicing out parts of data
+=========================
 
-Support for slicing and filtering is provided by a Boolean mask in the
-pack and a `nof` argument in calls. In calls to get at data, the mask
-is consulted to return parts of the data with corresponding True parts
-in the mask.
+Support for slicing and filtering is provided by a Boolean array
+`mask` in the pack and the `parts` or `nof` arguments in calls. In
+calls to get at data, the mask is consulted to return parts of the
+data with corresponding True parts in the mask, depending on
+arguments. A True entry in the mask represents *valid* data.
 
 The mask attribute
 ------------------
 
-The mask in the pack is set by using bitwise operator comparisons on
-Numpy arrays, resulting in a Boolean array::
+The mask in the pack is set by performing comparisons on arrays,
+possibly combined with Numpy bitwise operators like `&` and `|`
+(bitwise `AND` and `OR`). The goal is to set the mask to a Boolean
+array of the same size as the data arrays::
 
     >>> pack.mask = (pack('seq') < 2) | (pack('abc') == 'D')
     >>> pack('seq', part=0)
@@ -72,14 +79,18 @@ Numpy arrays, resulting in a Boolean array::
   depending on the mask.
 - With `nof='nan'`, the data length is the same as original array but
   with corresponding non-true elements in mask replaced with np.nan or
-  None depending the type.
+  None depending on the type.
 
+
+.. seealso::
+
+   :meth:`~channelpack.ChannelPack.mask_reset`
 
 Start,  stop and duration
 -------------------------
 
-Sometimes it is easier to think of parts as beginning at some
-condition or event and stopping at some other. A method
+Sometimes it's easier to think of a part as starting at some event or
+condition and stopping at some other. A method
 :meth:`~channelpack.ChannelPack.startstop` is supporting something
 like a "start and stop trigger".
 
