@@ -16,13 +16,13 @@ Produce some data and make a pack::
     >>> import channelpack as cp
     >>> data = {0: range(5), 1: ('A', 'B', 'C', 'D', 'E')}
     >>> names = {0: 'seq', 1: 'abc'}
-    >>> pack = cp.ChannelPack(data=data, chnames=names)
+    >>> pack = cp.ChannelPack(data=data, names=names)
     >>> pack
     ChannelPack(
     data={0: array([0, 1, 2, 3, 4]),
           1: array(['A', 'B', 'C', 'D', 'E'], dtype='<U1')},
-    chnames={0: 'seq',
-             1: 'abc'})
+    names={0: 'seq',
+           1: 'abc'})
     >>> pack(0)
     array([0, 1, 2, 3, 4])
     >>> pack(0) is pack('seq')
@@ -55,17 +55,17 @@ Read data from file::
     ... 1, 21, off, 0.28
     ... """
     >>> sio = io.StringIO(datstring)
-    >>> pack = cp.textpack(sio, delimiter=',', skiprows=5, names=True)
+    >>> pack = cp.textpack(sio, delimiter=',', skiprows=5, hasnames=True)
     >>> pack
     ChannelPack(
     data={0: array([0., 1.]),
           1: array([23., 21.]),
           2: array([' on', ' off'], dtype='<U4'),
           3: array([0.3 , 0.28])},
-    chnames={0: 'time',
-             1: 'speed',
-             2: 'onoff',
-             3: 'distance'})
+    names={0: 'time',
+           1: 'speed',
+           2: 'onoff',
+           3: 'distance'})
 
 Lazy read numeric data::
 
@@ -85,9 +85,9 @@ Lazy read numeric data::
     data={0: array([0., 1.]),
           1: array([23., 21.]),
           2: array([0.3 , 0.28])},
-    chnames={0: 'time',
-             1: 'speed',
-             2: 'distance'})
+    names={0: 'time',
+           1: 'speed',
+           2: 'distance'})
 
 
 Channel?

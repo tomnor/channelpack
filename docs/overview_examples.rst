@@ -3,7 +3,7 @@ Overview and examples
 
 The ChannelPack class is a basic wrapper class for a dict of data and
 a dict of "channel" names. Those dict attributes, `data` and
-`chnames`, are a little special -- they both require integer keys and
+`names`, are a little special -- they both require integer keys and
 the `data` dict will convert sequence values to Numpy arrays if not
 arrays already. And the `data` dict will raise an exception if any
 resulting array is not 1-dimensional.
@@ -30,13 +30,13 @@ Produce some data and make a pack
     >>> import channelpack as cp
     >>> data = {0: range(5), 1: ('A', 'B', 'C', 'D', 'E')}
     >>> names = {0: 'seq', 1: 'abc'}
-    >>> pack = cp.ChannelPack(data=data, chnames=names)
+    >>> pack = cp.ChannelPack(data=data, names=names)
     >>> pack
     ChannelPack(
     data={0: array([0, 1, 2, 3, 4]),
           1: array(['A', 'B', 'C', 'D', 'E'], dtype='<U1')},
-    chnames={0: 'seq',
-             1: 'abc'})
+    names={0: 'seq',
+           1: 'abc'})
     >>> pack(0)
     array([0, 1, 2, 3, 4])
     >>> pack(0) is pack('seq')

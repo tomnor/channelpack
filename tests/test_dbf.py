@@ -262,7 +262,7 @@ class TestDbfPack(unittest.TestCase):
         self.assertEqual(len(pack.data), 3)
 
         for name in sidsxnames:
-            self.assertIn(name, pack.chnames.values())
+            self.assertIn(name, pack.names.values())
 
         for i in pack.data:
             self.assertIsInstance(pack(i), np.ndarray)
@@ -283,7 +283,7 @@ class TestDbfPack(unittest.TestCase):
         self.assertEqual(len(pack.data), 3)
 
         for name in sidsxnames:
-            self.assertIn(name, pack.chnames.values())
+            self.assertIn(name, pack.names.values())
 
         for i in pack.data:
             self.assertIsInstance(pack(i), np.ndarray)

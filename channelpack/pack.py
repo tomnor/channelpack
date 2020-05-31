@@ -13,14 +13,14 @@ Example
 ChannelPack(
 data={0: array(['A', 'B', 'C', 'C', 'D'], dtype='|S1'),
       1: array([22, 22, 10, 15, 15])},
-chnames={})
+names={})
 
->>> pack.set_chnames({0: 'section', 1: 'seats'})
+>>> pack.set_names({0: 'section', 1: 'seats'})
 >>> pack
 ChannelPack(
 data={0: array(['A', 'B', 'C', 'C', 'D'], dtype='|S1'),
       1: array([22, 22, 10, 15, 15])},
-chnames={0: 'section',
+names={0: 'section',
          1: 'seats'})
 
 >>> pack('section')
@@ -195,11 +195,11 @@ class ChannelPack(object):
         down to elements with corresponding True elements in `mask`. The
         effect of this attribute can be overridden in calls of the
         object.
-    chnames : dict
+    names : dict
         Keys are integers representing column numbers (like in `data`),
-        values are strings, the channel names. Keys in `chnames` aligned
+        values are strings, the field names. Keys in `names` aligned
         with keys in `data` makes it possible to refer to arrays by
-        channel names. This alignment is not enforced.
+        field names. This alignment is not enforced.
     FALLBACK_PREFIX : str
         Defaults to 'ch'. This can be used in calls of the pack in place
         of a "proper" name. If 4 is a key in the data dict, pack('ch4')
@@ -220,7 +220,7 @@ class ChannelPack(object):
     nofvalids = ('nan', 'filter', None)
     id_rx = r'[^\d\W]\w*'       # valid python identifier in some string
 
-    def __init__(self, data=None, chnames=None):
+    def __init__(self, data=None, names=None):
         """Initiate a ChannelPack
 
         Convert given sequences in `data` to numpy arrays if necessary.
@@ -230,9 +230,9 @@ class ChannelPack(object):
         data : dict
             Keys are integers representing column numbers, values are
             sequences representing column data.
-        chnames : dict
+        names : dict
             Keys are integers representing column numbers (like in
-            data), values are strings, the channel names.
+            data), values are strings, the field names.
 
         """
         self.FALLBACK_PREFIX = 'ch'
@@ -240,7 +240,7 @@ class ChannelPack(object):
         # self.set_datadict(data)  # set self.data
         self.fn = ''             # Possible file name
         self.filenames = []
-        self.chnames = IntKeyDict(chnames or {})
+        self.names = IntKeyDict(names or {})
         self.nof = None
         self.mask_reset()       # set self.mask
 
@@ -254,14 +254,14 @@ class ChannelPack(object):
         elif name == 'data' and not isinstance(value, NpDict):
             object.__setattr__(self, name, NpDict(value))
             self.mask_reset()
-        elif name == 'chnames' and not isinstance(value, IntKeyDict):
+        elif name == 'names' and not isinstance(value, IntKeyDict):
             object.__setattr__(self, name, IntKeyDict(value))
         else:
             object.__setattr__(self, name, value)
 
     def __delattr__(self, name):
         if name in ('FALLBACK_PREFIX', 'data', 'fn',
-                    'filenames', 'chnames', 'nof'):
+                    'filenames', 'names', 'nof'):
             raise AttributeError('Cannot delete {}'.format(name))
         else:
             object.__delattr__(self, name)
@@ -285,14 +285,14 @@ class ChannelPack(object):
 
         self.nof = value
 
-    def set_chnames(self, chnames):
-        """Set the chnames attribute to chnames.
+    def set_names(self, names):
+        """Set the names attribute to names.
 
         Parameters
         ----------
-        chnames : dict
+        names : dict
             Keys in the dict should correspond with the integer keys in
-            the data attribute. Values are any str channel names.
+            the data attribute. Values are any string field names.
 
         Raises
         ------
@@ -300,7 +300,7 @@ class ChannelPack(object):
 
         """
 
-        self.chnames = chnames
+        self.names = names
 
     def set_data(self, data):
         """Convert sequences to numpy arrays as needed.
@@ -329,7 +329,7 @@ class ChannelPack(object):
 
         If this pack has data (attribute data is non-empty), it has to
         have the same set of keys as other.data (if that is non-empty).
-        Same is true for the attribute chnames.
+        Same is true for the attribute names.
 
         Array dtypes in respective pack.data are at the mercy of numpy
         append function.
@@ -360,11 +360,11 @@ class ChannelPack(object):
             for key in other.data:
                 self.data[key] = np.append(self.data[key], other.data[key])
 
-        if not self.chnames:
-            self.set_chnames(other.chnames)
-        elif other.chnames:
-            if not set(self.chnames.keys()) == set(other.chnames.keys()):
-                raise ValueError('chnames dicts set of keys not equal')
+        if not self.names:
+            self.set_names(other.names)
+        elif other.names:
+            if not set(self.names.keys()) == set(other.names.keys()):
+                raise ValueError('names dicts set of keys not equal')
 
         if self.fn and self.fn not in self.filenames:
             self.filenames.append(self.fn)
@@ -493,7 +493,7 @@ class ChannelPack(object):
         ----------
         ch : str or int
             The channel key, name or fallback string. The lookup order
-            is keys in the data dict, names in the chnames dict and
+            is keys in the data dict, names in the names dict and
             finally if `ch` matches a fallback string.
         part : int
             The 0-based enumeration of a True part to return. Overrides
@@ -533,8 +533,8 @@ class ChannelPack(object):
     def records(self, part=None, nof=None, fallback=False):
         """Return a generator producing records of the pack.
 
-        Each record is supplied as a collections.namedtuple with the
-        channel names as field names. This is useful if each record make
+        Each record is provided as a collections.namedtuple with the
+        packs names as field names. This is useful if each record make
         a meaningful data set on its own.
 
         Parameters
@@ -550,7 +550,7 @@ class ChannelPack(object):
             the records despite a setting of the attribute `nof`.
         fallback: bool
             The named tuple requires python-valid naming. If fallback is
-            False, ValueError is raised if any of the names in chnames
+            False, ValueError is raised if any of the names in `names`
             is an invalid identifier. fallback=True will use
             FALLBACK_PREFIX to produce names.
 
@@ -562,7 +562,7 @@ class ChannelPack(object):
 
         """
 
-        names = [self.chnames[key] for key in sorted(self.chnames)]
+        names = [self.names[key] for key in sorted(self.names)]
         if fallback:
             names = [self.FALLBACK_PREFIX + str(key) for key in
                      sorted(self.data)]
@@ -583,7 +583,7 @@ class ChannelPack(object):
         ----------
         ch : int or str
             The channel key, name or fallback string. The lookup order
-            is keys in the data dict, names in the chnames dict and
+            is keys in the data dict, names in the names dict and
             finally if `ch` matches a fallback string.
 
         Raises
@@ -600,14 +600,14 @@ class ChannelPack(object):
         if isinstance(ch, int):
             raise KeyError('{} not in data'.format(ch))
 
-        for key, name in self.chnames.items():
+        for key, name in self.names.items():
             if ch == name:
                 if key not in self.data:
-                    fmt = '{} value in chnames with key {} but {} not in data'
+                    fmt = '{} value in names with key {} but {} not in data'
                     raise KeyError(fmt.format(name, key, key))
                 return key
 
-        # not in data, not a good name in chnames, last chance is a
+        # not in data, not a good name in names, last chance is a
         # fallback string
 
         prefix_rx = self.FALLBACK_PREFIX + r'(\d+)'
@@ -621,7 +621,7 @@ class ChannelPack(object):
         raise KeyError(ch)
 
     def name(self, ch, firstwordonly=False, fallback=False):
-        """Return a name string for channel `ch` in chnames.
+        """Return a name string for channel `ch` in names.
 
         A helper method to get a name string, possibly modified
         according to arguments. Succeeds only if `ch` corresponds to a
@@ -648,11 +648,11 @@ class ChannelPack(object):
             return self.FALLBACK_PREFIX + str(key)
 
         if not firstwordonly:
-            return self.chnames[key]
+            return self.names[key]
         elif firstwordonly is True:
-            return self.chnames.split()[0]
+            return self.names.split()[0]
         elif type(firstwordonly) is str:
-            return re.findall(firstwordonly, self.chnames[key])[0]
+            return re.findall(firstwordonly, self.names[key])[0]
         else:
             raise TypeError(firstwordonly)
 
@@ -661,12 +661,12 @@ class ChannelPack(object):
 
         """
 
-        fmtstr = 'ChannelPack(\ndata={{{}}},\nchnames={{{}}})'
+        fmtstr = 'ChannelPack(\ndata={{{}}},\nnames={{{}}})'
         datjoinstr = ',\n      '
-        chjoinstr = ',\n         '
+        nmjoinstr = ',\n       '
         datkeyvalstr = (datjoinstr.join(str(key) + ': ' + repr(self.data[key])
                                         for key in sorted(self.data.keys())))
-        chkeyvalstr = (chjoinstr.join(str(key) + ': ' + repr(self.chnames[key])
-                                      for key in sorted(self.chnames.keys())))
+        nmkeyvalstr = (nmjoinstr.join(str(key) + ': ' + repr(self.names[key])
+                                      for key in sorted(self.names.keys())))
 
-        return fmtstr.format(datkeyvalstr, chkeyvalstr)
+        return fmtstr.format(datkeyvalstr, nmkeyvalstr)

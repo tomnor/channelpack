@@ -51,7 +51,7 @@ def preparse(lines, firstfieldrx=r'\w'):
         of text. None if converters are not needed.
     usecols : tuple
         Elements are 0-based integers representing all columns parsed.
-    chnames : dict
+    names : dict
         Keys are column numbers and values are the field names, "channel
         names". {} if field names was not parsed successfully.
 
@@ -162,7 +162,7 @@ def preparse(lines, firstfieldrx=r'\w'):
     converters = (flag == 'c' and {column: _floatit for column
                                    in range(validcounts[-1].numcnt)} or None)
 
-    chnames = {}
+    names = {}
     # line above startline and up, (no iteration if startline=0)
     for line in lines[:startline][::-1]:
         fields = [field.strip() for field in
@@ -170,11 +170,11 @@ def preparse(lines, firstfieldrx=r'\w'):
         if len(fields) != validcounts[-1].numcnt:
             continue
         elif re.match(firstfieldrx, fields[0]):
-            chnames = {colnum: field for colnum, field in enumerate(fields)}
+            names = {colnum: field for colnum, field in enumerate(fields)}
             break
 
     kwdict = dict(skiprows=startline, delimiter=delimiter,
-                  converters=converters, chnames=chnames,
+                  converters=converters, names=names,
                   usecols=tuple(range(validcounts[-1].numcnt)))
 
     return kwdict
@@ -235,7 +235,7 @@ def textpack_lazy(fname, parselines=25, **textkwargs):
 
     Try to automatically derive values for the textpack keyword
     arguments 'delimiter', 'skiprows' and 'converters'. Also try to
-    parse out the field names, "channel names".
+    parse out the field names.
 
     Works with numerical data files, which might have a header with
     extra information to ignore. Converters derived is either float or
@@ -274,12 +274,12 @@ def textpack_lazy(fname, parselines=25, **textkwargs):
         fo.seek(0)
         derived.update(textkwargs)
 
-        if 'usecols' in textkwargs and 'chnames' not in textkwargs:
+        if 'usecols' in textkwargs and 'names' not in textkwargs:
             usecols = textkwargs['usecols']
             usecols = (usecols,) if type(usecols) is int else usecols
-            for key in list(derived.get('chnames', {})):  # no chnames no loop
+            for key in list(derived.get('names', {})):  # no names no loop
                 if key not in usecols:
-                    derived['chnames'].pop(key, None)
+                    derived['names'].pop(key, None)
 
         if not derived:
             raise ValueError('Failed lazy preparse', fname)
@@ -288,9 +288,9 @@ def textpack_lazy(fname, parselines=25, **textkwargs):
     return pack
 
 
-def textpack(fname, chnames=None, delimiter=None, skiprows=0, usecols=None,
-             names=False, encoding=None, converters=None, stripstrings=False,
-             debug=False):
+def textpack(fname, names=None, delimiter=None, skiprows=0, usecols=None,
+             hasnames=False, encoding=None, converters=None,
+             stripstrings=False, debug=False):
     """Make a ChannelPack from delimited text data.
 
     First line of data is the line following skiprows.
@@ -307,9 +307,9 @@ def textpack(fname, chnames=None, delimiter=None, skiprows=0, usecols=None,
     Parameters
     ----------
     fname : str, file or io stream
-    chnames : dict
+    names : dict
         Keys are integers (0-based column numbers) and values are
-        channel names. If provided it will be set in the pack and is
+        field names. If provided it will be set in the pack and is
         mutually exclusive with the usecols argument.
     delimiter : str or bytes
         If not given, any white space is assumed. If fname is a stream
@@ -319,10 +319,10 @@ def textpack(fname, chnames=None, delimiter=None, skiprows=0, usecols=None,
         following skiprows is data.
     usecols : sequence or int
         The columns to read. A single integer means read that one
-        column. Ignore if chnames is given.
-    names : bool
+        column. Ignore if names is given.
+    hasnames : bool
         If True, the last line of skiprows is assumed to be field names
-        and will be used to set chnames in the pack. Ignored if chnames
+        and will be used to set names in the pack. Ignored if names
         is given.
     encoding : str
         Use encoding to open fname. If None, use default encoding with
@@ -344,12 +344,12 @@ def textpack(fname, chnames=None, delimiter=None, skiprows=0, usecols=None,
     if usecols is not None:
         usecols = (usecols,) if type(usecols) is int else usecols
 
-    if chnames:
-        usecols = sorted(chnames)
-        names = False
-    elif names:
+    if names:
+        usecols = sorted(names)
+        hasnames = False
+    elif hasnames:
         skiprows = skiprows - 1
-        chnames = {}
+        names = {}
 
     bytehint = False
 
@@ -357,16 +357,16 @@ def textpack(fname, chnames=None, delimiter=None, skiprows=0, usecols=None,
 
         linetupler = linetuples(fo, delimiter=delimiter, usecols=usecols,
                                 bytehint=bytehint, converters=converters,
-                                stripstrings=stripstrings, names=names)
+                                stripstrings=stripstrings, hasnames=hasnames)
 
         debugdict = dict(funcs=next(linetupler))
 
-        if names and usecols is not None:
+        if hasnames and usecols is not None:
             for col, name in zip(usecols, next(linetupler)):
-                chnames[col] = name
-        elif names:
+                names[col] = name
+        elif hasnames:
             for col, name in enumerate(next(linetupler)):
-                chnames[col] = name
+                names[col] = name
 
         if not debugoutput:
             if usecols is not None:
@@ -407,13 +407,13 @@ def textpack(fname, chnames=None, delimiter=None, skiprows=0, usecols=None,
             fo.readline()
         packdict = datadict(fo, debugoutput=debug)
 
-    pack = cp.ChannelPack(data=packdict, chnames=chnames)
+    pack = cp.ChannelPack(data=packdict, names=names)
     pack.fn = context.name
     return pack
 
 
 def linetuples(fo, bytehint=False, delimiter=None, usecols=None,
-               converters=None, stripstrings=False, names=False):
+               converters=None, stripstrings=False, hasnames=False):
     """Yield data tuples from io stream fo.
 
     First yield is the list of functions that will be used (for
@@ -437,7 +437,7 @@ def linetuples(fo, bytehint=False, delimiter=None, usecols=None,
     # stripstrings True means to strip white space from things that are
     # not numeric data.
 
-    # names True means fo is on the line of names and a split of this
+    # hasnames True means fo is on the line of names and a split of this
     # line will be the second yield (after funcs).
 
     encoding = bytehint
@@ -454,7 +454,7 @@ def linetuples(fo, bytehint=False, delimiter=None, usecols=None,
     def as_is_stripped_decode(b):
         return b.strip().decode(encoding)
 
-    if names:
+    if hasnames:
         fieldnames = [field.strip() for field in
                       fo.readline().strip().split(delimiter)]
         namesfunc = (as_is_stripped if not type(bytehint) is str
@@ -507,7 +507,7 @@ def linetuples(fo, bytehint=False, delimiter=None, usecols=None,
 
     yield tuple(funcs)
 
-    if names:
+    if hasnames:
         yield tuple(namesfunc(name) for name, col in
                     zip(fieldnames, allcols) if col in usecols)
 

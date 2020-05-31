@@ -337,7 +337,7 @@ class TestPackBasics(unittest.TestCase):
     def setUp(self):
         self.D1 = {0: ('A', 'B', 'C', 'D', 'E'), 1: range(5)}
         self.C1 = {0: 'letter', 1: 'number'}
-        self.pack = packmod.ChannelPack(data=self.D1, chnames=self.C1)
+        self.pack = packmod.ChannelPack(data=self.D1, names=self.C1)
         self.emptypack = packmod.ChannelPack()
 
     def test_startstop_parts(self):
@@ -440,55 +440,55 @@ class TestPackBasics(unittest.TestCase):
         with self.assertRaises(TypeError):
             pack.FALLBACK_PREFIX = None
 
-    def test_set_chnames(self):
+    def test_set_names(self):
 
         pack = self.pack
-        pack.set_chnames({0: 'codes', 1: 'grades'})
+        pack.set_names({0: 'codes', 1: 'grades'})
         self.assertIsInstance(pack('codes'), np.ndarray)
         self.assertIsInstance(pack('grades'), np.ndarray)
 
-    def test_chnames_key_error(self):
+    def test_names_key_error(self):
         pack = self.pack
         self.assertRaises(KeyError, pack, 'nosuch0')
         self.assertRaises(KeyError, pack, 'nosuch1')
 
-    def test_set_chnames_intkeydict(self):
+    def test_set_names_intkeydict(self):
 
         pack = self.pack
-        pack.set_chnames({0: 'codes', 1: 'grades'})
-        self.assertIsInstance(pack.chnames, packmod.IntKeyDict)
+        pack.set_names({0: 'codes', 1: 'grades'})
+        self.assertIsInstance(pack.names, packmod.IntKeyDict)
 
-    def test_set_chnames_expected_value(self):
+    def test_set_names_expected_value(self):
 
         pack = self.pack
-        pack.set_chnames({0: 'codes', 1: 'grades'})
+        pack.set_names({0: 'codes', 1: 'grades'})
 
         for index, letter in enumerate(self.D1[0]):
             self.assertEqual(letter, pack('codes')[index])
         for index, number in enumerate(self.D1[1]):
             self.assertEqual(number, pack('grades')[index])
 
-    def test_chnames_clear(self):
+    def test_names_clear(self):
 
         pack = self.pack
-        self.assertEqual(pack.chnames.clear(), None)
-        self.assertFalse(pack.chnames)
+        self.assertEqual(pack.names.clear(), None)
+        self.assertFalse(pack.names)
 
-    def test_chnames_assign(self):
+    def test_names_assign(self):
 
         pack = self.pack
-        pack.chnames = {0: '0 section-info (east)',
-                        1: "1-capacity (pc's)"}
-        self.assertEqual(pack.chnames[0], '0 section-info (east)')
-        self.assertEqual(pack.chnames[1], "1-capacity (pc's)")
+        pack.names = {0: '0 section-info (east)',
+                      1: "1-capacity (pc's)"}
+        self.assertEqual(pack.names[0], '0 section-info (east)')
+        self.assertEqual(pack.names[1], "1-capacity (pc's)")
 
-    def test_chnames_assign_wrong_type(self):
+    def test_names_assign_wrong_type(self):
 
         pack = self.pack
         with self.assertRaises(ValueError):
-            pack.chnames = 'channelpack'
+            pack.names = 'channelpack'
         with self.assertRaises(TypeError):
-            pack.chnames = 42
+            pack.names = 42
 
     def test_data_clear(self):
         pack = self.pack
@@ -626,9 +626,9 @@ class TestPackBasics(unittest.TestCase):
             self.assertEqual(record.letter, pack('letter')[index])
             self.assertEqual(record.number, pack('number')[index])
 
-    def test_records_partial_chnames(self):
+    def test_records_partial_names(self):
         pack = self.pack
-        pack.chnames = {0: 'section'}
+        pack.names = {0: 'section'}
         for record in pack.records():
             self.assertEqual(len(record), 1)
 
@@ -650,17 +650,17 @@ class TestPackBasics(unittest.TestCase):
 
         self.assertEqual(count, 0)
 
-    def test_records_empty_chnames_fallback_false(self):
+    def test_records_empty_names_fallback_false(self):
         pack = self.pack
-        pack.chnames = {}
+        pack.names = {}
         count = 0
         for record in pack.records():
             count += 1
         self.assertEqual(count, 0)
 
-    def test_records_bad_chnames_fallback_false(self):
+    def test_records_bad_names_fallback_false(self):
         pack = self.pack
-        pack.chnames = {0: '0-invalid', 1: '1-invalid'}
+        pack.names = {0: '0-invalid', 1: '1-invalid'}
         with self.assertRaises(ValueError):
             for record in pack.records():
                 _rec = record   # NOQA
@@ -686,7 +686,7 @@ class TestPackBasics(unittest.TestCase):
 
     def test_name_regex(self):
         pack = self.pack
-        pack.chnames = {0: '0 section-info (east)',
+        pack.names = {0: '0 section-info (east)',
                         1: "1-capacity (pc's)"}
         self.assertEqual(pack.name(0, firstwordonly=pack.id_rx), 'section')
         self.assertEqual(pack.name(1, firstwordonly=pack.id_rx), 'capacity')

@@ -69,10 +69,10 @@ class TestPreParse(unittest.TestCase):
             return fo.readlines()[:cnt]
 
     def test_dat_0000(self):
-        expected = {'chnames': {0: 'Time [s]',
-                                1: 'Quantity1 - 12345678;  [qunit]',
-                                2: 'Distance - 12345678;  [mm]',
-                                3: 'Stresslevel& - 12345678;  [kLevel]'},
+        expected = {'names': {0: 'Time [s]',
+                              1: 'Quantity1 - 12345678;  [qunit]',
+                              2: 'Distance - 12345678;  [mm]',
+                              3: 'Stresslevel& - 12345678;  [kLevel]'},
                     'converters': {0: rt._floatit,
                                    1: rt._floatit,
                                    2: rt._floatit,
@@ -89,12 +89,12 @@ class TestPreParse(unittest.TestCase):
         self.assertEqual(rt.preparse(lines), expected)
 
     def test_MesA1(self):
-        expected = {'chnames': {0: 'Time_100Hz',
-                                1: 'P_cyl',
-                                2: 'F_cyl',
-                                3: 'L_cyl',
-                                4: 'Fc1_cal',
-                                5: 'Fc2_cal'},
+        expected = {'names': {0: 'Time_100Hz',
+                              1: 'P_cyl',
+                              2: 'F_cyl',
+                              3: 'L_cyl',
+                              4: 'Fc1_cal',
+                              5: 'Fc2_cal'},
                     'converters': None,
                     'delimiter': ';',
                     'skiprows': 23,
@@ -108,13 +108,13 @@ class TestPreParse(unittest.TestCase):
         self.assertEqual(rt.preparse(lines), expected)
 
     def test_sampledat1(self):
-        expected = {'chnames': {0: 'RPT',
-                                1: 'B_CACT',
-                                2: 'P_CACT',
-                                3: 'VG_STOP',
-                                4: 'AR_BST',
-                                5: 'PLRT_1',
-                                6: 'TOQ_BUM'},
+        expected = {'names': {0: 'RPT',
+                              1: 'B_CACT',
+                              2: 'P_CACT',
+                              3: 'VG_STOP',
+                              4: 'AR_BST',
+                              5: 'PLRT_1',
+                              6: 'TOQ_BUM'},
                     'converters': None,
                     'delimiter': '\t',
                     'skiprows': 1,
@@ -133,16 +133,16 @@ class TestPreParse(unittest.TestCase):
         self.assertEqual(rt.preparse(lines), expected)
 
     def test_loremipsum_numsend(self):
-        expected = {'chnames': {0: 'molestie',
-                                1: 'eu,',
-                                2: 'feugiat',
-                                3: 'in,',
-                                4: 'orci.',
-                                5: 'In',
-                                6: 'hac',
-                                7: 'habitasse',
-                                8: 'platea',
-                                9: 'dictumst.'},
+        expected = {'names': {0: 'molestie',
+                              1: 'eu,',
+                              2: 'feugiat',
+                              3: 'in,',
+                              4: 'orci.',
+                              5: 'In',
+                              6: 'hac',
+                              7: 'habitasse',
+                              8: 'platea',
+                              9: 'dictumst.'},
                     'converters': None,
                     'delimiter': ' ',
                     'skiprows': 21,
@@ -151,16 +151,16 @@ class TestPreParse(unittest.TestCase):
         self.assertEqual(rt.preparse(lines), expected)
 
     def test_loremipsum_numsend_delok(self):
-        expected = {'chnames': {0: 'col0',
-                                1: 'col1',
-                                2: 'col2',
-                                3: 'col3',
-                                4: 'col4',
-                                5: 'col5',
-                                6: 'col6',
-                                7: 'col7',
-                                8: 'col8',
-                                9: 'col9'},
+        expected = {'names': {0: 'col0',
+                              1: 'col1',
+                              2: 'col2',
+                              3: 'col3',
+                              4: 'col4',
+                              5: 'col5',
+                              6: 'col6',
+                              7: 'col7',
+                              8: 'col8',
+                              9: 'col9'},
                     'converters': None,
                     'delimiter': ';',
                     'skiprows': 23,
@@ -174,7 +174,7 @@ class TestPreParse(unittest.TestCase):
         self.assertEqual(rt.preparse(lines), expected)
 
     def test_onecolumn(self):
-        expected = {'chnames': {},
+        expected = {'names': {},
                     'converters': None,
                     'delimiter': None,
                     'skiprows': 0,
@@ -299,7 +299,7 @@ class TestLineTuples(unittest.TestCase):
         names = ('RPT', 'B_CACT', 'P_CACT', 'VG_STOP',
                  'AR_BST', 'PLRT_1', 'TOQ_BUM')
         with open('../testdata/sampledat1.txt') as fo:
-            linetupler = rt.linetuples(fo, names=True)
+            linetupler = rt.linetuples(fo, hasnames=True)
             funcs = next(linetupler)
             self.assertEqual(len(funcs), numvals)
             for name, should in zip_longest(next(linetupler), names):
@@ -425,7 +425,7 @@ class TestTextPack(unittest.TestCase):
 
     def test_sampledat1_names(self):
         fname = '../testdata/sampledat1.txt'
-        pack = rt.textpack(fname, skiprows=1, names=True)
+        pack = rt.textpack(fname, skiprows=1, hasnames=True)
         self.assertIsInstance(pack, cp.ChannelPack)
         self.assertEqual(pack.fn, fname)
         self.assertEqual(pack('RPT')[0], 0)
@@ -467,9 +467,9 @@ class TestTextPack(unittest.TestCase):
     def test_datstring_comma_names(self):
 
         sio = io.StringIO(datstring_comma)
-        pack = rt.textpack(sio, skiprows=5, names=True, delimiter=',')
+        pack = rt.textpack(sio, skiprows=5, hasnames=True, delimiter=',')
         names = 'time', 'speed', 'onoff', 'distance'
-        for key, name in zip_longest(sorted(pack.chnames), names):
+        for key, name in zip_longest(sorted(pack.names), names):
             # names stripped by default
             self.assertEqual(pack.name(key), name)
 
@@ -482,10 +482,10 @@ class TestTextPack(unittest.TestCase):
     def test_datstring_comma_stripstrings(self):
 
         sio = io.StringIO(datstring_comma)
-        pack = rt.textpack(sio, skiprows=5, names=True, delimiter=',',
+        pack = rt.textpack(sio, skiprows=5, hasnames=True, delimiter=',',
                            stripstrings=True)
         names = 'time', 'speed', 'onoff', 'distance'
-        for key, name in zip_longest(sorted(pack.chnames), names):
+        for key, name in zip_longest(sorted(pack.names), names):
             # names stripped by default
             self.assertEqual(pack.name(key), name)
 
@@ -552,7 +552,7 @@ class TestTextPack(unittest.TestCase):
 
         bio = io.BytesIO(datstring_ru.encode('cp866'))
         pack = rt.textpack(bio, skiprows=5, delimiter=b',',
-                           encoding='cp866', names=True)
+                           encoding='cp866', hasnames=True)
 
         for val, should in zip_longest(pack(u'onoff'), (u' вкл', u' выкл')):
             self.assertEqual(val, should)
@@ -604,10 +604,10 @@ class TestTextPackLazy(unittest.TestCase):
         for key, should in zip_longest(sorted(pack.data), names):
             self.assertEqual(pack.name(key), should)
 
-    def test_MesA1_chnames(self):
+    def test_MesA1_names(self):
         fname = '../testdata/MesA1.csv'
-        chnames = {0: 'names', 2: 'fcyl', 5: 'fc2'}
-        pack = rt.textpack_lazy(fname, chnames=chnames)
+        names = {0: 'names', 2: 'fcyl', 5: 'fc2'}
+        pack = rt.textpack_lazy(fname, names=names)
         self.assertIsInstance(pack, cp.ChannelPack)
         self.assertEqual(pack.fn, fname)
         self.assertEqual(pack(0)[-1], 176.64000000)
@@ -617,11 +617,11 @@ class TestTextPackLazy(unittest.TestCase):
         self.assertRaises(KeyError, pack, 3)
         self.assertRaises(KeyError, pack, 4)
         for key in pack.data:
-            self.assertEqual(pack.name(key), chnames[key])
+            self.assertEqual(pack.name(key), names[key])
 
     def test_orgtable(self):
         fname = '../testdata/orgtable.txt'
-        pack = rt.textpack_lazy(fname, delimiter='|', names=True,
+        pack = rt.textpack_lazy(fname, delimiter='|', hasnames=True,
                                 stripstrings=True, usecols=(1, 2, 3, 4))
         self.assertIsInstance(pack, cp.ChannelPack)
         self.assertEqual(pack.fn, fname)
@@ -679,7 +679,7 @@ class TestTextPackLazy(unittest.TestCase):
     def test_datstring_space_blanks(self):
 
         # expecting two lines of data and first line numbers as
-        # chnames
+        # names
 
         sio = io.StringIO(datstring_space_blanks)
         pack = rt.textpack_lazy(sio)
@@ -782,7 +782,7 @@ class TestTextPackLazy(unittest.TestCase):
 
         bio = io.BytesIO(datstring_ru.encode('cp866'))
         pack = rt.textpack_lazy(bio, skiprows=5, delimiter=b',',
-                                encoding='cp866', names=True)
+                                encoding='cp866', hasnames=True)
 
         for val, should in zip_longest(pack(u'onoff'), (u' вкл', u' выкл')):
             self.assertEqual(val, should)
