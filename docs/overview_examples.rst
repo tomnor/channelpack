@@ -2,7 +2,7 @@ Overview and examples
 *********************
 
 The ChannelPack class is a basic wrapper class for a dict of data and
-a dict of "channel" names. Those dict attributes, `data` and
+a dict of field names. Those dict attributes, `data` and
 `names`, are a little special -- they both require integer keys and
 the `data` dict will convert sequence values to Numpy arrays if not
 arrays already. And the `data` dict will raise an exception if any
