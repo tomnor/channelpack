@@ -2,6 +2,10 @@ from __future__ import print_function
 import unittest
 import sys
 import os
+try:
+    from itertools import zip_longest
+except ImportError:
+    from itertools import izip_longest as zip_longest
 
 import numpy as np
 
@@ -592,7 +596,7 @@ class TestPackBasics(unittest.TestCase):
         pack2 = packmod.ChannelPack(D2)
         self.assertRaises(ValueError, pack.append_pack, pack2)
 
-    def test_min_duration(self):
+    def test_duration(self):
         pack = self.pack
         self.assertIsNone(pack.nof)
         pack.nof = 'filter'
@@ -601,11 +605,20 @@ class TestPackBasics(unittest.TestCase):
         pack.mask = pack('number') > 2
         self.assertFalse(np.all(pack.mask))
         self.assertEqual(pack('number').size, 2)
-        pack.min_duration(3)
+        pack.duration(3)
         self.assertEqual(pack('number').size, 0)
         pack.nof = None
         self.assertEqual(pack('number').size, 5)
         self.assertFalse(np.all(pack.mask))
+
+    def test_duration_mindur_false(self):
+        pack = self.pack
+        pack.mask = (pack('number') < 2) | (pack('letter') == 'D')
+        self.assertEqual(len(pack.parts()), 2)
+        pack.duration(1, mindur=False)
+        self.assertEqual(len(pack.parts()), 1)
+        for letter, should in zip_longest(pack('letter', nof='filter'), ['D']):
+            self.assertEqual(letter, should)
 
     def test_counter(self):
         pack = self.pack

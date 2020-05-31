@@ -50,7 +50,7 @@ The mask attribute
 ------------------
 
 The mask in the pack is set by using bitwise operator comparisons on
-Numpy arrays, resulting in a Boolean array.
+Numpy arrays, resulting in a Boolean array::
 
     >>> pack.mask = (pack('seq') < 2) | (pack('abc') == 'D')
     >>> pack('seq', part=0)
@@ -103,11 +103,11 @@ Say that the descending slopes are of particular interest::
     >>> _ = pp.plot(pack('time'), pack('movement', nof='nan'),
     ...             label='descends', marker='o')
 
-A method :meth:`~channelpack.ChannelPack.min_duration` can be used to
+A method :meth:`~channelpack.ChannelPack.duration` can be used to
 make false any true parts that is not long enough. Filter out the
 shorter slopes::
 
-    >>> _ = pack.min_duration(0.15, samplerate=100)
+    >>> _ = pack.duration(0.15, samplerate=100)
     >>> # plot only the remaining descend
     >>> _ = pp.plot(pack('time'), pack('movement', nof='nan'),
     ...             label='long descend', color='black')
@@ -116,9 +116,6 @@ shorter slopes::
     >>> _ = pp.legend(loc='upper right'); pp.show()
 
 .. image:: pics/alternating.png
-
-TODO: rename min_duration to duration and take a mindur argument
-defaulting to True.
 
 Factory functions to get a pack
 ===============================

@@ -388,7 +388,7 @@ class ChannelPack(object):
             lowest = sorted(self.data)[0]
             self.mask = self.data[lowest] == self.data[lowest]
 
-    def min_duration(self, duration, samplerate=1):
+    def duration(self, duration, samplerate=1, mindur=True):
         """Require each true part to be at least duration long.
 
         Make false any true part in the mask attribute that is not
@@ -402,6 +402,8 @@ class ChannelPack(object):
         samplerate : int or float
             If samplerate is 10 and duration is 1, a True part of
             minimum 10 elements is required.
+        mindur : bool
+            If False, require parts to be at most duration long instead.
 
         Returns
         -------
@@ -411,8 +413,12 @@ class ChannelPack(object):
         """
 
         req_duration = int(duration * samplerate)
+
         for sc in self.slicelist():
-            if sc.stop - sc.start < req_duration:
+            part_duration = sc.stop - sc.start
+            if part_duration < req_duration and mindur:
+                self.mask[sc] = False
+            elif part_duration > req_duration and not mindur:
                 self.mask[sc] = False
 
         return self.mask
