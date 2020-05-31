@@ -34,7 +34,7 @@ array(['C', 'C'], dtype='|S1')
 array([10, 15])
 """
 import re
-from collections import Counter, namedtuple
+from collections import namedtuple
 
 import numpy as np
 
@@ -481,29 +481,6 @@ class ChannelPack(object):
         """
 
         return list(range(len(self.slicelist())))  # 2&3
-
-    def counter(self, ch, part=None, nof=None):
-        """Return a counter on the channel ch.
-
-        A collections.Counter instance.
-
-        Parameters
-        ----------
-        ch: string or integer.
-            The channel key, name or fallback string.
-        part: int
-            The 0-based enumeration of a True part to return. Overrides
-            any setting of the nof attribute.
-        nof : str
-            One of 'nan', 'filter' or 'ignore'. Providing this argument
-            overrides any setting of the corresponding attribute `nof`,
-            and have the same effect on the returned data as the
-            attribute `nof`. The value 'ignore' can be used to get the
-            full array despite a setting of the attribute `nof`.
-
-        """
-
-        return Counter(self(self.datakey(ch), part=part, nof=nof))
 
     def __call__(self, ch, part=None, nof=None):
         """Return data from "channel" ch.

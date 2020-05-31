@@ -620,19 +620,6 @@ class TestPackBasics(unittest.TestCase):
         for letter, should in zip_longest(pack('letter', nof='filter'), ['D']):
             self.assertEqual(letter, should)
 
-    def test_counter(self):
-        pack = self.pack
-        counter = pack.counter('number')
-        self.assertEqual(len(counter), len(pack('number')))  # all unique
-        pack = packmod.ChannelPack({1: ('a', 'a', 'a', 'b', 'b')})
-        self.assertEqual(pack.counter(1)['a'], 3)
-        self.assertEqual(pack.counter(1)['b'], 2)
-
-    def test_counter_empty_pack(self):
-        pack = packmod.ChannelPack()
-        self.assertRaises(TypeError, pack.counter)  # no arg
-        self.assertRaises(KeyError, pack.counter, 0)  # no such key
-
     def test_records(self):
         pack = self.pack
         for index, record in enumerate(pack.records()):
