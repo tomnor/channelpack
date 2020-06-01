@@ -495,13 +495,13 @@ class TestPackBasics(unittest.TestCase):
         self.assertEqual(pack.data.clear(), None)
         self.assertFalse(pack.data)
 
-    def test_set_data_npdict(self):
+    def test_assign_D1_is_npdict(self):
 
         pack = self.pack
-        pack.set_data(self.D1)
+        pack.data = self.D1
         self.assertIsInstance(pack.data, packmod.NpDict)
 
-    def test_data_assign(self):
+    def test_assign_data_is_npdict(self):
 
         pack = self.pack
         pack.data = {0: range(2)}

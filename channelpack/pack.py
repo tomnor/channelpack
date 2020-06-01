@@ -177,10 +177,12 @@ class ChannelPack(object):
 
     Attributes
     ----------
-    data : dict
-        Dict with numpy arrays. The dict is not supposed to be accessed
-        directly, call the ChannelPack object to refer to arrays. Keys
-        are integers representing column numbers.
+    data : dict Dict with numpy arrays.
+        The dict is not supposed to be consulted directly, call the
+        ChannelPack object to refer to arrays. Keys are integers
+        representing column numbers. Setting this attribute to a new
+        dict of data will convert values to numpy arrays and call
+        mask_reset() automatically.
     mask : numpy.ndarray
         A boolean array of the same size as the data arrays. Initially
         all True.
@@ -237,7 +239,6 @@ class ChannelPack(object):
         """
         self.FALLBACK_PREFIX = 'ch'
         self.data = NpDict(data or {})
-        # self.set_datadict(data)  # set self.data
         self.fn = ''             # Possible file name
         self.filenames = []
         self.names = IntKeyDict(names or {})
@@ -302,28 +303,6 @@ class ChannelPack(object):
 
         self.names = names
 
-    def set_data(self, data):
-        """Convert sequences to numpy arrays as needed.
-
-        This method replaces any existing data with `data`.
-
-        Parameters
-        ----------
-        data : dict
-            The new data dict.
-
-        Raises
-        ------
-        TypeError
-            If keys are not integers.
-        ValueError
-            If a value in dict are not a sequence that result in a numpy
-            array with ndim equal to 1, (1D array).
-
-        """
-        self.data = data
-        self.mask_reset()
-
     def append_pack(self, other):
         """Append data from other into this pack.
 
@@ -353,7 +332,7 @@ class ChannelPack(object):
         """
 
         if not self.data:
-            self.set_data(other.data)
+            self.data = other.data
         elif other.data:
             if not set(self.data.keys()) == set(other.data.keys()):
                 raise ValueError('Data dicts set of keys not equal')
