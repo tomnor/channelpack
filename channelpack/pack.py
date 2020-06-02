@@ -97,15 +97,13 @@ class NpDict(IntKeyDict):
 
     def __init__(self, *args, **kwargs):
         if args and (len(args) > 1 or isinstance(args[0], str)):
-            super(NpDict, self).__init__(*args, **kwargs)  # delage fail
+            super(NpDict, self).__init__(*args, **kwargs)  # delegate fail
         self.update(*args, **kwargs)
 
     def __setitem__(self, key, value):
-        proxyarr = np.array(value, copy=False)
-        # let non-int key error raise first
-        super(NpDict, self).__setitem__(key, proxyarr)
-        if proxyarr.ndim != 1:
-            raise ValueError('ndim != 1 in resulting array')
+        array = np.array(value, copy=False)
+        self._check_raise_ndim(array, value)
+        super(NpDict, self).__setitem__(key, array)
 
     def update(self, *args, **kwargs):
 
@@ -115,7 +113,9 @@ class NpDict(IntKeyDict):
         if args and isinstance(args[0], dict):
             proxydict = {}
             for key in args[0]:
-                proxydict[key] = np.array(args[0][key], copy=False)
+                array = np.array(args[0][key], copy=False)
+                self._check_raise_ndim(array, args[0][key])
+                proxydict[key] = array
 
             proxyargs.append(proxydict)
             # append any (invalid) additional items in args to get familiar
@@ -127,9 +127,10 @@ class NpDict(IntKeyDict):
             # loop over the key, value pairs
             for seq in args[0]:
                 if hasattr(seq, '__getitem__'):
-                    proxyarr = np.array(seq[-1], copy=False)
+                    array = np.array(seq[-1], copy=False)
+                    self._check_raise_ndim(array, seq[-1])
                     # let possible invalid length of key, value pairs remain
-                    proxypairs.append([val for val in seq[:-1]] + [proxyarr])
+                    proxypairs.append([val for val in seq[:-1]] + [array])
                 else:           # just append what was given
                     proxypairs.append(seq)
 
@@ -142,29 +143,22 @@ class NpDict(IntKeyDict):
             proxyargs = args
 
         for key, value in kwargs.items():
-            proxykwargs[key] = np.array(value, copy=False)
+            array = np.array(value, copy=False)
+            self._check_raise_ndim(array, value)
+            proxykwargs[key] = array
 
-        # first report on key and other dict errors
         super(NpDict, self).update(*proxyargs, **proxykwargs)
-        self._audit_ndim()
 
     def setdefault(self, key, value=None):
-        proxyval = np.array(value, copy=False)
-        # let non-int key error raise first
-        super(NpDict, self).setdefault(key, proxyval)
-        if proxyval.ndim != 1:
-            raise ValueError('ndim != 1 in resulting array')
+        array = np.array(value, copy=False)
+        self._check_raise_ndim(array, value)
+        super(NpDict, self).setdefault(key, array)  # return? FIXME
 
-    def _audit_ndim(self):
-        """Walk through all arrays and check ndim == 1.
-
-        Assumes all values has ndim attribute. Raise ValueError on first
-        ndim !=1 found.
+    def _check_raise_ndim(self, array, value):
+        """Check array for ndim == 1 and raise error if fail.
         """
-
-        for key, arr in self.items():
-            if arr.ndim != 1:
-                raise ValueError('ndim != 1 for key {}'.format(key))
+        if array.ndim != 1:
+            raise ValueError('array.ndim != 1 results from', value)
 
 
 class ChannelPack(object):
@@ -177,7 +171,7 @@ class ChannelPack(object):
 
     Attributes
     ----------
-    data : dict Dict with numpy arrays.
+    data : dict
         The dict is not supposed to be consulted directly, call the
         ChannelPack object to refer to arrays. Keys are integers
         representing column numbers. Setting this attribute to a new

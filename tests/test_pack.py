@@ -169,9 +169,14 @@ class TestNpDict(unittest.TestCase):
     def test_create_ok(self):
         self.assertEqual(self.npd[1][0], 'one')
 
-    def test_create_nok(self):
+    def test_create_nok_key(self):
         with self.assertRaises(TypeError):
-            packmod.NpDict(one=1, two=2)
+            packmod.NpDict(one=(1, 2), two=(2, 3))
+
+    def test_create_nok_value(self):
+        # NpDict error on ndim != 1
+        with self.assertRaises(ValueError):
+            packmod.NpDict({1: 'hello'})
 
     def test_update_ok(self):
         npd = packmod.NpDict()
@@ -226,17 +231,33 @@ class TestNpDict(unittest.TestCase):
         # should be normal dict errors
         npd = packmod.NpDict()
         with self.assertRaises(TypeError):
-            npd.update([(0, 1), (1, 2)], [(2, 3), (3, 4)])
+            npd.update([(0, (1, 2)), (1, (1, 2))], [(2, (2, 3)), (3, (3, 4))])
 
     def test_update_nok_value_pairs(self):
         npd = packmod.NpDict()
         with self.assertRaises(ValueError):
             npd.update([(1, 'one'), (2, 'two')])
 
-    def test_setitem_nok(self):
+    def test_setitem_nok_key_and_nok_value(self):
+        npd = packmod.NpDict()
+        with self.assertRaises(ValueError):
+            npd['one'] = 1
+        # npd should still be empty
+        self.assertFalse(npd)
+
+    def test_setitem_nok_key_and_ok_value(self):
         npd = packmod.NpDict()
         with self.assertRaises(TypeError):
-            npd['one'] = 1
+            npd['one'] = range(4)
+        # npd should still be empty
+        self.assertFalse(npd)
+
+    def test_setitem_ok_key_and_nok_value(self):
+        npd = packmod.NpDict()
+        with self.assertRaises(ValueError):
+            npd[1] = 1
+        # npd should still be empty
+        self.assertFalse(npd)
 
     def test_setitem_ok(self):
         npd = packmod.NpDict()
