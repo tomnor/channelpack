@@ -536,15 +536,9 @@ class TestPackBasics(unittest.TestCase):
         with self.assertRaises(TypeError):
             pack.data = 42
 
-    def test_set_nof(self):
+    def test_assign_nof(self):
 
         pack = self.pack
-        pack.set_nof('nan')
-        self.assertEqual(pack.nof, 'nan')
-        pack.set_nof('filter')
-        self.assertEqual(pack.nof, 'filter')
-        pack.set_nof(None)
-        self.assertIs(pack.nof, None)
         pack.nof = 'nan'
         self.assertEqual(pack.nof, 'nan')
         pack.nof = 'filter'
@@ -554,8 +548,6 @@ class TestPackBasics(unittest.TestCase):
 
     def test_nof_value_checking(self):
         pack = self.pack
-        self.assertRaises(ValueError, pack.set_nof, 'invalid')
-        self.assertRaises(ValueError, pack.set_nof, np.nan)
         with self.assertRaises(ValueError):
             pack.nof = 'invalid'
         with self.assertRaises(ValueError):
@@ -754,7 +746,7 @@ class TestPackBasics(unittest.TestCase):
         pack = self.pack
         self.assertTrue(np.all(pack('number') == np.array(range(5))))
         pack.mask = (pack('letter') == 'A') | (pack('letter') == 'C')
-        pack.set_nof('nan')
+        pack.nof = 'nan'
         self.assertEqual(pack('letter').size, 5)
         self.assertEqual(pack('letter').size, pack('number').size)
         self.assertEqual(set(pack('letter')), set(('A', 'C', None)))
@@ -762,14 +754,14 @@ class TestPackBasics(unittest.TestCase):
                          set(np.array((False, True, False, True, True))))
         for index in (1, 3, 4):
             self.assertTrue(np.isnan(pack('number')[index]))
-        pack.set_nof(None)
+        pack.nof = None
         for index in range(5):
             self.assertFalse(np.isnan(pack('number')[index]))
 
     def test_call_nof_ignore(self):
         pack = self.pack
         pack.mask = (pack('letter') == 'A') | (pack('letter') == 'C')
-        pack.set_nof('nan')
+        pack.nof = 'nan'
         for index, value in enumerate(self.D1[1]):
             self.assertEqual(pack('number', nof='ignore')[index], value)
 

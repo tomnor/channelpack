@@ -261,25 +261,6 @@ class ChannelPack(object):
         else:
             object.__delattr__(self, name)
 
-    def set_nof(self, value):
-        """Set the nof attribute to value.
-
-        See class attributes description for the meaning of `nof`.
-
-        Parameters
-        ----------
-        value : str or None
-            If str it shall be one of 'nan' or 'filter', else None.
-
-        Raises
-        ------
-        ValueError
-            If value is not one of 'nan', 'filter' or None.
-
-        """
-
-        self.nof = value
-
     def set_names(self, names):
         """Set the names attribute to names.
 
