@@ -487,7 +487,7 @@ class ChannelPack(object):
             try:
                 return self.data[key][sl[part]]
             except IndexError:
-                raise IndexError(str(part) + ' is out of range')
+                raise IndexError(str(part) + ' is out of parts range')
         elif nof == 'nan':
             return datautils.masked(self.data[key], self.mask)
         elif nof == 'filter':
