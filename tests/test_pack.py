@@ -461,28 +461,21 @@ class TestPackBasics(unittest.TestCase):
         with self.assertRaises(TypeError):
             pack.FALLBACK_PREFIX = None
 
-    def test_set_names(self):
-
-        pack = self.pack
-        pack.set_names({0: 'codes', 1: 'grades'})
-        self.assertIsInstance(pack('codes'), np.ndarray)
-        self.assertIsInstance(pack('grades'), np.ndarray)
-
     def test_names_key_error(self):
         pack = self.pack
         self.assertRaises(KeyError, pack, 'nosuch0')
         self.assertRaises(KeyError, pack, 'nosuch1')
 
-    def test_set_names_intkeydict(self):
+    def test_assign_names_intkeydict(self):
 
         pack = self.pack
-        pack.set_names({0: 'codes', 1: 'grades'})
+        pack.names = {0: 'codes', 1: 'grades'}
         self.assertIsInstance(pack.names, packmod.IntKeyDict)
 
-    def test_set_names_expected_value(self):
+    def test_assign_names_expected_value(self):
 
         pack = self.pack
-        pack.set_names({0: 'codes', 1: 'grades'})
+        pack.names = {0: 'codes', 1: 'grades'}
 
         for index, letter in enumerate(self.D1[0]):
             self.assertEqual(letter, pack('codes')[index])
@@ -495,15 +488,7 @@ class TestPackBasics(unittest.TestCase):
         self.assertEqual(pack.names.clear(), None)
         self.assertFalse(pack.names)
 
-    def test_names_assign(self):
-
-        pack = self.pack
-        pack.names = {0: '0 section-info (east)',
-                      1: "1-capacity (pc's)"}
-        self.assertEqual(pack.names[0], '0 section-info (east)')
-        self.assertEqual(pack.names[1], "1-capacity (pc's)")
-
-    def test_names_assign_wrong_type(self):
+    def test_assign_names_wrong_type(self):
 
         pack = self.pack
         with self.assertRaises(ValueError):
@@ -528,7 +513,7 @@ class TestPackBasics(unittest.TestCase):
         pack.data = {0: range(2)}
         self.assertIsInstance(pack.data, packmod.NpDict)
 
-    def test_data_assign_wrong_type(self):
+    def test_assign_data_wrong_type(self):
 
         pack = self.pack
         with self.assertRaises(ValueError):

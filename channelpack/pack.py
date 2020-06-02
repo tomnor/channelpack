@@ -261,23 +261,6 @@ class ChannelPack(object):
         else:
             object.__delattr__(self, name)
 
-    def set_names(self, names):
-        """Set the names attribute to names.
-
-        Parameters
-        ----------
-        names : dict
-            Keys in the dict should correspond with the integer keys in
-            the data attribute. Values are any string field names.
-
-        Raises
-        ------
-        TypeError if keys are not integers.
-
-        """
-
-        self.names = names
-
     def append_pack(self, other):
         """Append data from other into this pack.
 
