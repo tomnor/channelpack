@@ -205,12 +205,12 @@ class ChannelPack(object):
         variable name.
     fn : str
          File name of a possible source data file. After initialization
-         it is up to the caller to set this attribute.
+         it is up to the caller to set this attribute, else it is the
+         empty string.
     filenames : list of str
-        If `fn` is set in some other pack, or this attribute is not
-        empty in some other pack provided to the method `append_pack`,
-        the file name of the other pack is appended to the `filenames`
-        attribute of this pack.
+        Maintained by the pack when setting `fn`. Extended with
+        `other.filenames` in calls to `append_pack(other)`. A list of
+        one or more empty strings if `fn` is not set.
 
     """
     nofvalids = ('nan', 'filter', None)
@@ -233,8 +233,8 @@ class ChannelPack(object):
         """
         self.FALLBACK_PREFIX = 'ch'
         self.data = NpDict(data or {})
-        self.fn = ''             # Possible file name
         self.filenames = []
+        self.fn = ''             # Possible file name
         self.names = IntKeyDict(names or {})
         self.nof = None
         self.mask_reset()       # set self.mask
@@ -251,6 +251,14 @@ class ChannelPack(object):
             self.mask_reset()
         elif name == 'names' and not isinstance(value, IntKeyDict):
             object.__setattr__(self, name, IntKeyDict(value))
+        elif name == 'fn':
+            if not isinstance(value, str):
+                raise TypeError('Expected a string')
+            elif not self.filenames:
+                self.filenames.append(value)
+            else:
+                self.filenames[0] = value
+            object.__setattr__(self, name, value)
         else:
             object.__setattr__(self, name, value)
 
@@ -271,9 +279,7 @@ class ChannelPack(object):
         Array dtypes in respective pack.data are at the mercy of numpy
         append function.
 
-        If the attribute fn is not the empty string in other, append
-        other.fn to the filenames list attribute. Ignore
-        other.filenames.
+        Extend `filenames` with `other.filenames`.
 
         mask_reset is called after the append.
 
@@ -303,10 +309,7 @@ class ChannelPack(object):
             if not set(self.names.keys()) == set(other.names.keys()):
                 raise ValueError('names dicts set of keys not equal')
 
-        if self.fn and self.fn not in self.filenames:
-            self.filenames.append(self.fn)
-        if other.fn:
-            self.filenames.append(other.fn)
+        self.filenames.extend(other.filenames)
 
         self.mask_reset()
 
