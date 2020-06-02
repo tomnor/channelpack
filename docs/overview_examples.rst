@@ -22,15 +22,16 @@ Make an object
 ==============
 
 ChannelPack takes zero or one dict for data and zero or one dict for
-names to initialize.
+names to initialize. `data` and `names` can also be assigned after
+initialization.
 
 Produce some data and make a pack
 ---------------------------------
 
     >>> import channelpack as cp
-    >>> data = {0: range(5), 1: ('A', 'B', 'C', 'D', 'E')}
-    >>> names = {0: 'seq', 1: 'abc'}
-    >>> pack = cp.ChannelPack(data=data, names=names)
+    >>> pack = cp.ChannelPack()
+    >>> pack.data = {0: range(5), 1: ('A', 'B', 'C', 'D', 'E')}
+    >>> pack.names = {0: 'seq', 1: 'abc'}
     >>> pack
     ChannelPack(
     data={0: array([0, 1, 2, 3, 4]),
