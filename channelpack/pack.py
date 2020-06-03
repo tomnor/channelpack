@@ -351,7 +351,7 @@ class ChannelPack(object):
 
         req_duration = int(duration * samplerate)
 
-        for sc in self.slicelist():
+        for sc in self._slicelist():
             part_duration = sc.stop - sc.start
             if part_duration < req_duration and mindur:
                 self.mask[sc] = False
@@ -397,7 +397,7 @@ class ChannelPack(object):
             self.mask &= result
         return result
 
-    def slicelist(self):
+    def _slicelist(self):
         """Return a slicelist based on self.mask.
 
         Return a list of python slice objects corresponding to the True
@@ -417,7 +417,7 @@ class ChannelPack(object):
 
         """
 
-        return list(range(len(self.slicelist())))  # 2&3
+        return list(range(len(self._slicelist())))  # 2&3
 
     def __call__(self, ch, part=None, nof=None):
         """Return data from "channel" ch.
@@ -444,10 +444,10 @@ class ChannelPack(object):
 
         """
 
-        key = self.datakey(ch)
+        key = self._datakey(ch)
 
         if part is not None:
-            sl = self.slicelist()
+            sl = self._slicelist()
             try:
                 return self.data[key][sl[part]]
             except IndexError:
@@ -513,7 +513,7 @@ class ChannelPack(object):
                                               for name in names])):
             yield record
 
-    def datakey(self, ch):
+    def _datakey(self, ch):
         """Return the integer key for ch.
 
         Parameters
@@ -579,7 +579,7 @@ class ChannelPack(object):
 
         """
 
-        key = self.datakey(ch)
+        key = self._datakey(ch)
 
         if fallback:
             return self.FALLBACK_PREFIX + str(key)

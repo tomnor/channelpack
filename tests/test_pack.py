@@ -663,11 +663,11 @@ class TestPackBasics(unittest.TestCase):
             for record in pack.records():
                 _rec = record   # NOQA
 
-    def test_datakey(self):
+    def test__datakey(self):
         pack = self.pack
-        self.assertRaises(KeyError, pack.datakey, 2)
-        self.assertRaises(KeyError, pack.datakey, 'no such name')
-        self.assertEqual(1, pack.datakey('number'))
+        self.assertRaises(KeyError, pack._datakey, 2)
+        self.assertRaises(KeyError, pack._datakey, 'no such name')
+        self.assertEqual(1, pack._datakey('number'))
 
     def test_name(self):
         pack = self.pack
@@ -750,22 +750,22 @@ class TestPackBasics(unittest.TestCase):
         for index, value in enumerate(self.D1[1]):
             self.assertEqual(pack('number', nof='ignore')[index], value)
 
-    def test_slicelist(self):
+    def test__slicelist(self):
 
         pack = self.pack
-        self.assertEqual(len(pack.slicelist()), 1)
-        self.assertEqual(len(pack.slicelist()), len(pack.parts()))
+        self.assertEqual(len(pack._slicelist()), 1)
+        self.assertEqual(len(pack._slicelist()), len(pack.parts()))
         pack.mask = (pack(0) == 'A') | (pack(0) == 'C')
         self.assertEqual(pack.parts(), [0, 1])
-        self.assertEqual(len(pack.slicelist()), 2)
-        self.assertEqual(len(pack.slicelist()), len(pack.parts()))
-        self.assertTrue(pack.slicelist()[0] == slice(0, 1))
-        self.assertTrue(pack.slicelist()[1] == slice(2, 3))
+        self.assertEqual(len(pack._slicelist()), 2)
+        self.assertEqual(len(pack._slicelist()), len(pack.parts()))
+        self.assertTrue(pack._slicelist()[0] == slice(0, 1))
+        self.assertTrue(pack._slicelist()[1] == slice(2, 3))
 
-    def test_slicelist_empty_pack(self):
+    def test__slicelist_empty_pack(self):
         pack = packmod.ChannelPack()
-        self.assertFalse(pack.slicelist())
-        self.assertEqual(len(pack.slicelist()), 0)
+        self.assertFalse(pack._slicelist())
+        self.assertEqual(len(pack._slicelist()), 0)
 
     def test_keyerror(self):
 
