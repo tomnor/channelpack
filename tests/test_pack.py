@@ -570,7 +570,7 @@ class TestPackBasics(unittest.TestCase):
         pack2 = packmod.ChannelPack(self.D1)
         pack1.append_pack(pack2)
         self.assertFalse(pack1.fn)
-        self.assertFalse(pack1.filenames)
+        self.assertEqual(pack1.filenames, ['', ''])
 
     def test_append_pack_1_has_fn(self):
         pack1 = self.pack
@@ -578,7 +578,7 @@ class TestPackBasics(unittest.TestCase):
         pack2 = packmod.ChannelPack(self.D1)
         pack1.append_pack(pack2)
         self.assertEqual(pack1.fn, 'file1')
-        self.assertEqual(pack1.filenames, ['file1'])
+        self.assertEqual(pack1.filenames, ['file1', ''])
 
     def test_append_pack_2_has_fn(self):
         pack1 = self.pack
@@ -586,7 +586,7 @@ class TestPackBasics(unittest.TestCase):
         pack2.fn = 'file2'
         pack1.append_pack(pack2)
         self.assertFalse(pack1.fn)
-        self.assertEqual(pack1.filenames, ['file2'])
+        self.assertEqual(pack1.filenames, ['', 'file2'])
 
     def test_append_not_aligned(self):
         pack = self.pack
