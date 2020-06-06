@@ -602,9 +602,11 @@ class TestPackBasics(unittest.TestCase):
 
     def test_append_pack_1_has_names(self):
         pack1 = self.pack
+        names = pack1.names
         pack2 = self.emptypack
         pack1.append_pack(pack2)
-        self.assertEqual(pack1.names, pack2.names)
+        self.assertNotEqual(pack1.names, pack2.names)
+        self.assertEqual(pack1.names, names)
 
     def test_duration(self):
         pack = self.pack
