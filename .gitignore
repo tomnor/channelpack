@@ -8,3 +8,4 @@ in_work.txt
 *.egg*
 dist/
 build/
+TAGS
