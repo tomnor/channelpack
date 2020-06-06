@@ -691,7 +691,7 @@ class TestPackBasics(unittest.TestCase):
     def test_name_regex(self):
         pack = self.pack
         pack.names = {0: '0 section-info (east)',
-                        1: "1-capacity (pc's)"}
+                      1: "1-capacity (pc's)"}
         self.assertEqual(pack.name(0, firstwordonly=pack.id_rx), 'section')
         self.assertEqual(pack.name(1, firstwordonly=pack.id_rx), 'capacity')
 

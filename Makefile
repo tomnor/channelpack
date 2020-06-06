@@ -4,6 +4,11 @@ TESTMODULES := test_datautils test_pack test_readtext test_readxl test_dbf
 tests:
 	cd tests; $(PY) -m unittest $(TESTMODULES)
 
+linter:
+	for name in ls channelpack/*.py tests/*.py; do \
+	flake8 $$name ; \
+	done
+
 doc:
 	cd docs && make html
 
