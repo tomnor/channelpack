@@ -588,11 +588,23 @@ class TestPackBasics(unittest.TestCase):
         self.assertFalse(pack1.fn)
         self.assertEqual(pack1.filenames, ['', 'file2'])
 
-    def test_append_not_aligned(self):
+    def test_append_pack_not_aligned(self):
         pack = self.pack
         D2 = {key + 1: value for key, value in self.D1.items()}
         pack2 = packmod.ChannelPack(D2)
         self.assertRaises(ValueError, pack.append_pack, pack2)
+
+    def test_append_pack_other_has_names(self):
+        pack1 = self.emptypack
+        pack2 = packmod.ChannelPack(self.D1, self.C1)
+        pack1.append_pack(pack2)
+        self.assertEqual(pack1.names, pack2.names)
+
+    def test_append_pack_1_has_names(self):
+        pack1 = self.pack
+        pack2 = self.emptypack
+        pack1.append_pack(pack2)
+        self.assertEqual(pack1.names, pack2.names)
 
     def test_duration(self):
         pack = self.pack

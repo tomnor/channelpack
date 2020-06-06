@@ -304,7 +304,7 @@ class ChannelPack(object):
                 self.data[key] = np.append(self.data[key], other.data[key])
 
         if not self.names:
-            self.set_names(other.names)
+            self.names = other.names
         elif other.names:
             if not set(self.names.keys()) == set(other.names.keys()):
                 raise ValueError('names dicts set of keys not equal')
