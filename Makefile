@@ -12,6 +12,9 @@ linter:
 doc:
 	cd docs && make html
 
+doctest:
+	$(PY) -m doctest docs/*.rst
+
 sdist:
 	python setup.py sdist --formats=gztar,zip
 
