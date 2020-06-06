@@ -584,13 +584,15 @@ class ChannelPack(object):
 
         key = self._datakey(ch)
 
-        if fallback:
+        if fallback is True:
             return self.FALLBACK_PREFIX + str(key)
+        elif fallback:
+            raise TypeError('`fallback` should be True or False')
 
         if not firstwordonly:
             return self.names[key]
         elif firstwordonly is True:
-            return self.names.split()[0]
+            return self.names[key].split()[0]
         elif type(firstwordonly) is str:
             return re.findall(firstwordonly, self.names[key])[0]
         else:

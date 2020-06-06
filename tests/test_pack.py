@@ -682,6 +682,12 @@ class TestPackBasics(unittest.TestCase):
         pack.FALLBACK_PREFIX = 'column'
         self.assertEqual(pack.name(1, fallback=True), 'column1')
 
+    def test_name_fallback_wrong_type(self):
+
+        pack = self.pack
+        self.assertRaises(TypeError, pack.name, fallback=pack.id_rx)
+        self.assertRaises(TypeError, pack.name, fallback=pack)
+
     def test_name_regex(self):
         pack = self.pack
         pack.names = {0: '0 section-info (east)',
@@ -697,6 +703,26 @@ class TestPackBasics(unittest.TestCase):
         pack = self.pack
         self.assertRaises(KeyError, pack.name, 'nosuch')
         self.assertRaises(KeyError, pack.name, '')
+
+    def test_name_firstwordonly_true(self):
+        pack = self.pack
+        pack.names[0] = ' letter channel'
+        pack.names[1] = ' 1-digits channel '
+        self.assertEqual(pack.name(0, firstwordonly=True), 'letter')
+        self.assertEqual(pack.name(1, firstwordonly=True), '1-digits')
+
+    def test_name_firstwordonly_string(self):
+        pack = self.pack
+        pack.names[0] = ' letter channel'
+        pack.names[1] = ' 1-digits channel '
+        self.assertEqual(pack.name(0, firstwordonly=pack.id_rx), 'letter')
+        self.assertEqual(pack.name(1, firstwordonly=pack.id_rx), 'digits')
+
+    def test_name_firstwordonly_wrong_type(self):
+        pack = self.pack
+        pack.names[0] = ' letter channel'
+        pack.names[1] = ' 1-digits channel '
+        self.assertRaises(TypeError, pack.name, 0, firstwordonly=pack)
 
     def test_parts_single_elements(self):
 
