@@ -38,10 +38,26 @@ Produce some data and make a pack
           1: array(['A', 'B', 'C', 'D', 'E'], dtype='<U1')},
     names={0: 'seq',
            1: 'abc'})
+    >>> # make calls to object to get at data
     >>> pack(0)
     array([0, 1, 2, 3, 4])
     >>> pack(0) is pack('seq')
     True
+
+The pack is meant to be called to get at data,
+(:meth:`~channelpack.ChannelPack.__call__`), but it is not against the
+law to operate on the the `data` and `names` attributes directly:
+
+    >>> pack.data[2] = [letter.lower() for letter in pack('abc')]
+    >>> pack.names[2] = 'abclower'
+    >>> pack
+    ChannelPack(
+    data={0: array([0, 1, 2, 3, 4]),
+          1: array(['A', 'B', 'C', 'D', 'E'], dtype='<U1'),
+          2: array(['a', 'b', 'c', 'd', 'e'], dtype='<U1')},
+    names={0: 'seq',
+           1: 'abc',
+           2: 'abclower'})
 
 Slicing out parts of data
 =========================
