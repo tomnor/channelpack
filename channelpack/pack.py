@@ -1,37 +1,8 @@
 # -*- coding: utf-8 -*-
-
 """This module provides the ChannelPack class.
 
-Example
--------
+See docs at https://channelpack.readthedocs.org/en/latest/
 
->>> import channelpack as cp
->>> pack = cp.ChannelPack(data={0: ('A', 'B', 'C', 'C', 'D'),
-                                1: (22, 22, 10, 15, 15)})
-
->>> pack
-ChannelPack(
-data={0: array(['A', 'B', 'C', 'C', 'D'], dtype='|S1'),
-      1: array([22, 22, 10, 15, 15])},
-names={})
-
->>> pack.set_names({0: 'section', 1: 'seats'})
->>> pack
-ChannelPack(
-data={0: array(['A', 'B', 'C', 'C', 'D'], dtype='|S1'),
-      1: array([22, 22, 10, 15, 15])},
-names={0: 'section',
-         1: 'seats'})
-
->>> pack('section')
-array(['A', 'B', 'C', 'C', 'D'], dtype='|S1')
-
->>> pack.mask = pack('section') == 'C'
->>> pack('section', part=0)
-array(['C', 'C'], dtype='|S1')
-
->>> pack('seats', part=0)
-array([10, 15])
 """
 import re
 from collections import namedtuple
