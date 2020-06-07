@@ -55,19 +55,25 @@ def dbfreader(f):
             if typ == b'N':
                 value = value.replace(b'\0', b'').lstrip()
                 if value == b'':
-                    value = np.NaN
+                    value = np.nan
                 elif deci:
                     value = float(value)
                 else:
                     value = int(value)
             elif typ == b'D':
-                y, m, d = int(value[:4]), int(value[4:6]), int(value[6:8])
-                value = datetime.date(y, m, d)
+                if value.strip():
+                    y, m, d = int(value[:4]), int(value[4:6]), int(value[6:8])
+                    value = datetime.date(y, m, d)
+                else:
+                    value = None
             elif typ == b'L':
                 value = ((value in b'YyTt' and 'T')
                          or (value in b'NnFf' and 'F') or '?')
-            elif typ == b'F':    # Can this type not be null?
-                value = float(value)
+            elif typ == b'F':
+                if value.strip():
+                    value = float(value)
+                else:
+                    value = np.nan
             else:
                 value = value.decode('ascii')  # type = 'C' or other type
             result.append(value)
@@ -137,13 +143,19 @@ def dbfrecords(f, names):
                 else:
                     value = int(value)
             elif sf.typ == b'D':
-                y, m, d = int(value[:4]), int(value[4:6]), int(value[6:8])
-                value = datetime.date(y, m, d)
+                if value.strip():
+                    y, m, d = int(value[:4]), int(value[4:6]), int(value[6:8])
+                    value = datetime.date(y, m, d)
+                else:
+                    value = None
             elif sf.typ == b'L':
-                value = ((value in 'YyTt' and 'T')
-                         or (value in 'NnFf' and 'F') or '?')
+                value = ((value in b'YyTt' and 'T')
+                         or (value in b'NnFf' and 'F') or '?')
             elif sf.typ == b'F':
-                value = float(value)
+                if value.strip():
+                    value = float(value)
+                else:
+                    value = np.nan
             else:
                 value = value.decode('ascii')  # type = 'C' or other type
             result.append(value)

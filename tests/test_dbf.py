@@ -4,6 +4,7 @@ import unittest
 import sys
 import os
 import io
+import datetime
 import numpy as np
 try:
     from itertools import zip_longest
@@ -55,6 +56,18 @@ sidsxnames = ['AREA', 'BIR79', 'NWBIR79']
 sidsxspecs = [(b'N', 12, 3), (b'N', 12, 6), (b'N', 12, 6)]
 
 SIDSLEN = 100
+
+DBASE = '../testdata/dbase_8b.dbf'
+DBASENAMES = {0: 'CHARACTER',
+              1: 'NUMERICAL',
+              2: 'DATE',
+              3: 'LOGICAL',
+              4: 'FLOAT',
+              5: 'MEMO'}
+
+DBASENAMES_SELECTION = {2: 'DATE',
+                        3: 'LOGICAL',
+                        4: 'FLOAT'}
 
 
 class TestDbfReader(unittest.TestCase):
@@ -294,3 +307,23 @@ class TestDbfPack(unittest.TestCase):
         self.assertEqual(pack('NWBIR79')[0], 19.0)
         self.assertEqual(pack('AREA')[-1], 0.212)
         self.assertEqual(pack('NWBIR79')[-1], 841.0)
+
+    def test_dbase_8b(self):
+
+        pack = dbf.dbfpack(DBASE)
+
+        for letter, should in zip_longest(pack('LOGICAL'),
+                                          ['T', 'T', '?', '?', '?', '?', '?',
+                                           '?', '?', '?']):
+            self.assertEqual(letter, should)
+
+        self.assertEqual(pack.names, DBASENAMES)
+        self.assertEqual(pack('DATE')[0], datetime.date(1970, 1, 1))
+        self.assertEqual(pack('DATE')[-1], None)
+
+    def test_dbase_8b_names(self):
+
+        pack = dbf.dbfpack(DBASE, DBASENAMES_SELECTION.values())
+        self.assertEqual(pack.names, DBASENAMES_SELECTION)
+        self.assertTrue(np.isnan(pack('FLOAT')[-2]))
+        self.assertEqual(pack('FLOAT')[-1], 0.1)

@@ -2,6 +2,7 @@ test data files in this directory
 
 file                        encoding / type         datastart (1-based)
 dat_0000.txt                ascii                   12
+dbase_8b.dbf                dBase IV                n/a
 loremipsum                  ascii                   n/a
 loremipsum-numsend          ascii                   22
 loremipsum-numsend-delok    ascii                   24
