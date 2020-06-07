@@ -13,7 +13,7 @@ doc:
 	cd docs && make html
 
 doctest:
-	$(PY) -m doctest docs/*.rst
+	$(PY) -m doctest *.rst docs/*.rst
 
 sdist:
 	python setup.py sdist --formats=gztar,zip
