@@ -1,6 +1,9 @@
 *.pyc
 *.html
 *.tmp
+*.coverage
+tests/htmlcov/
+tests/.coverage
 docs/_build/
 docs/BAK*
 docs/.#*
