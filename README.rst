@@ -79,7 +79,7 @@ Lazy read numeric data::
     ... 1, 21, 0.28
     ... """
     >>> sio = io.StringIO(datstring)
-    >>> pack = cp.textpack_lazy(sio)
+    >>> pack = cp.lazy_textpack(sio)
     >>> pack
     ChannelPack(
     data={0: array([0., 1.]),

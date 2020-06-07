@@ -565,7 +565,7 @@ class TestTextPackLazy(unittest.TestCase):
 
     def test_dat_0000(self):
         fname = '../testdata/dat_0000.txt'
-        pack = rt.textpack_lazy(fname)
+        pack = rt.lazy_textpack(fname)
         self.assertIsInstance(pack, cp.ChannelPack)
         self.assertEqual(pack.fn, fname)
         self.assertEqual(pack(0)[-1], 31.175)
@@ -579,7 +579,7 @@ class TestTextPackLazy(unittest.TestCase):
 
     def test_MesA1(self):
         fname = '../testdata/MesA1.csv'
-        pack = rt.textpack_lazy(fname)
+        pack = rt.lazy_textpack(fname)
         self.assertIsInstance(pack, cp.ChannelPack)
         self.assertEqual(pack.fn, fname)
         self.assertEqual(pack(0)[-1], 176.64000000)
@@ -591,7 +591,7 @@ class TestTextPackLazy(unittest.TestCase):
 
     def test_MesA1_usecols(self):
         fname = '../testdata/MesA1.csv'
-        pack = rt.textpack_lazy(fname, usecols=(0, 2, 5))
+        pack = rt.lazy_textpack(fname, usecols=(0, 2, 5))
         self.assertIsInstance(pack, cp.ChannelPack)
         self.assertEqual(pack.fn, fname)
         self.assertEqual(pack(0)[-1], 176.64000000)
@@ -607,7 +607,7 @@ class TestTextPackLazy(unittest.TestCase):
     def test_MesA1_names(self):
         fname = '../testdata/MesA1.csv'
         names = {0: 'names', 2: 'fcyl', 5: 'fc2'}
-        pack = rt.textpack_lazy(fname, names=names)
+        pack = rt.lazy_textpack(fname, names=names)
         self.assertIsInstance(pack, cp.ChannelPack)
         self.assertEqual(pack.fn, fname)
         self.assertEqual(pack(0)[-1], 176.64000000)
@@ -621,7 +621,7 @@ class TestTextPackLazy(unittest.TestCase):
 
     def test_orgtable(self):
         fname = '../testdata/orgtable.txt'
-        pack = rt.textpack_lazy(fname, delimiter='|', hasnames=True,
+        pack = rt.lazy_textpack(fname, delimiter='|', hasnames=True,
                                 stripstrings=True, usecols=(1, 2, 3, 4))
         self.assertIsInstance(pack, cp.ChannelPack)
         self.assertEqual(pack.fn, fname)
@@ -633,7 +633,7 @@ class TestTextPackLazy(unittest.TestCase):
 
     def test_onecolumn(self):
         fname = '../testdata/onecolumn'
-        pack = rt.textpack_lazy(fname)
+        pack = rt.lazy_textpack(fname)
         self.assertIsInstance(pack, cp.ChannelPack)
         self.assertEqual(pack.fn, fname)
         self.assertEqual(len(pack.data), 1)
@@ -642,7 +642,7 @@ class TestTextPackLazy(unittest.TestCase):
 
     def test_sampledat1(self):
         fname = '../testdata/sampledat1.txt'
-        pack = rt.textpack_lazy(fname)
+        pack = rt.lazy_textpack(fname)
         self.assertIsInstance(pack, cp.ChannelPack)
         self.assertEqual(pack.fn, fname)
         self.assertEqual(len(pack.data), 7)
@@ -651,7 +651,7 @@ class TestTextPackLazy(unittest.TestCase):
 
     def test_sampledat1_usecols1col(self):
         fname = '../testdata/sampledat1.txt'
-        pack = rt.textpack_lazy(fname, usecols=3)
+        pack = rt.lazy_textpack(fname, usecols=3)
         self.assertIsInstance(pack, cp.ChannelPack)
         self.assertEqual(pack.fn, fname)
         self.assertEqual(len(pack.data), 1)
@@ -663,7 +663,7 @@ class TestTextPackLazy(unittest.TestCase):
         # delimiter parses to ' ' and that allows for a converter
         # error on line 2 with the missing field.
         with self.assertRaises(ValueError):
-            rt.textpack_lazy(sio)
+            rt.lazy_textpack(sio)
 
     def test_datstringspace_f2missing_converter(self):
         sio = io.StringIO(datstring_space_f2missing)
@@ -671,7 +671,7 @@ class TestTextPackLazy(unittest.TestCase):
         def maybemissing(s):
             return float(s) if s else -999
 
-        pack = rt.textpack_lazy(sio, converters={1: maybemissing})
+        pack = rt.lazy_textpack(sio, converters={1: maybemissing})
         self.assertEqual(len(pack.data), 3)
         self.assertEqual(pack(1)[1], -999)
         self.assertEqual(pack(1)[2], 21.5)
@@ -682,7 +682,7 @@ class TestTextPackLazy(unittest.TestCase):
         # names
 
         sio = io.StringIO(datstring_space_blanks)
-        pack = rt.textpack_lazy(sio)
+        pack = rt.lazy_textpack(sio)
         self.assertIsInstance(pack, cp.ChannelPack)
         for i in range(3):
             self.assertEqual(pack(i).size, 2)
@@ -696,14 +696,14 @@ class TestTextPackLazy(unittest.TestCase):
 
         sio = io.StringIO(datstring_comma)
         with self.assertRaises(ValueError) as context:
-            rt.textpack_lazy(sio)
+            rt.lazy_textpack(sio)
 
         self.assertEqual(context.exception.args[0], 'Failed lazy preparse')
 
     def test_datstring_comma_provideargs(self):
 
         sio = io.StringIO(datstring_comma)
-        pack = rt.textpack_lazy(sio, skiprows=5, delimiter=',')
+        pack = rt.lazy_textpack(sio, skiprows=5, delimiter=',')
         self.assertIsInstance(pack, cp.ChannelPack)
         for val, should in zip_longest(pack(2), (' on', ' off')):
             self.assertEqual(val, should)
@@ -713,7 +713,7 @@ class TestTextPackLazy(unittest.TestCase):
     def test_datstring_comma_stripstrings_provideargs(self):
 
         sio = io.StringIO(datstring_comma)
-        pack = rt.textpack_lazy(sio, skiprows=5, delimiter=',',
+        pack = rt.lazy_textpack(sio, skiprows=5, delimiter=',',
                                 stripstrings=True)
 
         for val, should in zip_longest(pack(2), ('on', 'off')):
@@ -725,7 +725,7 @@ class TestTextPackLazy(unittest.TestCase):
     def test_datstring_comma_asbytes_provideargs(self):
 
         bio = io.BytesIO(datstring_comma.encode('latin1'))
-        pack = rt.textpack_lazy(bio, skiprows=5, delimiter=b',')
+        pack = rt.lazy_textpack(bio, skiprows=5, delimiter=b',')
 
         for val, should in zip_longest(pack(2), (b' on', b' off')):
             self.assertEqual(val, should)
@@ -736,7 +736,7 @@ class TestTextPackLazy(unittest.TestCase):
     def test_datstring_comma_asbytes_stripstrings(self):
 
         bio = io.BytesIO(datstring_comma.encode('latin1'))
-        pack = rt.textpack_lazy(bio, skiprows=5, delimiter=b',',
+        pack = rt.lazy_textpack(bio, skiprows=5, delimiter=b',',
                                 stripstrings=True)
 
         for val, should in zip_longest(pack(2), (b'on', b'off')):
@@ -748,7 +748,7 @@ class TestTextPackLazy(unittest.TestCase):
     def test_datstring_comma_asbytes_decoded(self):
 
         bio = io.BytesIO(datstring_comma.encode('latin1'))
-        pack = rt.textpack_lazy(bio, skiprows=5, delimiter=b',',
+        pack = rt.lazy_textpack(bio, skiprows=5, delimiter=b',',
                                 encoding='latin1')
 
         for val, should in zip_longest(pack(2), (' on', ' off')):
@@ -760,7 +760,7 @@ class TestTextPackLazy(unittest.TestCase):
     def test_datstring_comma_cp866(self):
 
         bio = io.BytesIO(datstring_ru.encode('cp866'))
-        pack = rt.textpack_lazy(bio, skiprows=5, delimiter=b',',
+        pack = rt.lazy_textpack(bio, skiprows=5, delimiter=b',',
                                 encoding='cp866')
 
         for val, should in zip_longest(pack(3), (0.3, 0.28)):
@@ -769,7 +769,7 @@ class TestTextPackLazy(unittest.TestCase):
     def test_datstring_comma_cp866_decode(self):
 
         bio = io.BytesIO(datstring_ru.encode('cp866'))
-        pack = rt.textpack_lazy(bio, skiprows=5, delimiter=b',',
+        pack = rt.lazy_textpack(bio, skiprows=5, delimiter=b',',
                                 encoding='cp866')
 
         for val, should in zip_longest(pack(2), (u' вкл', u' выкл')):
@@ -781,7 +781,7 @@ class TestTextPackLazy(unittest.TestCase):
     def test_datstring_comma_cp866_decode_names(self):
 
         bio = io.BytesIO(datstring_ru.encode('cp866'))
-        pack = rt.textpack_lazy(bio, skiprows=5, delimiter=b',',
+        pack = rt.lazy_textpack(bio, skiprows=5, delimiter=b',',
                                 encoding='cp866', hasnames=True)
 
         for val, should in zip_longest(pack(u'onoff'), (u' вкл', u' выкл')):

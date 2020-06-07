@@ -94,8 +94,8 @@ def sheet_columns(ws, startref, stopref, usecols):
             yield vals
 
 
-def sheet_pack(fname, sheet=0, header=True, startcell=None, stopcell=None,
-               usecols=None):
+def sheetpack(fname, sheet=0, header=True, startcell=None, stopcell=None,
+              usecols=None):
     """Return a ChannelPack instance loaded from spread sheet file.
 
     Parameters

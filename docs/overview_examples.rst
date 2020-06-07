@@ -160,7 +160,7 @@ fields, (csv, txt). Fields might be numbers or text.
 
 If data is numeric only, a lazy variant is available
 
-:func:`~channelpack.textpack_lazy`
+:func:`~channelpack.lazy_textpack`
 
 Spread sheet
 ------------
@@ -168,7 +168,7 @@ Spread sheet
 The library `xlrd` is used, so xls and xlsx types of spread sheets are
 supported.
 
-:func:`~channelpack.sheet_pack`
+:func:`~channelpack.sheetpack`
 
 Xbase DBF format
 ----------------

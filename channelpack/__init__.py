@@ -20,8 +20,8 @@ a pack.
 """
 
 from .pack import ChannelPack
-from .readtext import textpack, textpack_lazy
+from .readtext import textpack, lazy_textpack
 from .dbf import dbfpack
-from .readxl import sheet_pack
+from .readxl import sheetpack
 
 __version__ = '0.4.0'

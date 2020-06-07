@@ -28,7 +28,7 @@ fields, (csv, txt). Fields might be numbers or text:
 
 If data is numeric only, a lazy variant is available:
 
-.. autofunction:: channelpack.textpack_lazy
+.. autofunction:: channelpack.lazy_textpack
 
 Spread sheet
 ------------
@@ -36,7 +36,7 @@ Spread sheet
 The library `xlrd` is used, so xls and xlsx types of spread sheets are
 supported:
 
-.. autofunction:: channelpack.sheet_pack
+.. autofunction:: channelpack.sheetpack
 
 Xbase DBF format
 ----------------

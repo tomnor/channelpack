@@ -172,7 +172,7 @@ class TestSheetColumns(unittest.TestCase):
 class TestSheetPack(unittest.TestCase):
 
     def test_dat3(self):
-        pack = rxl.sheet_pack(dat3)
+        pack = rxl.sheetpack(dat3)
 
         for key, should in enumerate(('txtdata', 'nums', 'floats')):
             self.assertEqual(pack.name(key), should)
@@ -186,7 +186,7 @@ class TestSheetPack(unittest.TestCase):
         self.assertEqual(pack('floats').min(), 0)
 
     def test_dat4(self):
-        pack = rxl.sheet_pack(dat4)
+        pack = rxl.sheetpack(dat4)
 
         for key, should in enumerate(('txtdata', 'nums', 'floats', 'dates'
                                       '', '', '')):
@@ -202,7 +202,7 @@ class TestSheetPack(unittest.TestCase):
         self.assertEqual(pack(4)[-1], 'letters')
 
     def test_reveng(self):
-        pack = rxl.sheet_pack(reveng)
+        pack = rxl.sheetpack(reveng)
 
         for key, should in enumerate(('description', 'entered',
                                       'calculated', '')):
@@ -218,7 +218,7 @@ class TestSheetPack(unittest.TestCase):
         self.assertEqual(pack('calculated')[6], 1)
 
     def test_reveng_boolpart(self):
-        pack = rxl.sheet_pack(reveng, startcell='b15', stopcell='c16',
+        pack = rxl.sheetpack(reveng, startcell='b15', stopcell='c16',
                               header='b1')
 
         for key, should in zip((1, 2), ('entered', 'calculated')):
@@ -235,7 +235,7 @@ class TestSheetPack(unittest.TestCase):
         self.assertIs(pack('calculated')[-1], np.False_)
 
     def test_reveng_datepart(self):
-        pack = rxl.sheet_pack(reveng, startcell='b28', stopcell='c32',
+        pack = rxl.sheetpack(reveng, startcell='b28', stopcell='c32',
                               header='b1')
 
         for key, should in zip((1, 2), ('entered', 'calculated')):
