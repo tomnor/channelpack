@@ -23,7 +23,7 @@ long_description = read('README.rst')
 setup(
     name='channelpack',
     version=find_version('channelpack', '__init__.py'),
-    description='Package for loading, analyzing and slicing acqusition data',
+    description='Callable container of Numpy arrays with support for masking and slicing',
     long_description=long_description,
     url='https://github.com/tomnor/channelpack',
     author='Tomas Nordin',
@@ -37,9 +37,9 @@ setup(
         'Operating System :: OS Independent',
         'License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)',
         'Programming Language :: Python :: 2',
+        'Programming Language :: Python :: 3',
         ],
     keywords='data-mining datafile daq masking conditions evaluation ad-hoc',
     packages=['channelpack'],
-    # Requires numpy but channelpack choose not to provide
     install_requires=['xlrd'],
 )
