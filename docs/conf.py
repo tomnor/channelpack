@@ -34,16 +34,16 @@ def find_version(*parts):
         return version_match.group(1)
     raise RuntimeError("Unable to find version string.")
 
-# # RTD work-around:
-# from mock import Mock as MagicMock
+# RTD work-around:
+from mock import Mock as MagicMock
 
-# class Mock(MagicMock):
-#     @classmethod
-#     def __getattr__(cls, name):
-#             return Mock()
+class Mock(MagicMock):
+    @classmethod
+    def __getattr__(cls, name):
+            return Mock()
 
-# MOCK_MODULES = ['numpy', 'xlrd']
-# sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
+MOCK_MODULES = ['numpy', 'xlrd']
+sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 
 
 # If extensions (or modules to document with autodoc) are in another directory,
