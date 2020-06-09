@@ -21,11 +21,10 @@ doc:
 doctest:
 	$(PY) -m doctest *.rst docs/*.rst
 
-sdist:
-	python setup.py sdist --formats=gztar,zip
+dist:
+	python setup.py sdist bdist_wheel
 
 release:
-	# python setup.py sdist upload
 	twine upload dist/*
 
 install:
