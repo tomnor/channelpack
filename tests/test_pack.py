@@ -713,7 +713,7 @@ class TestPackBasics(unittest.TestCase):
         pack = self.pack
         self.assertRaises(KeyError, pack.name, 2)
 
-    def test_name_valueerror(self):
+    def test_name_keyerror_string(self):
         pack = self.pack
         self.assertRaises(KeyError, pack.name, 'nosuch')
         self.assertRaises(KeyError, pack.name, '')
@@ -731,6 +731,11 @@ class TestPackBasics(unittest.TestCase):
         pack.names[1] = ' 1-digits channel '
         self.assertEqual(pack.name(0, firstwordonly=pack.id_rx), 'letter')
         self.assertEqual(pack.name(1, firstwordonly=pack.id_rx), 'digits')
+
+    def test_name_firstwordonly_string_rx_no_match(self):
+        pack = self.pack
+        pack.names[0] = '3'
+        self.assertRaises(ValueError, pack.name, 0, firstwordonly=pack.id_rx)
 
     def test_name_firstwordonly_wrong_type(self):
         pack = self.pack

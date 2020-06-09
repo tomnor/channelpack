@@ -565,7 +565,10 @@ class ChannelPack(object):
         elif firstwordonly is True:
             return self.names[key].split()[0]
         elif type(firstwordonly) is str:
-            return re.findall(firstwordonly, self.names[key])[0]
+            mlist = re.findall(firstwordonly, self.names[key])
+            if mlist:
+                return mlist[0]
+            raise ValueError('No match with regex: {}'.format(firstwordonly))
         else:
             raise TypeError(firstwordonly)
 
