@@ -22,13 +22,13 @@ doctest:
 	$(PY) -m doctest *.rst docs/*.rst
 
 dist:
-	python setup.py sdist bdist_wheel
+	$(PY) setup.py sdist bdist_wheel
 
 release:
 	twine upload dist/*
 
 install:
-	python setup.py install
+	$(PY) setup.py install
 
 uninstall:
 	pip uninstall channelpack

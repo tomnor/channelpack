@@ -256,11 +256,10 @@ def lazy_textpack(fname, parselines=25, **textkwargs):
         keyword arguments if duplicated.
 
     """
-    with contextopen(fname) as context:
+    encoding = textkwargs.get('encoding', locale.getpreferredencoding())
+    with contextopen(fname, encoding=encoding) as context:
         fo = context.fo
         if context.bytehint:
-            encoding = textkwargs.get('encoding',
-                                      locale.getpreferredencoding())
             derived = preparse([fo.readline().decode(encoding)
                                 for i in range(parselines)])
             if derived and derived['delimiter'] is not None:
@@ -399,7 +398,7 @@ def textpack(fname, names=None, delimiter=None, skiprows=0, usecols=None,
 
         return columndata
 
-    with contextopen(fname) as context:
+    with contextopen(fname, encoding=encoding) as context:
         fo = context.fo
         if context.bytehint:
             bytehint = encoding or True

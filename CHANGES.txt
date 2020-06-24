@@ -1,3 +1,8 @@
+**0.6.1 (2020-06-xx)**
+
+* Bugfix to respect encoding using the contextopen function in
+  readtext, d1e26a.
+
 **0.6.0 (2020-06-10)**
 
 * The project rewritten completely.

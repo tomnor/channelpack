@@ -621,7 +621,7 @@ class TestTextPackLazy(unittest.TestCase):
 
     def test_orgtable(self):
         fname = '../testdata/orgtable.txt'
-        pack = rt.lazy_textpack(fname, delimiter='|', hasnames=True,
+        pack = rt.lazy_textpack(fname, delimiter='|', hasnames=True, encoding='utf8',
                                 stripstrings=True, usecols=(1, 2, 3, 4))
         self.assertIsInstance(pack, cp.ChannelPack)
         self.assertEqual(pack.fn, fname)
