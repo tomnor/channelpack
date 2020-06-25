@@ -471,6 +471,11 @@ class ChannelPack(object):
             In iteration of the generator if any of the names used for
             the namedtuple is invalid python identifiers.
 
+        Note
+        ----
+        Either there must be names defined in the pack or argument
+        `fallback` must be True, else there will be no records.
+
         """
 
         names = [self.names[key] for key in sorted(self.names)]
