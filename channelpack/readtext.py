@@ -9,6 +9,7 @@ import io
 import locale
 import string
 
+import numpy as np
 from . import pack as cp
 
 # The scanf kind of regular expressions as suggested by python docs
@@ -27,12 +28,12 @@ def _escape(s):
 
 def _floatit(s):
     """Replace ',' with '.' and convert to float."""
-    return float(s.replace(',', '.'))
+    return float(s.replace(',', '.')) if s else np.nan
 
 
 def _floatit_bytes(b):
     """Replace b',' with b'.' and convert to float."""
-    return float(b.replace(b',', b'.'))
+    return float(b.replace(b',', b'.')) if b else np.nan
 
 
 def preparse(lines, firstfieldrx=r'\w'):
@@ -454,6 +455,9 @@ def linetuples(fo, bytehint=False, delimiter=None, usecols=None,
     def as_is_stripped_decode(b):
         return b.strip().decode(encoding)
 
+    def maybenan(s):
+        return float(s) if s else np.nan
+
     # don't strip off tabs or some possible white space delimiter
     if not bytehint:
         stripchars = string.whitespace.replace(delimiter or '\t', '')
@@ -473,16 +477,16 @@ def linetuples(fo, bytehint=False, delimiter=None, usecols=None,
     for val in firstvals:
         try:
             float(val)          # works with bytes too
-            funcs.append(float)
+            funcs.append(maybenan)
             continue
         except ValueError:
             pass
         try:
             if not bytehint:
-                _floatit(val)
+                float(val.replace(',', '.'))  # test
                 funcs.append(_floatit)
             else:
-                _floatit_bytes(val)
+                float(val.replace(b',', b'.'))  # test
                 funcs.append(_floatit_bytes)
             continue
         except ValueError:
@@ -502,7 +506,7 @@ def linetuples(fo, bytehint=False, delimiter=None, usecols=None,
     # with numbers that are 0, the usual float succeed.
     decfloatfunc = _floatit if not bytehint else _floatit_bytes
     if decfloatfunc in funcs:
-        funcs = [decfloatfunc if func is float else func for func in funcs]
+        funcs = [decfloatfunc if func is maybenan else func for func in funcs]
 
     # Replace functions with caller functions if any
     if converters:

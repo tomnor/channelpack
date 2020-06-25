@@ -9,6 +9,8 @@ try:
 except ImportError:
     from itertools import izip_longest as zip_longest
 
+import numpy as np
+
 pardir = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
 sys.path.insert(0, pardir)
 
@@ -250,7 +252,7 @@ class TestLineTuples(unittest.TestCase):
             funcs = next(linetupler)
             self.assertEqual(len(funcs), numvals)
             for func in funcs[:-1]:
-                self.assertIs(func, float)
+                self.assertEqual(func.__name__, 'maybenan')
             firstline = next(linetupler)
             for value in firstline[:-1]:
                 self.assertIsInstance(value, float)
@@ -268,7 +270,7 @@ class TestLineTuples(unittest.TestCase):
             funcs = next(linetupler)
             self.assertEqual(len(funcs), numvals)
             for func in funcs:
-                self.assertIs(func, float)
+                self.assertEqual(func.__name__, 'maybenan')
 
             for tup, should in zip_longest(linetupler, range(1, 13)):
                 self.assertEqual(tup[-1], should)
@@ -284,7 +286,7 @@ class TestLineTuples(unittest.TestCase):
             funcs = next(linetupler)
             self.assertEqual(len(funcs), numvals)
             for func in funcs:
-                self.assertIs(func, float)
+                self.assertEqual(func.__name__, 'maybenan')
             firstline = next(linetupler)
             for value in firstline:
                 self.assertIsInstance(value, float)
@@ -306,7 +308,7 @@ class TestLineTuples(unittest.TestCase):
                 self.assertEqual(name, should)
             self.assertEqual(name, names[-1])
             for func in funcs:
-                self.assertIs(func, float)
+                self.assertEqual(func.__name__, 'maybenan')
             firstline = next(linetupler)
             for value in firstline:
                 self.assertIsInstance(value, float)
@@ -440,8 +442,9 @@ class TestTextPack(unittest.TestCase):
 
     def test_datstringspace_f2missing_delimspec(self):
         sio = io.StringIO(datstring_space_f2missing)
-        with self.assertRaises(ValueError):
-            rt.textpack(sio, delimiter=' ')
+        pack = rt.textpack(sio, delimiter=' ')
+        # missing value between two spaces
+        self.assertTrue(np.isnan(pack(1)[1]))
 
     def test_datstringspace_f2missing_delimspec_converter(self):
         sio = io.StringIO(datstring_space_f2missing)
@@ -659,11 +662,10 @@ class TestTextPackLazy(unittest.TestCase):
 
     def test_datstringspace_f2missing(self):
         sio = io.StringIO(datstring_space_f2missing)
-
-        # delimiter parses to ' ' and that allows for a converter
-        # error on line 2 with the missing field.
-        with self.assertRaises(ValueError):
-            rt.lazy_textpack(sio)
+        # delimiter parses to ' ',
+        pack = rt.lazy_textpack(sio)
+        # missing value between two spaces
+        self.assertTrue(np.isnan(pack(1)[1]))
 
     def test_datstringspace_f2missing_converter(self):
         sio = io.StringIO(datstring_space_f2missing)
