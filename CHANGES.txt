@@ -3,6 +3,9 @@
 * Bugfix to respect encoding using the contextopen function in
   readtext, d1e26a.
 
+* readtext.py: Don't blindly strip all white space from lines (made
+  converters argument have no effect).
+
 **0.6.0 (2020-06-10)**
 
 * The project rewritten completely.

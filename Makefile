@@ -2,7 +2,10 @@ PY := python3
 COV := coverage3
 TESTMODULES := test_datautils test_pack test_readtext test_readxl test_dbf
 
-tests:
+TAGS: *.py */*.py
+	etags $?
+
+test:
 	cd tests; $(PY) -m unittest $(TESTMODULES)
 
 linter:

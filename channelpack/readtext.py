@@ -7,6 +7,7 @@ import re
 from collections import namedtuple, defaultdict
 import io
 import locale
+import string
 
 from . import pack as cp
 
@@ -429,9 +430,9 @@ def linetuples(fo, bytehint=False, delimiter=None, usecols=None,
     # usecols is a sequence to this function
 
     # bytehint argument: True means bytes are coming in, but don't
-    # decode them. A string means bytes are coming in and the string is
-    # a codec for decoding them. With bytes io the given delimiter must
-    # be byte(s)
+    # decode them. A string means bytes are coming in and the string
+    # is a codec for decoding them (textual results). With bytes io
+    # the given delimiter must be byte(s)
 
     # stripstrings True means to strip white space from things that are
     # not numeric data.
@@ -453,13 +454,21 @@ def linetuples(fo, bytehint=False, delimiter=None, usecols=None,
     def as_is_stripped_decode(b):
         return b.strip().decode(encoding)
 
+    # don't strip off tabs or some possible white space delimiter
+    if not bytehint:
+        stripchars = string.whitespace.replace(delimiter or '\t', '')
+    elif bytehint:
+        whites = string.whitespace.encode('ascii')
+        # assuming delimiter is bytes or None
+        stripchars = whites.replace(delimiter or b'\t', b'')
+
     if hasnames:
         fieldnames = [field.strip() for field in
-                      fo.readline().strip().split(delimiter)]
+                      fo.readline().strip(stripchars).split(delimiter)]
         namesfunc = (as_is_stripped if not type(bytehint) is str
                      else as_is_stripped_decode)
 
-    firstvals = fo.readline().strip().split(delimiter)  # delimiter bytes?
+    firstvals = fo.readline().strip(stripchars).split(delimiter)  # bytes?
     funcs = []
     for val in firstvals:
         try:
@@ -514,7 +523,7 @@ def linetuples(fo, bytehint=False, delimiter=None, usecols=None,
                 zip(funcs, firstvals, allcols) if col in usecols)
 
     for line in fo:
-        stripped = line.strip()
+        stripped = line.strip(stripchars)
         if not stripped:
             continue
         yield tuple(func(val) for func, val, col in
