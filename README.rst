@@ -46,7 +46,7 @@ Read data from file::
 
     >>> import io
     >>> datstring = \
-    ... """date: 20-05-01 17:39
+    ... u"""date: 20-05-01 17:39
     ... room: east lab hall, floor 2, room 8
     ... operator: Goran Operatorsson
     ...
@@ -70,7 +70,7 @@ Read data from file::
 Lazy read numeric data::
 
     >>> datstring = \
-    ... """date: 20-05-01 17:39
+    ... u"""date: 20-05-01 17:39
     ... room: east lab hall, floor 2, room 8
     ... operator: Goran Operatorsson
     ...
