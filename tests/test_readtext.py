@@ -34,6 +34,20 @@ class TestSmallFuncs(unittest.TestCase):
         self.assertEqual(rt._floatit('3.14'), 3.14)
         self.assertEqual(rt._floatit('314.'), 314.0)
 
+    def test__floatit_bytes_comma(self):
+        self.assertIsInstance(rt._floatit_bytes(b',12'), float)
+        self.assertEqual(rt._floatit_bytes(b',12'), 0.12)
+        self.assertEqual(rt._floatit_bytes(b'3,14'), 3.14)
+        self.assertEqual(rt._floatit_bytes(b'314,'), 314.0)
+
+    def test__floatit_bytes_dot(self):
+        self.assertEqual(rt._floatit_bytes(b'3.14'), 3.14)
+        self.assertEqual(rt._floatit_bytes(b'314.'), 314.0)
+
+    def test_floatits_missing(self):
+        self.assertTrue(np.isnan(rt._floatit('')))
+        self.assertTrue(np.isnan(rt._floatit_bytes(b'')))
+
     def test__escape_plus(self):
         self.assertEqual(rt._escape('12+34'), r'12\+34')
 
@@ -56,6 +70,14 @@ class TestSmallFuncs(unittest.TestCase):
         self.assertEqual(rt._escape('12.34+56.78+90'), r'12\.34\+56\.78\+90')
 
 
+onecolumnheader = u"""\
+A
+1.2
+1.27
+1.22
+"""
+
+
 class TestPreParse(unittest.TestCase):
     """Test the preparse function."""
 
@@ -69,6 +91,13 @@ class TestPreParse(unittest.TestCase):
 
         with io.open(f) as fo:
             return fo.readlines()[:cnt]
+
+    def test_onecolumnheader(self):
+        sio = io.StringIO(onecolumnheader)
+        lines = sio.readlines()
+        expected = {'skiprows': 1, 'delimiter': None, 'converters': None,
+                    'names': {0: 'A'}, 'usecols': (0,)}
+        self.assertEqual(rt.preparse(lines), expected)
 
     def test_dat_0000(self):
         expected = {'names': {0: 'Time [s]',
@@ -624,8 +653,9 @@ class TestTextPackLazy(unittest.TestCase):
 
     def test_orgtable(self):
         fname = '../testdata/orgtable.txt'
-        pack = rt.lazy_textpack(fname, delimiter='|', hasnames=True, encoding='utf8',
-                                stripstrings=True, usecols=(1, 2, 3, 4))
+        pack = rt.lazy_textpack(fname, delimiter='|', hasnames=True,
+                                encoding='utf8', stripstrings=True,
+                                usecols=(1, 2, 3, 4))
         self.assertIsInstance(pack, cp.ChannelPack)
         self.assertEqual(pack.fn, fname)
         self.assertEqual(len(pack.data), 4)
