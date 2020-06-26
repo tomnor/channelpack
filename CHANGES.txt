@@ -1,5 +1,7 @@
 **0.6.1 (2020-06-xx)**
 
+* Better handling of missing values in text files.
+
 * Bugfix to respect encoding using the contextopen function in
   readtext, d1e26a.
 
