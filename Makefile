@@ -9,7 +9,7 @@ test:
 	cd tests; $(PY) -m unittest $(TESTMODULES)
 
 linter:
-	for name in ls channelpack/*.py tests/*.py; do \
+	for name in $$(ls channelpack/*.py tests/*.py); do \
 	flake8 $$name ; \
 	done
 

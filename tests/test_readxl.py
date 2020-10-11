@@ -219,7 +219,7 @@ class TestSheetPack(unittest.TestCase):
 
     def test_reveng_boolpart(self):
         pack = rxl.sheetpack(reveng, startcell='b15', stopcell='c16',
-                              header='b1')
+                             header='b1')
 
         for key, should in zip((1, 2), ('entered', 'calculated')):
             self.assertEqual(pack.name(key), should)
@@ -236,7 +236,7 @@ class TestSheetPack(unittest.TestCase):
 
     def test_reveng_datepart(self):
         pack = rxl.sheetpack(reveng, startcell='b28', stopcell='c32',
-                              header='b1')
+                             header='b1')
 
         for key, should in zip((1, 2), ('entered', 'calculated')):
             self.assertEqual(pack.name(key), should)

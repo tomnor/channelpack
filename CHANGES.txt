@@ -1,3 +1,11 @@
+**0.6.2 (2020-10-10)**
+
+* Bugfix of function _slicelist() in pack.py:Channelpack being called
+  every time the pack was called on a part. A chached slicelist is
+  used now instead and updated only when the mask is set anew.
+
+* A Makefile fix in linter rule.
+
 **0.6.1 (2020-06-26)**
 
 * Better handling of missing values in text files.
