@@ -217,6 +217,9 @@ class ChannelPack(object):
             raise TypeError('Expected a string')
         elif name == 'mask' and not isinstance(value, np.ndarray):
             raise TypeError('Expected a numpy array')
+        elif name == 'mask':
+            object.__setattr__(self, name, value)
+            self._cached_slicelist = self._slicelist()
         elif name == 'data' and not isinstance(value, NpDict):
             object.__setattr__(self, name, NpDict(value))
             self.mask_reset()
@@ -325,12 +328,16 @@ class ChannelPack(object):
 
         req_duration = int(duration * samplerate)
 
-        for sc in self._slicelist():
+        for sc in self._cached_slicelist:
             part_duration = sc.stop - sc.start
             if part_duration < req_duration and mindur:
                 self.mask[sc] = False
             elif part_duration > req_duration and not mindur:
                 self.mask[sc] = False
+
+        # need to reset _cached_slicelist because the __setattr__ is not called
+        # when mask is manipulated this way
+        self._cached_slicelist = self._slicelist()
 
         return self.mask
 
@@ -391,7 +398,7 @@ class ChannelPack(object):
 
         """
 
-        return list(range(len(self._slicelist())))  # 2&3
+        return list(range(len(self._cached_slicelist)))  # 2&3
 
     def __call__(self, ch, part=None, nof=None):
         """Return data from "channel" ch.
@@ -421,7 +428,7 @@ class ChannelPack(object):
         key = self._datakey(ch)
 
         if part is not None:
-            sl = self._slicelist()
+            sl = self._cached_slicelist
             try:
                 return self.data[key][sl[part]]
             except IndexError:
