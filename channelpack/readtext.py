@@ -10,7 +10,7 @@ import locale
 import string
 
 import numpy as np
-from . import pack as cp
+from channelpack import pack as cp
 
 # The scanf kind of regular expressions as suggested by python docs
 # the re module: r'[-+]?(\d+(\.\d*)?|\.\d+)([eE][-+]?\d+)?'

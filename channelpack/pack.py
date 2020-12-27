@@ -9,7 +9,7 @@ from collections import namedtuple
 
 import numpy as np
 
-from . import datautils
+from channelpack import datautils
 
 
 class IntKeyDict(dict):

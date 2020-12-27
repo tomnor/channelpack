@@ -7,7 +7,7 @@ from collections import namedtuple
 import xlrd
 import numpy as np
 
-from .pack import ChannelPack
+from channelpack.pack import ChannelPack
 
 # Type symbol      Type     Python value
 #                  number

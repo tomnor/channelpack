@@ -19,9 +19,9 @@ Provide access to the ChannelPack class and som factory functions to get
 a pack.
 """
 
-from .pack import ChannelPack
-from .readtext import textpack, lazy_textpack
-from .dbf import dbfpack
-from .readxl import sheetpack
+from channelpack.pack import ChannelPack
+from channelpack.readtext import textpack, lazy_textpack
+from channelpack.dbf import dbfpack
+from channelpack.readxl import sheetpack
 
 __version__ = '0.6.2'

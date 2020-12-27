@@ -4,8 +4,8 @@ from collections import namedtuple
 
 import numpy as np
 
-from .readtext import contextopen
-from .pack import ChannelPack
+from channelpack.readtext import contextopen
+from channelpack.pack import ChannelPack
 
 # dbfreader based on Raymond Hettinger recipe
 # http://code.activestate.com/recipes/362715/
