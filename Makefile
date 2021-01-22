@@ -55,5 +55,6 @@ clean:
 	rm -rf build *.egg-info dist
 	rm -rf channelpack-[0-9]*
 	rm -rf .coverage tests/.coverage tests/htmlcov
+	rm -f *.html
 
 .PHONY: tests doc sdist release install uninstall clean
