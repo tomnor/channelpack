@@ -82,7 +82,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'channelpack'
-copyright = u'2014-2017, 2020 Tomas Nordin'
+copyright = u'2014-2017, 2020-2021 Tomas Nordin'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
