@@ -824,6 +824,70 @@ class TestPackBasics(unittest.TestCase):
         self.assertRaises(KeyError, pack, -1)
 
 
+class TestPackDuration(unittest.TestCase):
+
+    def setUp(self):
+        self.D1 = {0: ('A', 'B', 'C', 'D', 'E'), 1: range(5)}
+        self.C1 = {0: 'letter', 1: 'number'}
+        self.pack = packmod.ChannelPack(data=self.D1, names=self.C1)
+        self.emptypack = packmod.ChannelPack()
+
+    def test_mindur_verybig(self):
+        pack = self.pack
+        pack.mindur = 6
+        self.assertFalse(any(pack.mask))
+
+    def test_mindur_0(self):
+        pack = self.pack
+        pack.mindur = 0
+        self.assertTrue(all(pack.mask))
+
+    def test_mindur_3_enough(self):
+        pack = self.pack
+        pack.mask = pack('number') > 1
+        pack.mindur = 3
+        self.assertTrue(any(pack.mask))
+        self.assertEqual(len(pack.parts()), 1)
+        self.assertEqual(min(pack('number', 0)), 2)
+
+    def test_mindur_3_not_enough(self):
+        pack = self.pack
+        pack.mask = pack('number') > 2
+        self.assertTrue(any(pack.mask))
+        pack.mindur = 3
+        self.assertFalse(any(pack.mask))
+        self.assertEqual(len(pack.parts()), 0)
+
+    def test_mindur_and_duration_max(self):
+        pack = self.pack
+        pack.mask = pack('number') < 4
+        pack.mindur = 3
+        self.assertTrue(any(pack.mask))
+        self.assertEqual(pack('number', 0).size, 4)
+        pack.duration(3, mindur=False)  # duration max 3
+        self.assertFalse(any(pack.mask))
+
+    def test_mindur_and_duration_min(self):
+        pack = self.pack
+        pack.mask = pack('number') < 2
+        pack.mindur = 2
+        self.assertTrue(any(pack.mask))
+        self.assertEqual(pack('number', 0).size, 2)
+        pack.duration(3)
+        self.assertFalse(any(pack.mask))
+        self.assertEqual(pack.parts(), [])
+
+    def test_mindur_resetting(self):
+        pack = self.pack
+        pack.mask = pack('number') < 2
+        pack.mindur = 3
+        self.assertFalse(any(pack.mask))
+        pack.mindur = 2  # operates on current mask
+        self.assertFalse(any(pack.mask))
+        pack.mask = pack('number') < 2
+        self.assertTrue(any(pack.mask))
+
+
 class TestEmptyPack(unittest.TestCase):
     # test all methods with an empty pack
     pass
