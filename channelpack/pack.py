@@ -168,16 +168,14 @@ class ChannelPack(object):
         with keys in `data` makes it possible to refer to arrays by
         field names. This alignment is not enforced.
     mindur : int or None
-        Like the function `duration` (which see) but with a persistent
+        Like the method `duration` (which see) but with a persistent
         effect. Any time the mask is updated, this attribute is consulted
         to falsify any true part in the mask that is not long enough.
         The value refer to the required number of elements in a true
         section.
 
-        Setting this attribute to a value (not None) updates the mask.
-
-        Note that calling the duration method with a value different
-        from this attribute (if not None) is a ValueError.
+        Setting this attribute to a value (not None) updates the mask
+        without first resetting it.
     FALLBACK_PREFIX : str
         Defaults to 'ch'. This can be used in calls of the pack in place
         of a "proper" name. If 4 is a key in the data dict, pack('ch4')
@@ -233,6 +231,7 @@ class ChannelPack(object):
             object.__setattr__(self, name, value)
             if self.mindur is not None:
                 self.duration(self.mindur, samplerate=1, mindur=True)
+                # slicelist and cashing handled in duration method
             else:
                 self._cached_slicelist = self._slicelist()
         elif name == 'mindur' and not ((value is None)
@@ -260,7 +259,7 @@ class ChannelPack(object):
 
     def __delattr__(self, name):
         if name in ('FALLBACK_PREFIX', 'data', 'fn',
-                    'filenames', 'names', 'nof'):
+                    'filenames', 'names', 'nof', 'mindur'):
             raise AttributeError('Cannot delete {}'.format(name))
         else:
             object.__delattr__(self, name)
@@ -343,12 +342,13 @@ class ChannelPack(object):
         -------
         array
             The possibly altered mask.
-
         """
 
         req_duration = int(duration * samplerate)
 
-        for sc in self._cached_slicelist:
+        # call slicelist anew because we might be called due to a
+        # setting of the mask and self.mindur not None
+        for sc in self._slicelist():
             part_duration = sc.stop - sc.start
             if part_duration < req_duration and mindur:
                 self.mask[sc] = False
