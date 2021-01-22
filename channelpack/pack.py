@@ -167,6 +167,17 @@ class ChannelPack(object):
         values are strings, the field names. Keys in `names` aligned
         with keys in `data` makes it possible to refer to arrays by
         field names. This alignment is not enforced.
+    mindur : int or None
+        Like the function `duration` (which see) but with a persistent
+        effect. Any time the mask is updated, this attribute is consulted
+        to falsify any true part in the mask that is not long enough.
+        The value refer to the required number of elements in a true
+        section.
+
+        Setting this attribute to a value (not None) updates the mask.
+
+        Note that calling the duration method with a value different
+        from this attribute (if not None) is a ValueError.
     FALLBACK_PREFIX : str
         Defaults to 'ch'. This can be used in calls of the pack in place
         of a "proper" name. If 4 is a key in the data dict, pack('ch4')
@@ -208,6 +219,7 @@ class ChannelPack(object):
         self.fn = ''             # Possible file name
         self.names = IntKeyDict(names or {})
         self.nof = None
+        self.mindur = None
         self.mask_reset()       # set self.mask
 
     def __setattr__(self, name, value):
@@ -219,7 +231,17 @@ class ChannelPack(object):
             raise TypeError('Expected a numpy array')
         elif name == 'mask':
             object.__setattr__(self, name, value)
-            self._cached_slicelist = self._slicelist()
+            if self.mindur is not None:
+                self.duration(self.mindur, samplerate=1, mindur=True)
+            else:
+                self._cached_slicelist = self._slicelist()
+        elif name == 'mindur' and not ((value is None)
+                                       or isinstance(value, int)):
+            raise TypeError('Expected None or int')
+        elif name == 'mindur':
+            object.__setattr__(self, name, value)
+            if self.mindur is not None:
+                self.duration(self.mindur, samplerate=1, mindur=True)
         elif name == 'data' and not isinstance(value, NpDict):
             object.__setattr__(self, name, NpDict(value))
             self.mask_reset()
@@ -305,10 +327,8 @@ class ChannelPack(object):
     def duration(self, duration, samplerate=1, mindur=True):
         """Require each true part to be at least duration long.
 
-        Make false any true part in the mask attribute that is not
-        `duration` long. Any true part in the packs mask attribute not
-        fulfilling duration together with samplerate will be set to
-        false.
+        Make false any true part in the mask attribute that is not at
+        least `duration` long.
 
         Parameters
         ----------
