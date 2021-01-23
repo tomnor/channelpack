@@ -887,6 +887,25 @@ class TestPackDuration(unittest.TestCase):
         pack.mask = pack('number') < 2
         self.assertTrue(any(pack.mask))
 
+    def test_mindur_set_then_mask_set(self):
+        pack = self.pack
+        self.assertEqual(len(pack.parts()), 1)
+        pack.mindur = 3
+        pack.mask = pack('number') < 2
+        self.assertEqual(len(pack.parts()), 0)
+
+    def test_mindur_set_then_mask_set2(self):
+        pack = self.pack
+        self.assertEqual(len(pack.parts()), 1)
+        pack.mindur = 2
+        pack.mask = (pack('number') < 2) | (pack('number') > 3)
+        # TTFFT --> TTFFF
+        self.assertEqual(len(pack.parts()), 1)
+        letters = ['A', 'B']
+        for val, should in zip_longest(pack('letter', nof='filter'),
+                                       letters, fillvalue='X'):
+            self.assertEqual(val, should)
+
 
 class TestEmptyPack(unittest.TestCase):
     # test all methods with an empty pack
