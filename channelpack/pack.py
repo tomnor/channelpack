@@ -229,11 +229,9 @@ class ChannelPack(object):
             raise TypeError('Expected a numpy array')
         elif name == 'mask':
             object.__setattr__(self, name, value)
+            self._cached_slicelist = self._slicelist()
             if self.mindur is not None:
                 self.duration(self.mindur, samplerate=1, mindur=True)
-                # slicelist and cashing handled in duration method
-            else:
-                self._cached_slicelist = self._slicelist()
         elif name == 'mindur' and not ((value is None)
                                        or isinstance(value, int)):
             raise TypeError('Expected None or int')
@@ -346,9 +344,7 @@ class ChannelPack(object):
 
         req_duration = int(duration * samplerate)
 
-        # call slicelist anew because we might be called due to a
-        # setting of the mask and self.mindur not None
-        for sc in self._slicelist():
+        for sc in self._cached_slicelist:
             part_duration = sc.stop - sc.start
             if part_duration < req_duration and mindur:
                 self.mask[sc] = False
