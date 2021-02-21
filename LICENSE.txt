@@ -1,3 +1,13 @@
+Channelpack is licensed under GPL-v3 as given below. Channelpack
+include files from the xlrd project licensed under two BSD-like
+licenses, (see channelpack/xlrd/LICENSE). The older of those is the
+so-called BSD 4-Clause license. By this note it is allowed to
+re-distribute Channelpack including the xlrd files despite a slight
+incompatibility between GPL and the 4-clause BSD license, (see
+https://www.gnu.org/licenses/gpl-faq.html#OrigBSD). Early xlrd
+includes software developed by David Giffin <david@giffin.org>
+
+
                     GNU GENERAL PUBLIC LICENSE
                        Version 3, 29 June 2007
 
