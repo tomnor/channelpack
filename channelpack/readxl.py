@@ -4,10 +4,10 @@ Functions to read data from spread sheets.
 import re
 from collections import namedtuple
 
-import xlrd
 import numpy as np
 
 from channelpack.pack import ChannelPack
+from channelpack import xlrd
 
 # Type symbol      Type     Python value
 #                  number
