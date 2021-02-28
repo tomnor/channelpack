@@ -165,8 +165,8 @@ If data is numeric only, a lazy variant is available
 Spread sheet
 ------------
 
-The library `xlrd` is used, so xls and xlsx types of spread sheets are
-supported.
+Code from the library `xlrd` is used, xls and xlsx types of spread
+sheets are supported.
 
 :func:`~channelpack.sheetpack`
 

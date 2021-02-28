@@ -40,6 +40,6 @@ setup(
         'Programming Language :: Python :: 3',
         ],
     keywords='data-mining datafile daq masking conditions evaluation ad-hoc',
-    packages=['channelpack'],
-    install_requires=['xlrd'],
+    packages=['channelpack', 'channelpack.xlrd'],
+    install_requires=[],
 )
