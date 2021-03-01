@@ -17,6 +17,9 @@ TAGS : *.py */*.py
 	etags --regex=$(TAGRX1) --regex=$(TAGRX2) --regex=$(TAGRX3) \
 	      --regex=$(TAGRX4) $^
 
+testxlrd:
+	$(PY) tests/xlrd/test_xlrd_hoard.py
+
 test:
 	cd tests; $(PY) -m unittest $(TESTMODULES)
 
