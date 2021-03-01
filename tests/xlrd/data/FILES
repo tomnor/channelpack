@@ -1,0 +1,28 @@
+The following files were copied from the xlrd project directory
+xlrd/tests in a checkout of commit
+d470bc9374ee3a1cf149c2bab0684e63c1dcc575
+
+apachepoi_49609.xlsx
+apachepoi_52348.xlsx
+biff4_no_format_no_window2.xls
+corrupted_error.xls
+err_cell_empty.xlsx
+Formate.xls
+formula_test_names.xls
+formula_test_sjmachin.xls
+issue150.xlsx
+issue20.xls
+merged_cells.xlsx
+namesdemo.xls
+picture_in_cell.xls
+profiles.xls
+ragged.xls
+reveng1.xlsx
+self_evaluation_report_2014-05-19.xlsx
+sharedstrings_alt_location.xlsx
+test_comments_excel_sheet2.xlsx
+test_comments_excel.xlsx
+test_comments_gdocs.xlsx
+test_lower_case_cellnames.xlsx
+text_bar.xlsx
+xf_class.xls
