@@ -59,12 +59,13 @@ support can be read here
 
 https://groups.google.com/g/python-excel/c/IRa8IWq_4zk/m/Af8-hrRnAgAJ
 
-One issue alleged was that `defusedxml`__ don't work well with python
-3.9. The linked defusedxml project readme discuss the vulnerabilities
-with xml files it addresses. Those vulnerabilities are also discussed
-in the Python docs `here`__ and in a thread on the python bug tracker,
-"`XML vulnerabilities in Python`__", discussing if it should be
-addressed by Python xml libraries.
+One issue alleged was that `defusedxml`__ and xlrd as a combination
+don't work well with python 3.9. The linked defusedxml project readme
+discuss the vulnerabilities with xml files it addresses. Those
+vulnerabilities are also discussed in the Python docs `here`__ and in
+a thread on the python bug tracker, "`XML vulnerabilities in
+Python`__", discussing if it should be addressed by Python xml
+libraries.
 
 __ https://pypi.org/project/defusedxml
 __ https://docs.python.org/3/library/xml.html#xml-vulnerabilities
