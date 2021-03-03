@@ -23,20 +23,7 @@ from .formatting import XF, Format, is_date_format_string
 from .sheet import Sheet
 from .timemachine import *
 
-DEBUG = 0
-
 DLF = sys.stdout # Default Log File
-
-
-def ensure_elementtree_imported(verbosity, logfile):
-
-    if verbosity:
-        etree_version = repr([
-            (item, getattr(ET, item))
-            for item in ET.__dict__.keys()
-            if item.lower().replace('_', '') == 'version'
-        ])
-        print(ET.__file__, ET.__name__, etree_version, file=logfile)
 
 
 def split_tag(tag):
@@ -760,7 +747,12 @@ def open_workbook_2007_xml(zf,
                            formatting_info=0,
                            on_demand=0,
                            ragged_rows=0):
-    ensure_elementtree_imported(verbosity, logfile)
+    if verbosity:
+        try:
+            print(ET.__file__, ET.__name__, ET.VERSION, file=logfile)
+        except AttributeError:  # defusedxml
+            print(ET.__file__, ET.__name__, '--', file=logfile)
+
     bk = Book()
     bk.logfile = logfile
     bk.verbosity = verbosity
