@@ -27,18 +27,8 @@ DEBUG = 0
 
 DLF = sys.stdout # Default Log File
 
-ET_has_iterparse = False
 
 def ensure_elementtree_imported(verbosity, logfile):
-    global ET_has_iterparse
-
-    if hasattr(ET, 'iterparse'):
-        _dummy_stream = BYTES_IO(b'')
-        try:
-            ET.iterparse(_dummy_stream)
-            ET_has_iterparse = True
-        except NotImplementedError:
-            pass
 
     if verbosity:
         etree_version = repr([
@@ -46,7 +36,8 @@ def ensure_elementtree_imported(verbosity, logfile):
             for item in ET.__dict__.keys()
             if item.lower().replace('_', '') == 'version'
         ])
-        print(ET.__file__, ET.__name__, etree_version, ET_has_iterparse, file=logfile)
+        print(ET.__file__, ET.__name__, etree_version, file=logfile)
+
 
 def split_tag(tag):
     pos = tag.rfind('}') + 1
@@ -408,10 +399,7 @@ class X12SST(X12General):
         self.bk = bk
         self.logfile = logfile
         self.verbosity = verbosity
-        if ET_has_iterparse:
-            self.process_stream = self.process_stream_iterparse
-        else:
-            self.process_stream = self.process_stream_findall
+        self.process_stream = self.process_stream_iterparse
 
     def process_stream_iterparse(self, stream, heading=None):
         if self.verbosity >= 2 and heading is not None:
@@ -521,8 +509,7 @@ class X12Sheet(X12General):
         self.merged_cells = sheet.merged_cells
         self.warned_no_cell_name = 0
         self.warned_no_row_num = 0
-        if ET_has_iterparse:
-            self.process_stream = self.own_process_stream
+        self.process_stream = self.own_process_stream
 
     def own_process_stream(self, stream, heading=None):
         if self.verbosity >= 2 and heading is not None:
