@@ -9,6 +9,11 @@ import re
 import sys
 from os.path import join, normpath
 
+try:
+    import defusedxml.ElementTree as ET
+except ImportError:
+    import xml.etree.ElementTree as ET
+
 from .biffh import (
     XL_CELL_BLANK, XL_CELL_BOOLEAN, XL_CELL_ERROR, XL_CELL_TEXT, XLRDError,
     error_text_from_code,
@@ -20,34 +25,13 @@ from .timemachine import *
 
 DEBUG = 0
 
-
 DLF = sys.stdout # Default Log File
 
-ET = None
 ET_has_iterparse = False
 
 def ensure_elementtree_imported(verbosity, logfile):
-    global ET, ET_has_iterparse
-    if ET is not None:
-        return
-    if "IronPython" in sys.version:
-        import xml.etree.ElementTree as ET
-        #### 2.7.2.1: fails later with
-        #### NotImplementedError: iterparse is not supported on IronPython. (CP #31923)
-    else:
-        try: import defusedxml.cElementTree as ET
-        except ImportError:
-            try: import xml.etree.cElementTree as ET
-            except ImportError:
-                try: import cElementTree as ET
-                except ImportError:
-                    try: import lxml.etree as ET
-                    except ImportError:
-                        try: import xml.etree.ElementTree as ET
-                        except ImportError:
-                            try: import elementtree.ElementTree as ET
-                            except ImportError:
-                                raise Exception("Failed to import an ElementTree implementation")
+    global ET_has_iterparse
+
     if hasattr(ET, 'iterparse'):
         _dummy_stream = BYTES_IO(b'')
         try:
