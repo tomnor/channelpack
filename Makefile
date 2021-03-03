@@ -13,7 +13,7 @@ TAGRX4 := '/[ \t]*from +[^ \t]+ +import +\([^ \t]+\)/\1/'
 TAGRX5 := '/[ \t]*def \([^ \t]\)'
 
 tags : TAGS
-TAGS : *.py */*.py
+TAGS : *.py */*.py channelpack/xlrd/*.py tests/xlrd/*.py
 	etags --regex=$(TAGRX1) --regex=$(TAGRX2) --regex=$(TAGRX3) \
 	      --regex=$(TAGRX4) $^
 
