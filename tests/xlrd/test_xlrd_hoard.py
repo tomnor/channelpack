@@ -30,6 +30,11 @@ import shutil
 import tempfile
 import types
 from datetime import datetime
+import importlib
+
+# numpy is not required by xlrd but gets imported when importing xlrd
+# from channelpack. Mock numpy
+sys.modules['numpy'] = importlib.import_module('numpy_mock')
 
 parpardir = os.path.abspath(os.path.join(os.path.dirname(__file__),
                                          os.pardir, os.pardir))
@@ -44,8 +49,10 @@ from channelpack.xlrd.timemachine import UNICODE_LITERAL
 from channelpack.xlrd.biffh import XL_CELL_TEXT
 from channelpack.xlrd import xldate
 from channelpack.xlrd.timemachine import xrange
+from channelpack.xlrd import xlsx
 
 print('Testing xlrd package:', xlrd)
+print('Testing xlrd with', xlsx.ET)
 
 
 def datafile(filename):
