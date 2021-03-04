@@ -11,8 +11,16 @@ ChannelPack object
 ==================
 
 .. autoclass:: channelpack.ChannelPack
-    :special-members: __init__, __call__
-    :members:
+
+    .. automethod:: __init__
+    .. automethod:: __call__
+    .. automethod:: append_pack
+    .. automethod:: mask_reset
+    .. automethod:: duration
+    .. automethod:: startstop
+    .. automethod:: parts
+    .. automethod:: records
+    .. automethod:: name
 
 
 Functions to get a pack from data files
