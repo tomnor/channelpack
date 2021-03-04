@@ -52,12 +52,11 @@ uninstall:
 	pip uninstall channelpack
 
 clean:
-	rm -f channelpack/*.pyc
-	rm -f tests/*.pyc
-	rm -f *.pyc
+	rm -f *.pyc */*.pyc */*/*.pyc
+	rm -rf */__pycache__ */*/__pycache__
 	rm -rf build *.egg-info dist
 	rm -rf channelpack-[0-9]*
 	rm -rf .coverage tests/.coverage tests/htmlcov
 	rm -f *.html
 
-.PHONY: tests doc sdist release install uninstall clean
+.PHONY: test doc sdist release install uninstall clean

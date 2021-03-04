@@ -3,6 +3,9 @@
 # This module is part of the xlrd package, which is released under a BSD-style licence.
 ##
 
+# Modified by channelpack
+# Copyright (C) 2021 Tomas Nordin
+
 from __future__ import print_function, unicode_literals
 
 import re

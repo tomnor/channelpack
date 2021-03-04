@@ -1,3 +1,15 @@
+**0.7.0 (2021-03-xx)**
+
+* Inclusion of files from the xlrd project from a checkout before
+  version 2.0.0 to continue support for xlsx files. Not dependent on
+  xlrd project any more.
+
+* A 'mindur' attribute in the ChannelPack object with the same effect
+  as the 'duration' method but with a persistent effect, applied
+  automatically when the mask is renewed.
+
+* Documentation updates.
+
 **0.6.2 (2020-10-10)**
 
 * Bugfix of function _slicelist() in pack.py:Channelpack being called
