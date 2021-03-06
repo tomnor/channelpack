@@ -10,12 +10,11 @@ try:
 except ImportError:
     from itertools import izip_longest as zip_longest
 
-import xlrd
-
 pardir = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
 sys.path.insert(0, pardir)
 
 import channelpack.readxl as rxl
+from channelpack import xlrd
 
 print('Testing readxl module:', rxl)
 print('Testing with', unittest)
