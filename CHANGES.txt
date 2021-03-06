@@ -1,4 +1,4 @@
-**0.7.0 (2021-03-xx)**
+**0.7.0 (2021-03-06)**
 
 * Inclusion of files from the xlrd project from a checkout before
   version 2.0.0 to continue support for xlsx files. Not dependent on
@@ -9,6 +9,9 @@
   automatically when the mask is renewed.
 
 * Documentation updates.
+
+* Note about the xlrd code under the Spread sheet section in API
+  reference docs.
 
 **0.6.2 (2020-10-10)**
 
