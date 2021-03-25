@@ -23,5 +23,9 @@ from channelpack.pack import ChannelPack
 from channelpack.readtext import textpack, lazy_textpack
 from channelpack.dbf import dbfpack
 from channelpack.readxl import sheetpack
+try:
+    from channelpack.readdwdat import dwfullpack, dwreducedpack
+except ImportError:
+    dwfullpack, dwreducedpack = None, None
 
-__version__ = '0.7.0'
+__version__ = '0.8.0'

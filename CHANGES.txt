@@ -1,3 +1,7 @@
+**0.8.0 (2021-xx)**
+
+* Optional support for reading Dewesoft data files, requires dwdat2py.
+
 **0.7.0 (2021-03-06)**
 
 * Inclusion of files from the xlrd project from a checkout before
