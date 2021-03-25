@@ -93,3 +93,16 @@ Xbase DBF format
 Legacy kind of data base format:
 
 .. autofunction:: channelpack.dbfpack
+
+
+Dewesoft data files
+-------------------
+
+Optional support for reading Dewesoft data files. Requires `dwdat2py`__
+which must be installed separately.
+
+.. autofunction:: channelpack.dwfullpack
+
+.. autofunction:: channelpack.dwreducedpack
+
+__ http://github.com/tomnor/dwdat2py

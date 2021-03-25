@@ -177,6 +177,16 @@ Legacy kind of data base format.
 
 :func:`~channelpack.dbfpack`
 
+Dewesoft data files
+-------------------
+
+Optional support for reading Dewesoft data files. Requires
+`dwdat2py`__ which must be installed separately.
+
+:func:`~channelpack.dwfullpack`, :func:`~channelpack.dwreducedpack`
+
+__ http://github.com/tomnor/dwdat2py
+
 Normal File Format (.NORM)
 --------------------------
 
