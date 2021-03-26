@@ -10,6 +10,8 @@ import channelpack as cp
 def dwfullpack(dwfile, channels=None):
     """Return a ChannelPack instance for `dwfile`.
 
+    Ignore channels with array_size > 1.
+
     One time sequence is added to the pack on key 0, with the name
     Time-<channelname>. If a time sequence for another channel is
     different to any time sequence already added, it is added before
